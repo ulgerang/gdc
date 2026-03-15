@@ -115,7 +115,7 @@ func (db *Database) InitSchema() error {
 		is_optional INTEGER DEFAULT 0,
 		contract_hash TEXT,
 		usage_summary TEXT,
-		FOREIGN KEY (from_node) REFERENCES nodes(id) ON DELETE CASCADE,
+		FOREIGN KEY (from_node) REFERENCES nodes(qualified_id) ON DELETE CASCADE,
 		-- Note: to_node has no FK to allow referencing not-yet-created nodes
 		UNIQUE(from_node, to_node)
 	);
@@ -129,7 +129,7 @@ func (db *Database) InitSchema() error {
 		signature TEXT,
 		return_type TEXT,
 		description TEXT,
-		FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
+		FOREIGN KEY (node_id) REFERENCES nodes(qualified_id) ON DELETE CASCADE
 	);
 
 	-- Tags table
@@ -137,7 +137,7 @@ func (db *Database) InitSchema() error {
 		node_id TEXT NOT NULL,
 		tag TEXT NOT NULL,
 		PRIMARY KEY (node_id, tag),
-		FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
+		FOREIGN KEY (node_id) REFERENCES nodes(qualified_id) ON DELETE CASCADE
 	);
 
 	-- Sync log table
@@ -160,7 +160,7 @@ func (db *Database) InitSchema() error {
 		message TEXT NOT NULL,
 		suggestion TEXT,
 		is_resolved INTEGER DEFAULT 0,
-		FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE SET NULL
+		FOREIGN KEY (node_id) REFERENCES nodes(qualified_id) ON DELETE SET NULL
 	);
 
 	-- Indexes
@@ -193,7 +193,9 @@ func (db *Database) resetDerivedTablesForLegacyNodeTypes() error {
 		return err
 	}
 
-	if strings.Contains(createSQL.String, "'function'") && strings.Contains(createSQL.String, "qualified_id") {
+	if strings.Contains(createSQL.String, "'function'") &&
+		strings.Contains(createSQL.String, "qualified_id") &&
+		!strings.Contains(createSQL.String, "REFERENCES nodes(id)") {
 		return nil
 	}
 
@@ -201,6 +203,7 @@ func (db *Database) resetDerivedTablesForLegacyNodeTypes() error {
 		DROP TABLE IF EXISTS edges;
 		DROP TABLE IF EXISTS interface_members;
 		DROP TABLE IF EXISTS tags;
+		DROP TABLE IF EXISTS validation_issues;
 		DROP TABLE IF EXISTS nodes;
 	`)
 	return err

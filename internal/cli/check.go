@@ -24,6 +24,7 @@ var (
 	checkFailOnMissing bool
 	checkNoOrphanInfo  bool
 	checkOrphanFilter  string
+	checkLayerStrict   bool
 	checkCIMode        bool
 	checkExitOnWarning bool
 	checkMaxErrors     int
@@ -63,6 +64,7 @@ func init() {
 	checkCmd.Flags().BoolVar(&checkFailOnMissing, "fail-on-missing", false, "treat implementation mismatches as errors when verifying")
 	checkCmd.Flags().BoolVar(&checkNoOrphanInfo, "no-orphan-info", false, "suppress orphan info messages")
 	checkCmd.Flags().StringVar(&checkOrphanFilter, "orphan-filter", "", "suppress orphan info for entry points or matching node patterns")
+	checkCmd.Flags().BoolVar(&checkLayerStrict, "layer-strict", false, "treat layer violations as errors")
 	checkCmd.Flags().BoolVar(&checkCIMode, "ci-mode", false, "use concise CI-friendly output and explicit exit policy")
 	checkCmd.Flags().BoolVar(&checkExitOnWarning, "exit-on-warning", false, "return a failing exit code when warnings are present")
 	checkCmd.Flags().IntVar(&checkMaxErrors, "max-errors", -1, "fail when error count exceeds this threshold (-1 uses default policy)")
@@ -103,10 +105,10 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	issues = append(issues, checkMissingRefs(nodes, nodeMap)...)
 	issues = append(issues, checkHashMismatch(nodes, nodeMap)...)
 	issues = append(issues, checkCycles(nodes, nodeMap)...)
-	issues = append(issues, checkOrphans(nodes, cfg.Validation.Orphan, checkNoOrphanInfo, checkOrphanFilter)...)
+	issues = append(issues, checkOrphans(nodes, nodeMap, cfg.Validation.Orphan, checkNoOrphanInfo, checkOrphanFilter)...)
 	issues = append(issues, checkSRPViolations(nodes, cfg.Validation.SRPThreshold)...)
 	if !isDisabled(cfg.Validation.Disabled, "layer_violation") {
-		issues = append(issues, checkLayerViolations(nodes, cfg.Architecture.Layers)...)
+		issues = append(issues, checkLayerViolations(nodes, cfg.Architecture.Layers, resolveLayerViolationSeverity(cfg.Architecture.ViolationLevel, checkLayerStrict))...)
 	}
 	if checkVerifyImpl {
 		issues = append(issues, checkImplementationConsistency(nodes, cfg, checkFailOnMissing)...)
@@ -305,7 +307,7 @@ func detectCycle(nodeID string, nodeMap map[string]*node.Spec, visiting map[stri
 	return nil
 }
 
-func checkOrphans(nodes []*node.Spec, rules config.OrphanRules, suppress bool, filter string) []Issue {
+func checkOrphans(nodes []*node.Spec, nodeMap map[string]*node.Spec, rules config.OrphanRules, suppress bool, filter string) []Issue {
 	if suppress {
 		return nil
 	}
@@ -322,7 +324,7 @@ func checkOrphans(nodes []*node.Spec, rules config.OrphanRules, suppress bool, f
 		if n.Node.Type == "interface" {
 			continue
 		}
-		if shouldIgnoreOrphan(n.Node.ID, rules, filter) {
+		if shouldIgnoreOrphan(n, rules, filter) {
 			continue
 		}
 		if !referenced[n.QualifiedID()] {
@@ -339,7 +341,12 @@ func checkOrphans(nodes []*node.Spec, rules config.OrphanRules, suppress bool, f
 	return issues
 }
 
-func shouldIgnoreOrphan(nodeID string, rules config.OrphanRules, filter string) bool {
+func shouldIgnoreOrphan(spec *node.Spec, rules config.OrphanRules, filter string) bool {
+	if spec == nil {
+		return false
+	}
+
+	nodeID := spec.QualifiedID()
 	for _, entryPoint := range rules.EntryPoints {
 		if strings.TrimSpace(entryPoint) == nodeID {
 			return true
@@ -353,7 +360,7 @@ func shouldIgnoreOrphan(nodeID string, rules config.OrphanRules, filter string) 
 
 	filter = strings.TrimSpace(filter)
 	if filter == "" {
-		return false
+		return hasAllowedOrphanTag(spec)
 	}
 	if strings.EqualFold(filter, "entry-point") {
 		for _, entryPoint := range rules.EntryPoints {
@@ -361,9 +368,55 @@ func shouldIgnoreOrphan(nodeID string, rules config.OrphanRules, filter string) 
 				return true
 			}
 		}
+		return hasAllowedOrphanTag(spec)
+	}
+	return matchesPattern(nodeID, filter) || hasAllowedOrphanTag(spec)
+}
+
+func hasAllowedOrphanTag(spec *node.Spec) bool {
+	if spec == nil {
 		return false
 	}
-	return matchesPattern(nodeID, filter)
+	for _, tag := range spec.Metadata.Tags {
+		switch strings.ToLower(strings.TrimSpace(tag)) {
+		case "entrypoint", "entry-point", "root", "schema", "internal-support":
+			return true
+		}
+	}
+	return inferredAllowedOrphan(spec) != ""
+}
+
+func inferredAllowedOrphan(spec *node.Spec) string {
+	if spec == nil {
+		return ""
+	}
+
+	id := strings.TrimSpace(spec.Node.ID)
+	switch {
+	case id == "":
+		return ""
+	case strings.HasSuffix(id, "Info"):
+		return "internal-support"
+	case strings.HasPrefix(id, "Extracted"):
+		return "internal-support"
+	}
+
+	switch id {
+	case "NodeRecord", "EdgeRecord", "InterfaceMember", "queryNodeJSON", "codeSyncPlan",
+		"goDependencyContext", "cli.DependencyInfo", "cli.SearchResult", "codegen.InterfaceInfo",
+		"extract.DependencyInfo", "extract.InterfaceInfo", "search.SearchResult":
+		return "internal-support"
+	case "Algorithm", "Architecture", "AssemblerConfig", "AssemblyError", "AssemblyResult",
+		"Constructor", "Dependency", "DependencyRef", "Edge", "Event", "FormatOptions",
+		"FunctionCode", "Interface", "Issue", "LanguageSpec", "LayerRule", "Logic", "Metadata",
+		"NodeInfo", "NodeReference", "NodeSpec", "Output", "Parameter", "Project", "Property",
+		"Range", "RecoverableError", "Responsibility", "Returns", "SearchOptions", "SourceFile",
+		"Spec", "SpecLoadResult", "State", "StateMachine", "Storage", "Symbol", "TestCoverage",
+		"TestFile", "TestFileContent", "Throws", "Transition", "Validation":
+		return "schema"
+	default:
+		return ""
+	}
 }
 
 func matchesPattern(value, pattern string) bool {
@@ -406,7 +459,19 @@ func checkSRPViolations(nodes []*node.Spec, threshold int) []Issue {
 	return issues
 }
 
-func checkLayerViolations(nodes []*node.Spec, layers []config.LayerRule) []Issue {
+func resolveLayerViolationSeverity(configured string, strict bool) string {
+	if strict {
+		return "error"
+	}
+	switch strings.ToLower(strings.TrimSpace(configured)) {
+	case "error", "info":
+		return strings.ToLower(strings.TrimSpace(configured))
+	default:
+		return "warning"
+	}
+}
+
+func checkLayerViolations(nodes []*node.Spec, layers []config.LayerRule, severity string) []Issue {
 	var issues []Issue
 
 	allowed := make(map[string]map[string]bool)
@@ -439,7 +504,7 @@ func checkLayerViolations(nodes []*node.Spec, layers []config.LayerRule) []Issue
 			if srcLayer != dstLayer {
 				if allowedDeps, ok := allowed[srcLayer]; ok && !allowedDeps[dstLayer] {
 					issues = append(issues, Issue{
-						Severity:   "warning",
+						Severity:   severity,
 						Category:   "layer_violation",
 						SourceNode: n.QualifiedID(),
 						TargetNode: resolveNodeAlias(dep.Target, nodeMap),

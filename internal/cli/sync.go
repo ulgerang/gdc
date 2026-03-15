@@ -3,6 +3,7 @@ package cli
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,9 +25,14 @@ var (
 	syncSource        string
 	syncAutoStatus    bool
 	syncMerge         bool
+	syncStrategy      string
+	syncConflictLog   string
 	syncNoDocWarnings bool
 	syncDocThreshold  int
 	syncLogMapping    string
+	syncTiming        bool
+	syncProfile       bool
+	syncProfileOutput string
 	syncFiles         []string
 	syncDirs          []string
 	syncSymbols       []string
@@ -57,13 +63,18 @@ Examples:
 func init() {
 	syncCmd.Flags().BoolVarP(&syncDryRun, "dry-run", "n", false, "preview changes without applying")
 	syncCmd.Flags().BoolVar(&syncForce, "force", false, "force full resync")
-	syncCmd.Flags().StringVarP(&syncDirection, "direction", "d", "yaml", "sync direction (yaml, code)")
+	syncCmd.Flags().StringVarP(&syncDirection, "direction", "d", "yaml", "sync direction (yaml, code, both, spec)")
 	syncCmd.Flags().StringVarP(&syncSource, "source", "s", "", "source directory for code extraction")
 	syncCmd.Flags().BoolVar(&syncAutoStatus, "auto-status", false, "set code-synced nodes with file paths to implemented")
 	syncCmd.Flags().BoolVar(&syncMerge, "merge", true, "merge extracted signatures into existing specs, preserving authored descriptions")
+	syncCmd.Flags().StringVar(&syncStrategy, "strategy", "code-first", "sync strategy for --direction both (code-first, spec-first, merge)")
+	syncCmd.Flags().StringVar(&syncConflictLog, "conflict-log", "", "write drift/conflict summaries detected during code sync to a log file")
 	syncCmd.Flags().BoolVar(&syncNoDocWarnings, "no-doc-warnings", false, "suppress missing documentation warnings during code sync")
 	syncCmd.Flags().IntVar(&syncDocThreshold, "doc-threshold", 1, "only show documentation warnings when missing member count reaches this threshold")
 	syncCmd.Flags().StringVar(&syncLogMapping, "log-mapping", "", "write source-to-node mapping details to a log file")
+	syncCmd.Flags().BoolVar(&syncTiming, "timing", false, "print sync timing metrics")
+	syncCmd.Flags().BoolVar(&syncProfile, "profile", false, "write a JSON sync profile report")
+	syncCmd.Flags().StringVar(&syncProfileOutput, "profile-output", "", "output path for --profile (default: .gdc/sync-profile.json)")
 	syncCmd.Flags().StringSliceVar(&syncFiles, "files", nil, "limit sync to specific files")
 	syncCmd.Flags().StringSliceVar(&syncDirs, "dirs", nil, "limit sync to specific directories")
 	syncCmd.Flags().StringSliceVar(&syncSymbols, "symbols", nil, "limit sync to specific symbols")
@@ -79,11 +90,22 @@ func runSync(cmd *cobra.Command, args []string) error {
 	dbPath := cfg.DatabasePath()
 	scope := newSyncScope(cfg, syncFiles, syncDirs, syncSymbols)
 
-	// Handle code direction
-	if syncDirection == "code" {
+	switch strings.ToLower(strings.TrimSpace(syncDirection)) {
+	case "code":
 		return runSyncFromCode(cfg, nodesDir, scope)
+	case "both":
+		return runSyncBoth(cfg, nodesDir, dbPath, scope)
+	case "yaml", "":
+		return runSyncToDB(cfg, nodesDir, dbPath, scope)
+	case "spec":
+		return fmt.Errorf("sync --direction spec is not implemented yet")
+	default:
+		return fmt.Errorf("unknown sync direction: %s", syncDirection)
 	}
+}
 
+func runSyncToDB(cfg *config.Config, nodesDir, dbPath string, scope *syncScope) error {
+	startedAt := time.Now()
 	if !quiet {
 		fmt.Println("Scanning for changes...")
 	}
@@ -187,6 +209,24 @@ func runSync(cmd *cobra.Command, args []string) error {
 		}
 		printSuccess("%s: %d created, %d updated, %d deleted",
 			action, created, updated, deleted)
+	}
+
+	report := syncProfileReport{
+		Direction:    "yaml",
+		Strategy:     normalizedSyncStrategy(syncStrategy),
+		StartedAt:    startedAt,
+		FinishedAt:   time.Now(),
+		NodesScanned: len(nodes),
+		Created:      created,
+		Updated:      updated,
+		Deleted:      deleted,
+		Phases: map[string]time.Duration{
+			"total": time.Since(startedAt),
+		},
+	}
+	printSyncTiming(report)
+	if err := writeSyncProfileReport(cfg, report); err != nil && !quiet {
+		printWarning("Failed to write sync profile: %v", err)
 	}
 
 	return nil
@@ -336,8 +376,72 @@ func fileExists(path string) bool {
 	return err == nil
 }
 
+type syncProfileReport struct {
+	Direction     string                   `json:"direction"`
+	Strategy      string                   `json:"strategy,omitempty"`
+	StartedAt     time.Time                `json:"started_at"`
+	FinishedAt    time.Time                `json:"finished_at"`
+	NodesScanned  int                      `json:"nodes_scanned,omitempty"`
+	SourceFiles   int                      `json:"source_files,omitempty"`
+	Extracted     int                      `json:"extracted,omitempty"`
+	Created       int                      `json:"created"`
+	Updated       int                      `json:"updated"`
+	Deleted       int                      `json:"deleted"`
+	Skipped       int                      `json:"skipped,omitempty"`
+	Conflicts     int                      `json:"conflicts,omitempty"`
+	Phases        map[string]time.Duration `json:"-"`
+	PhaseMillis   map[string]int64         `json:"phases_ms,omitempty"`
+	DurationMilli int64                    `json:"duration_ms"`
+}
+
+func runSyncBoth(cfg *config.Config, nodesDir, dbPath string, scope *syncScope) error {
+	strategy := normalizedSyncStrategy(syncStrategy)
+	switch strategy {
+	case "code-first", "spec-first", "merge":
+	default:
+		return fmt.Errorf("unknown sync strategy: %s", syncStrategy)
+	}
+
+	originalMerge := syncMerge
+	if strategy == "merge" {
+		syncMerge = true
+		defer func() { syncMerge = originalMerge }()
+	}
+
+	switch strategy {
+	case "spec-first":
+		if err := runSyncToDB(cfg, nodesDir, dbPath, scope); err != nil {
+			return err
+		}
+		if err := runSyncFromCode(cfg, nodesDir, scope); err != nil {
+			return err
+		}
+		return runSyncToDB(cfg, nodesDir, dbPath, scope)
+	default:
+		if err := runSyncFromCode(cfg, nodesDir, scope); err != nil {
+			return err
+		}
+		return runSyncToDB(cfg, nodesDir, dbPath, scope)
+	}
+}
+
+func normalizedSyncStrategy(strategy string) string {
+	switch strings.ToLower(strings.TrimSpace(strategy)) {
+	case "", "code-first", "code-wins", "code":
+		return "code-first"
+	case "spec-first", "spec-wins", "spec":
+		return "spec-first"
+	case "merge", "merge-prompt":
+		return "merge"
+	default:
+		return strings.ToLower(strings.TrimSpace(strategy))
+	}
+}
+
 // runSyncFromCode extracts interfaces from source code and updates YAML specs
 func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) error {
+	startedAt := time.Now()
+	phaseStarted := startedAt
 	if !quiet {
 		fmt.Println("Extracting interfaces from source code...")
 	}
@@ -408,6 +512,7 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 	if err != nil {
 		return fmt.Errorf("failed to scan source directory: %w", err)
 	}
+	scanDuration := time.Since(phaseStarted)
 
 	sourceFiles = append(sourceFiles, collectExplicitSourceScopeFiles(cfg, sourceDir, extensions)...)
 	sourceFiles = dedupeStrings(sourceFiles)
@@ -434,6 +539,7 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 
 	var skipped int
 	allExtracted := make([]*parser.ExtractedNode, 0)
+	phaseStarted = time.Now()
 
 	// Process each source file
 	for _, filePath := range sourceFiles {
@@ -452,6 +558,7 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 
 		allExtracted = append(allExtracted, extractedNodes...)
 	}
+	parseDuration := time.Since(phaseStarted)
 
 	if scope.active() {
 		allExtracted = filterExtractedNodesByScope(allExtracted, scope)
@@ -461,12 +568,16 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 		}
 	}
 
+	phaseStarted = time.Now()
 	plans := buildCodeSyncPlans(sourceDir, nodesDir, existingNodes, allExtracted)
 	dependencyAliasMap := buildCanonicalDependencyAliasMap(existingNodes, plans)
+	conflictLines := collectCodeSyncConflicts(plans, dependencyAliasMap)
+	planDuration := time.Since(phaseStarted)
 
 	var created, updated, deleted int
 	deletedPaths := make(map[string]bool)
 	var mappingLines []string
+	phaseStarted = time.Now()
 
 	for _, plan := range plans {
 		baseSpec := plan.ExistingSpec
@@ -541,6 +652,15 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 		}
 	}
 
+	writeDuration := time.Since(phaseStarted)
+
+	if err := writeSyncMappingLog(cfg, mappingLines); err != nil && !quiet {
+		printWarning("Failed to write sync mapping log: %v", err)
+	}
+	if err := writeSyncConflictLog(cfg, conflictLines); err != nil && !quiet {
+		printWarning("Failed to write sync conflict log: %v", err)
+	}
+
 	// Summary
 	fmt.Println()
 	if created == 0 && updated == 0 && deleted == 0 {
@@ -551,6 +671,32 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 			action = "Would sync"
 		}
 		printSuccess("%s: %d created, %d updated, %d deleted, %d skipped", action, created, updated, deleted, skipped)
+	}
+
+	report := syncProfileReport{
+		Direction:    "code",
+		Strategy:     normalizedSyncStrategy(syncStrategy),
+		StartedAt:    startedAt,
+		FinishedAt:   time.Now(),
+		NodesScanned: len(plans),
+		SourceFiles:  len(sourceFiles),
+		Extracted:    len(allExtracted),
+		Created:      created,
+		Updated:      updated,
+		Deleted:      deleted,
+		Skipped:      skipped,
+		Conflicts:    len(conflictLines),
+		Phases: map[string]time.Duration{
+			"scan":  scanDuration,
+			"parse": parseDuration,
+			"plan":  planDuration,
+			"write": writeDuration,
+			"total": time.Since(startedAt),
+		},
+	}
+	printSyncTiming(report)
+	if err := writeSyncProfileReport(cfg, report); err != nil && !quiet {
+		printWarning("Failed to write sync profile: %v", err)
 	}
 
 	return nil
@@ -1004,6 +1150,139 @@ func writeSyncMappingLog(cfg *config.Config, lines []string) error {
 
 	content := strings.Join(lines, "\n") + "\n"
 	return os.WriteFile(targetPath, []byte(content), 0o644)
+}
+
+func collectCodeSyncConflicts(plans []*codeSyncPlan, dependencyAliasMap map[string]string) []string {
+	lines := make([]string, 0)
+	for _, plan := range plans {
+		if plan == nil || plan.ExistingSpec == nil || plan.Extracted == nil {
+			continue
+		}
+
+		extracted := cloneExtractedNode(plan.Extracted)
+		for i := range extracted.Dependencies {
+			if canonical, ok := dependencyAliasMap[strings.TrimSpace(extracted.Dependencies[i].Target)]; ok {
+				extracted.Dependencies[i].Target = canonical
+			}
+		}
+
+		report := buildDriftReport(plan.ExistingSpec, extracted)
+		if report.isEmpty() {
+			continue
+		}
+		lines = append(lines, fmt.Sprintf("[%s] %s", normalizedSyncStrategy(syncStrategy), formatSyncConflictSummary(plan.FinalID, report)))
+	}
+	return lines
+}
+
+func formatSyncConflictSummary(nodeID string, report driftReport) string {
+	parts := make([]string, 0)
+	if len(report.MethodMismatches) > 0 {
+		parts = append(parts, fmt.Sprintf("method drift=%d", len(report.MethodMismatches)))
+	}
+	if len(report.PropertyMismatches) > 0 {
+		parts = append(parts, fmt.Sprintf("property drift=%d", len(report.PropertyMismatches)))
+	}
+	if len(report.EventMismatches) > 0 {
+		parts = append(parts, fmt.Sprintf("event drift=%d", len(report.EventMismatches)))
+	}
+	if len(report.MissingMethods)+len(report.ExtraMethods) > 0 {
+		parts = append(parts, fmt.Sprintf("methods +/-=%d/%d", len(report.MissingMethods), len(report.ExtraMethods)))
+	}
+	if len(report.MissingProperties)+len(report.ExtraProperties) > 0 {
+		parts = append(parts, fmt.Sprintf("properties +/-=%d/%d", len(report.MissingProperties), len(report.ExtraProperties)))
+	}
+	if len(report.MissingEvents)+len(report.ExtraEvents) > 0 {
+		parts = append(parts, fmt.Sprintf("events +/-=%d/%d", len(report.MissingEvents), len(report.ExtraEvents)))
+	}
+	if len(report.MissingConstructors)+len(report.ExtraConstructors) > 0 {
+		parts = append(parts, fmt.Sprintf("constructors +/-=%d/%d", len(report.MissingConstructors), len(report.ExtraConstructors)))
+	}
+	if len(report.MissingDeps)+len(report.ExtraDeps) > 0 {
+		parts = append(parts, fmt.Sprintf("deps +/-=%d/%d", len(report.MissingDeps), len(report.ExtraDeps)))
+	}
+	if len(parts) == 0 {
+		parts = append(parts, "signature drift detected")
+	}
+	return fmt.Sprintf("%s: %s", nodeID, strings.Join(parts, ", "))
+}
+
+func writeSyncConflictLog(cfg *config.Config, lines []string) error {
+	if strings.TrimSpace(syncConflictLog) == "" || len(lines) == 0 {
+		return nil
+	}
+
+	targetPath := cfg.ResolvePath(syncConflictLog)
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+		return err
+	}
+
+	content := strings.Join(lines, "\n") + "\n"
+	return os.WriteFile(targetPath, []byte(content), 0o644)
+}
+
+func printSyncTiming(report syncProfileReport) {
+	if !syncTiming || quiet {
+		return
+	}
+
+	total := report.FinishedAt.Sub(report.StartedAt)
+	if total < 0 {
+		total = 0
+	}
+	rate := 0.0
+	if total > 0 && report.NodesScanned > 0 {
+		rate = float64(report.NodesScanned) / total.Seconds()
+	}
+
+	fmt.Printf("Timing: %s sync completed in %.1fs", report.Direction, total.Seconds())
+	if rate > 0 {
+		fmt.Printf(" (%.1f nodes/sec)", rate)
+	}
+	fmt.Println()
+	if len(report.Phases) > 0 {
+		order := []string{"scan", "parse", "plan", "write", "total"}
+		parts := make([]string, 0, len(order))
+		for _, key := range order {
+			if duration, ok := report.Phases[key]; ok {
+				parts = append(parts, fmt.Sprintf("%s: %.1fs", strings.Title(key), duration.Seconds()))
+			}
+		}
+		if len(parts) > 0 {
+			fmt.Printf("  %s\n", strings.Join(parts, " | "))
+		}
+	}
+}
+
+func writeSyncProfileReport(cfg *config.Config, report syncProfileReport) error {
+	if !syncProfile {
+		return nil
+	}
+
+	report.DurationMilli = report.FinishedAt.Sub(report.StartedAt).Milliseconds()
+	if len(report.Phases) > 0 {
+		report.PhaseMillis = make(map[string]int64, len(report.Phases))
+		for phase, duration := range report.Phases {
+			report.PhaseMillis[phase] = duration.Milliseconds()
+		}
+	}
+
+	targetPath := strings.TrimSpace(syncProfileOutput)
+	if targetPath == "" {
+		targetPath = ".gdc/sync-profile.json"
+	}
+	targetPath = cfg.ResolvePath(targetPath)
+
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+		return err
+	}
+
+	data, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(targetPath, data, 0o644)
 }
 
 func shouldPromoteCodeSyncedStatus(status string) bool {

@@ -89,8 +89,9 @@ type Output struct {
 
 // Architecture configures layered architecture rules
 type Architecture struct {
-	Enabled bool        `yaml:"enabled"`
-	Layers  []LayerRule `yaml:"layers,omitempty"`
+	Enabled        bool        `yaml:"enabled"`
+	Layers         []LayerRule `yaml:"layers,omitempty"`
+	ViolationLevel string      `yaml:"violation_level,omitempty"`
 }
 
 // LayerRule defines a layer and its dependencies

@@ -18,7 +18,7 @@ func TestCheckOrphansHonorsIgnoreRules(t *testing.T) {
 		{Node: node.NodeInfo{ID: "Worker", Type: "class"}},
 	}
 
-	issues := checkOrphans(nodes, config.OrphanRules{
+	issues := checkOrphans(nodes, buildSpecLookup(nodes), config.OrphanRules{
 		IgnorePatterns: []string{"*Manager"},
 		EntryPoints:    []string{"Bootstrap"},
 	}, false, "Main*")
@@ -185,5 +185,17 @@ func TestFormatCISummaryIncludesFailureReasons(t *testing.T) {
 	}
 	if !strings.Contains(summary, "errors present (1)") || !strings.Contains(summary, "warnings present (2)") {
 		t.Fatalf("expected breaches in summary, got %q", summary)
+	}
+}
+
+func TestResolveLayerViolationSeverityHonorsConfigAndStrict(t *testing.T) {
+	if got := resolveLayerViolationSeverity("", false); got != "warning" {
+		t.Fatalf("expected default warning severity, got %q", got)
+	}
+	if got := resolveLayerViolationSeverity("info", false); got != "info" {
+		t.Fatalf("expected info severity from config, got %q", got)
+	}
+	if got := resolveLayerViolationSeverity("warning", true); got != "error" {
+		t.Fatalf("expected strict mode to force error severity, got %q", got)
 	}
 }

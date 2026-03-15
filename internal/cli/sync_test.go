@@ -382,3 +382,75 @@ func TestWriteSyncMappingLogWritesFileWhenEnabled(t *testing.T) {
 		t.Fatalf("expected mapping content in log, got %q", string(data))
 	}
 }
+
+func TestCollectCodeSyncConflictsSummarizesDrift(t *testing.T) {
+	plans := []*codeSyncPlan{
+		{
+			FinalID: "Agent",
+			ExistingSpec: &node.Spec{
+				Node: node.NodeInfo{ID: "Agent"},
+				Interface: node.Interface{
+					Methods: []node.Method{
+						{Name: "Execute", Signature: "Execute(old) error"},
+					},
+				},
+				Dependencies: []node.Dependency{
+					{Target: "Logger"},
+				},
+			},
+			Extracted: &parser.ExtractedNode{
+				ID: "Agent",
+				Methods: []parser.ExtractedMethod{
+					{Name: "Execute", Signature: "Execute() error"},
+				},
+				Dependencies: []parser.ExtractedDependency{
+					{Target: "Tracer"},
+				},
+			},
+		},
+	}
+
+	lines := collectCodeSyncConflicts(plans, map[string]string{})
+	if len(lines) != 1 {
+		t.Fatalf("expected 1 conflict summary, got %d (%v)", len(lines), lines)
+	}
+	if !strings.Contains(lines[0], "method drift=1") || !strings.Contains(lines[0], "deps +/-=1/1") {
+		t.Fatalf("expected method and dependency drift summary, got %q", lines[0])
+	}
+}
+
+func TestWriteSyncProfileReportWritesJSONWhenEnabled(t *testing.T) {
+	projectRoot := t.TempDir()
+	cfg := &config.Config{ProjectRoot: projectRoot}
+
+	prevProfile := syncProfile
+	prevOutput := syncProfileOutput
+	t.Cleanup(func() {
+		syncProfile = prevProfile
+		syncProfileOutput = prevOutput
+	})
+
+	syncProfile = true
+	syncProfileOutput = ".gdc/profile.json"
+
+	report := syncProfileReport{
+		Direction:  "code",
+		StartedAt:  time.Date(2026, time.March, 15, 9, 0, 0, 0, time.UTC),
+		FinishedAt: time.Date(2026, time.March, 15, 9, 0, 2, 0, time.UTC),
+		Phases: map[string]time.Duration{
+			"scan": time.Second,
+		},
+	}
+
+	if err := writeSyncProfileReport(cfg, report); err != nil {
+		t.Fatalf("failed to write sync profile report: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(projectRoot, ".gdc", "profile.json"))
+	if err != nil {
+		t.Fatalf("failed to read sync profile report: %v", err)
+	}
+	if !strings.Contains(string(data), `"direction": "code"`) || !strings.Contains(string(data), `"scan": 1000`) {
+		t.Fatalf("expected sync profile JSON content, got %q", string(data))
+	}
+}
