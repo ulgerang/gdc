@@ -180,7 +180,7 @@ func findSimilarNodes(symbol string, nodes []*node.Spec, projectRoot, nodesDir s
 			}
 
 			suggestion := querySuggestion{
-				CanonicalID: spec.Node.ID,
+				CanonicalID: spec.QualifiedID(),
 				MatchedBy:   alias.label,
 				MatchedValue: alias.value,
 				score:       score,
@@ -419,7 +419,7 @@ func outputQueryText(match *queryMatch, allNodes []*node.Spec, verbose bool) {
 		bold.Println("Metadata:")
 		fmt.Printf("  Created: %s\n", spec.Metadata.Created)
 		fmt.Printf("  Updated: %s\n", spec.Metadata.Updated)
-		if refNames := findReferences(spec.Node.ID, allNodes); len(refNames) > 0 {
+		if refNames := findReferences(spec.QualifiedID(), allNodes); len(refNames) > 0 {
 			fmt.Printf("  Referenced By: %s\n", strings.Join(refNames, ", "))
 		}
 		if len(spec.Metadata.Tags) > 0 {
@@ -552,9 +552,9 @@ func evaluateQueryMatch(symbol, normalizedSymbol, normalizedPathSymbol string, s
 
 		match := &queryMatch{
 			Spec:           spec,
-			CanonicalID:    spec.Node.ID,
+			CanonicalID:    spec.QualifiedID(),
 			QualifiedName:  qualifiedNodeName(spec),
-			SpecPath:       filepath.Join(nodesDir, spec.Node.ID+".yaml"),
+			SpecPath:       querySpecPath(spec, nodesDir),
 			ImplPath:       spec.Node.FilePath,
 			MatchedBy:      matchedBy,
 			MatchedValue:   alias.value,
@@ -668,10 +668,20 @@ func queryAliasWeight(label string) int {
 }
 
 func qualifiedNodeName(spec *node.Spec) string {
-	if spec == nil || spec.Node.Namespace == "" {
+	if spec == nil {
 		return ""
 	}
-	return spec.Node.Namespace + "." + spec.Node.ID
+	return spec.QualifiedID()
+}
+
+func querySpecPath(spec *node.Spec, nodesDir string) string {
+	if spec == nil {
+		return ""
+	}
+	if spec.SourcePath != "" {
+		return spec.SourcePath
+	}
+	return filepath.Join(nodesDir, spec.QualifiedID()+".yaml")
 }
 
 func findSourceHints(cfg *config.Config, symbol string) []string {

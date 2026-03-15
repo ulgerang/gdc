@@ -66,10 +66,11 @@ func runTrace(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load nodes: %w", err)
 	}
 
-	// Build node map
-	nodeMap := make(map[string]*node.Spec)
-	for _, n := range allNodes {
-		nodeMap[n.Node.ID] = n
+	lookup := buildSpecLookup(allNodes)
+	nodeMap := buildCanonicalSpecMap(allNodes)
+	startNode = resolveNodeAlias(startNode, lookup)
+	if traceTo != "" {
+		traceTo = resolveNodeAlias(traceTo, lookup)
 	}
 
 	// Check if start node exists
@@ -95,13 +96,13 @@ func runTrace(cmd *cobra.Command, args []string) error {
 		// Show dependency tree
 		switch traceDirection {
 		case "up":
-			printReverseTree(startNode, nodeMap, 0, traceDepth, make(map[string]bool))
+			printReverseTree(startNode, nodeMap, allNodes, 0, traceDepth, make(map[string]bool))
 		case "both":
 			fmt.Println(color.CyanString("Dependencies (→):"))
 			printDependencyTree(startNode, nodeMap, 0, traceDepth, make(map[string]bool))
 			fmt.Println()
 			fmt.Println(color.CyanString("Referenced by (←):"))
-			printReverseTree(startNode, nodeMap, 0, traceDepth, make(map[string]bool))
+			printReverseTree(startNode, nodeMap, allNodes, 0, traceDepth, make(map[string]bool))
 		default:
 			printDependencyTree(startNode, nodeMap, 0, traceDepth, make(map[string]bool))
 		}
@@ -165,7 +166,7 @@ func printDependencyTree(nodeName string, nodeMap map[string]*node.Spec, depth i
 	}
 }
 
-func printReverseTree(nodeName string, nodeMap map[string]*node.Spec, depth int, maxDepth int, visited map[string]bool) {
+func printReverseTree(nodeName string, nodeMap map[string]*node.Spec, allNodes []*node.Spec, depth int, maxDepth int, visited map[string]bool) {
 	if maxDepth > 0 && depth > maxDepth {
 		return
 	}
@@ -184,15 +185,7 @@ func printReverseTree(nodeName string, nodeMap map[string]*node.Spec, depth int,
 	}
 
 	// Find all nodes that depend on this one
-	var refs []string
-	for _, n := range nodeMap {
-		for _, dep := range n.Dependencies {
-			if dep.Target == nodeName {
-				refs = append(refs, n.Node.ID)
-				break
-			}
-		}
-	}
+	refs := findReferences(nodeName, allNodes)
 
 	for i, ref := range refs {
 		indent := strings.Repeat("│   ", depth)
@@ -208,7 +201,7 @@ func printReverseTree(nodeName string, nodeMap map[string]*node.Spec, depth int,
 
 		fmt.Printf("%s%s %s%s\n", indent, connector, ref, nodeType)
 
-		printReverseTree(ref, nodeMap, depth+1, maxDepth, visited)
+		printReverseTree(ref, nodeMap, allNodes, depth+1, maxDepth, visited)
 	}
 }
 

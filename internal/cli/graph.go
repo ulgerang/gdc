@@ -94,7 +94,7 @@ func generateDOT(nodes []*node.Spec) string {
 	sb.WriteString("    // Nodes\n")
 	for _, n := range nodes {
 		style := getNodeStyle(n.Node.Type)
-		sb.WriteString(fmt.Sprintf("    \"%s\" [%s];\n", n.Node.ID, style))
+		sb.WriteString(fmt.Sprintf("    \"%s\" [%s];\n", n.QualifiedID(), style))
 	}
 
 	// Define subgraphs for layers
@@ -113,7 +113,7 @@ func generateDOT(nodes []*node.Spec) string {
 		sb.WriteString(fmt.Sprintf("        label=\"%s\";\n", layer))
 		sb.WriteString("        style=dashed;\n")
 		for _, n := range layerNodes {
-			sb.WriteString(fmt.Sprintf("        \"%s\";\n", n.Node.ID))
+			sb.WriteString(fmt.Sprintf("        \"%s\";\n", n.QualifiedID()))
 		}
 		sb.WriteString("    }\n")
 	}
@@ -127,7 +127,7 @@ func generateDOT(nodes []*node.Spec) string {
 				style = "dashed"
 			}
 			sb.WriteString(fmt.Sprintf("    \"%s\" -> \"%s\" [style=%s];\n",
-				n.Node.ID, dep.Target, style))
+				n.QualifiedID(), dep.Target, style))
 		}
 	}
 
@@ -178,7 +178,7 @@ func generateJSON(nodes []*node.Spec) (string, error) {
 
 	for _, n := range nodes {
 		graph.Nodes = append(graph.Nodes, Node{
-			ID:     n.Node.ID,
+			ID:     n.QualifiedID(),
 			Type:   n.Node.Type,
 			Layer:  n.Node.Layer,
 			Status: n.Metadata.Status,
@@ -187,7 +187,7 @@ func generateJSON(nodes []*node.Spec) (string, error) {
 
 		for _, dep := range n.Dependencies {
 			graph.Edges = append(graph.Edges, Edge{
-				From:     n.Node.ID,
+				From:     n.QualifiedID(),
 				To:       dep.Target,
 				Type:     dep.Type,
 				Optional: dep.Optional,
@@ -211,7 +211,7 @@ func generateMermaid(nodes []*node.Spec) string {
 	// Define nodes
 	for _, n := range nodes {
 		shape := getMermaidShape(n.Node.Type)
-		sb.WriteString(fmt.Sprintf("    %s%s%s\n", n.Node.ID, shape[0], shape[1]))
+		sb.WriteString(fmt.Sprintf("    %s%s%s\n", n.QualifiedID(), shape[0], shape[1]))
 	}
 
 	sb.WriteString("\n")
@@ -223,7 +223,7 @@ func generateMermaid(nodes []*node.Spec) string {
 			if dep.Optional {
 				arrow = "-.->"
 			}
-			sb.WriteString(fmt.Sprintf("    %s %s %s\n", n.Node.ID, arrow, dep.Target))
+			sb.WriteString(fmt.Sprintf("    %s %s %s\n", n.QualifiedID(), arrow, dep.Target))
 		}
 	}
 
@@ -235,7 +235,7 @@ func generateMermaid(nodes []*node.Spec) string {
 
 	// Apply styles
 	for _, n := range nodes {
-		sb.WriteString(fmt.Sprintf("    class %s %s\n", n.Node.ID, n.Node.Type))
+		sb.WriteString(fmt.Sprintf("    class %s %s\n", n.QualifiedID(), n.Node.Type))
 	}
 
 	sb.WriteString("```\n")

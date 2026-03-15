@@ -120,7 +120,7 @@ func runSync(cmd *cobra.Command, args []string) error {
 		if scope.active() && !scope.matchesStoredNode(n) {
 			continue
 		}
-		existingMap[n.ID] = n
+		existingMap[n.QualifiedID] = n
 	}
 
 	// Track changes
@@ -129,7 +129,8 @@ func runSync(cmd *cobra.Command, args []string) error {
 	// Process each node
 	for _, spec := range nodes {
 		specHash := calculateSpecHash(spec)
-		existing, exists := existingMap[spec.Node.ID]
+		qualifiedID := spec.QualifiedID()
+		existing, exists := existingMap[qualifiedID]
 
 		if !exists {
 			// New node
@@ -137,27 +138,27 @@ func runSync(cmd *cobra.Command, args []string) error {
 				color.Green("  + Added: %s", spec.Node.ID)
 			} else {
 				if err := syncNodeToDB(database, spec, specHash); err != nil {
-					printWarning("Failed to sync %s: %v", spec.Node.ID, err)
+					printWarning("Failed to sync %s: %v", qualifiedID, err)
 					continue
 				}
-				color.Green("  + Added: %s", spec.Node.ID)
+				color.Green("  + Added: %s", qualifiedID)
 			}
 			created++
 		} else if syncForce || existing.SpecHash != specHash {
 			// Modified node
 			if syncDryRun {
-				color.Yellow("  ⟳ Modified: %s (spec_hash changed)", spec.Node.ID)
+				color.Yellow("  ⟳ Modified: %s (spec_hash changed)", qualifiedID)
 			} else {
 				if err := syncNodeToDB(database, spec, specHash); err != nil {
-					printWarning("Failed to sync %s: %v", spec.Node.ID, err)
+					printWarning("Failed to sync %s: %v", qualifiedID, err)
 					continue
 				}
-				color.Yellow("  ⟳ Modified: %s", spec.Node.ID)
+				color.Yellow("  ⟳ Modified: %s", qualifiedID)
 			}
 			updated++
-			delete(existingMap, spec.Node.ID)
+			delete(existingMap, qualifiedID)
 		} else {
-			delete(existingMap, spec.Node.ID)
+			delete(existingMap, qualifiedID)
 		}
 	}
 
@@ -192,13 +193,16 @@ func runSync(cmd *cobra.Command, args []string) error {
 }
 
 func syncNodeToDB(database *db.Database, spec *node.Spec, specHash string) error {
+	qualifiedID := spec.QualifiedID()
+
 	// Update node record
 	record := &db.NodeRecord{
+		QualifiedID:    qualifiedID,
 		ID:             spec.Node.ID,
 		Type:           spec.Node.Type,
 		Layer:          spec.Node.Layer,
 		Namespace:      spec.Node.Namespace,
-		SpecPath:       getSpecPath(spec.Node.ID),
+		SpecPath:       getSpecPath(spec),
 		ImplPath:       spec.Node.FilePath,
 		Responsibility: spec.Responsibility.Summary,
 		Status:         spec.Metadata.Status,
@@ -212,13 +216,13 @@ func syncNodeToDB(database *db.Database, spec *node.Spec, specHash string) error
 	}
 
 	// Update edges
-	if err := database.DeleteEdgesFrom(spec.Node.ID); err != nil {
+	if err := database.DeleteEdgesFrom(qualifiedID); err != nil {
 		return err
 	}
 
 	for _, dep := range spec.Dependencies {
 		edge := &db.EdgeRecord{
-			FromNode:       spec.Node.ID,
+			FromNode:       qualifiedID,
 			ToNode:         dep.Target,
 			DependencyType: dep.Type,
 			InjectionType:  dep.Injection,
@@ -232,13 +236,13 @@ func syncNodeToDB(database *db.Database, spec *node.Spec, specHash string) error
 	}
 
 	// Update interface members
-	if err := database.DeleteInterfaceMembers(spec.Node.ID); err != nil {
+	if err := database.DeleteInterfaceMembers(qualifiedID); err != nil {
 		return err
 	}
 
 	for _, ctor := range spec.Interface.Constructors {
 		member := &db.InterfaceMember{
-			NodeID:      spec.Node.ID,
+			NodeID:      qualifiedID,
 			MemberType:  "constructor",
 			Name:        "constructor",
 			Signature:   ctor.Signature,
@@ -251,7 +255,7 @@ func syncNodeToDB(database *db.Database, spec *node.Spec, specHash string) error
 
 	for _, method := range spec.Interface.Methods {
 		member := &db.InterfaceMember{
-			NodeID:      spec.Node.ID,
+			NodeID:      qualifiedID,
 			MemberType:  "method",
 			Name:        method.Name,
 			Signature:   method.Signature,
@@ -265,7 +269,7 @@ func syncNodeToDB(database *db.Database, spec *node.Spec, specHash string) error
 
 	for _, prop := range spec.Interface.Properties {
 		member := &db.InterfaceMember{
-			NodeID:      spec.Node.ID,
+			NodeID:      qualifiedID,
 			MemberType:  "property",
 			Name:        prop.Name,
 			Signature:   fmt.Sprintf("%s { %s; }", prop.Type, prop.Access),
@@ -278,12 +282,12 @@ func syncNodeToDB(database *db.Database, spec *node.Spec, specHash string) error
 	}
 
 	// Update tags
-	if err := database.DeleteTags(spec.Node.ID); err != nil {
+	if err := database.DeleteTags(qualifiedID); err != nil {
 		return err
 	}
 
 	for _, tag := range spec.Metadata.Tags {
-		if err := database.InsertTag(spec.Node.ID, tag); err != nil {
+		if err := database.InsertTag(qualifiedID, tag); err != nil {
 			return err
 		}
 	}
@@ -312,13 +316,19 @@ func calculateSpecHash(spec *node.Spec) string {
 	return hex.EncodeToString(hash[:4]) // First 8 hex chars
 }
 
-func getSpecPath(nodeID string) string {
+func getSpecPath(spec *node.Spec) string {
+	if spec != nil && strings.TrimSpace(spec.SourcePath) != "" {
+		return spec.SourcePath
+	}
 	cfg, _ := config.Load("")
 	nodesDir := ".gdc/nodes"
 	if cfg != nil && cfg.Storage.NodesDir != "" {
 		nodesDir = cfg.Storage.NodesDir
 	}
-	return filepath.Join(nodesDir, nodeID+".yaml")
+	if spec == nil {
+		return nodesDir
+	}
+	return filepath.Join(nodesDir, spec.QualifiedID()+".yaml")
 }
 
 func fileExists(path string) bool {
@@ -452,6 +462,7 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 	}
 
 	plans := buildCodeSyncPlans(sourceDir, nodesDir, existingNodes, allExtracted)
+	dependencyAliasMap := buildCanonicalDependencyAliasMap(existingNodes, plans)
 
 	var created, updated, deleted int
 	deletedPaths := make(map[string]bool)
@@ -465,6 +476,7 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 		newSpec := plan.Extracted.ToNodeSpec(baseSpec)
 		newSpec.Node.ID = plan.FinalID
 		newSpec.Node.FilePath = plan.Extracted.FilePath
+		canonicalizeSpecDependencies(newSpec, dependencyAliasMap)
 		applyCodeSyncMetadata(newSpec, baseSpec, syncAutoStatus, time.Now())
 
 		specPath := filepath.Join(nodesDir, plan.FinalID+".yaml")
@@ -1009,6 +1021,62 @@ func extractedNodeKey(filePath, bareID string) string {
 
 func dependencyLookupKey(namespace, bareID string) string {
 	return strings.TrimSpace(namespace) + "::" + bareID
+}
+
+func buildCanonicalDependencyAliasMap(existingNodes []*node.Spec, plans []*codeSyncPlan) map[string]string {
+	counts := make(map[string]int)
+	owners := make(map[string]string)
+	addAlias := func(alias, canonical string) {
+		alias = strings.TrimSpace(alias)
+		canonical = strings.TrimSpace(canonical)
+		if alias == "" || canonical == "" {
+			return
+		}
+		counts[alias]++
+		if _, exists := owners[alias]; !exists {
+			owners[alias] = canonical
+		}
+	}
+
+	for _, spec := range existingNodes {
+		if spec == nil {
+			continue
+		}
+		canonical := spec.QualifiedID()
+		addAlias(canonical, canonical)
+		addAlias(spec.Node.ID, canonical)
+	}
+
+	for _, plan := range plans {
+		if plan == nil {
+			continue
+		}
+		addAlias(plan.FinalID, plan.FinalID)
+		addAlias(plan.BareID, plan.FinalID)
+		if plan.Extracted != nil && strings.TrimSpace(plan.Extracted.Namespace) != "" {
+			addAlias(plan.Extracted.Namespace+"."+plan.BareID, plan.FinalID)
+		}
+	}
+
+	result := make(map[string]string)
+	for alias, canonical := range owners {
+		if counts[alias] == 1 {
+			result[alias] = canonical
+		}
+	}
+	return result
+}
+
+func canonicalizeSpecDependencies(spec *node.Spec, aliasMap map[string]string) {
+	if spec == nil {
+		return
+	}
+	for i := range spec.Dependencies {
+		target := strings.TrimSpace(spec.Dependencies[i].Target)
+		if canonical, ok := aliasMap[target]; ok {
+			spec.Dependencies[i].Target = canonical
+		}
+	}
 }
 
 func normalizeSyncPath(path string) string {

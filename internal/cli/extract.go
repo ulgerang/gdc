@@ -100,10 +100,7 @@ func runExtract(cmd *cobra.Command, args []string) error {
 
 	// Load all nodes for dependency resolution
 	allNodes, _ := loadAllNodes(nodesDir)
-	nodeMap := make(map[string]*node.Spec)
-	for _, n := range allNodes {
-		nodeMap[n.Node.ID] = n
-	}
+	nodeMap := buildSpecLookup(allNodes)
 
 	// Gather dependencies
 	deps := gatherDependencies(spec, nodeMap, extractDepth)

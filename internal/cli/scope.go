@@ -93,6 +93,9 @@ func (s *syncScope) matchesStoredNode(record *db.NodeRecord) bool {
 	}
 
 	targets := []string{record.ID}
+	if record.QualifiedID != "" {
+		targets = append(targets, record.QualifiedID)
+	}
 	if record.Namespace != "" {
 		targets = append(targets, record.Namespace+"."+record.ID)
 	}
@@ -238,15 +241,16 @@ func buildNodeLookupTargets(spec *node.Spec, projectRoot, nodesDir string) []str
 		return nil
 	}
 
-	targets := []string{spec.Node.ID}
-	if spec.Node.Namespace != "" {
-		targets = append(targets, spec.Node.Namespace+"."+spec.Node.ID)
-	}
+	targets := []string{spec.Node.ID, spec.QualifiedID()}
 	if spec.Node.FilePath != "" {
 		targets = append(targets, projectPathVariants(spec.Node.FilePath, projectRoot)...)
 	}
 	if nodesDir != "" {
-		targets = append(targets, projectPathVariants(filepath.Join(nodesDir, spec.Node.ID+".yaml"), projectRoot)...)
+		specPath := spec.SourcePath
+		if specPath == "" {
+			specPath = filepath.Join(nodesDir, spec.QualifiedID()+".yaml")
+		}
+		targets = append(targets, projectPathVariants(specPath, projectRoot)...)
 	}
 
 	return dedupeStrings(targets)

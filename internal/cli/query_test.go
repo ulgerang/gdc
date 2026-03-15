@@ -30,8 +30,8 @@ func TestFindMatchingNodesSupportsQualifiedNameAndPaths(t *testing.T) {
 	if len(qualifiedMatches) != 1 {
 		t.Fatalf("expected one qualified-name match, got %d", len(qualifiedMatches))
 	}
-	if qualifiedMatches[0].CanonicalID != "PlayerController" {
-		t.Fatalf("expected canonical PlayerController, got %s", qualifiedMatches[0].CanonicalID)
+	if qualifiedMatches[0].CanonicalID != "Game.Controllers.PlayerController" {
+		t.Fatalf("expected canonical qualified ID, got %s", qualifiedMatches[0].CanonicalID)
 	}
 	if qualifiedMatches[0].MatchedBy != "exact qualified name" {
 		t.Fatalf("expected qualified-name match, got %s", qualifiedMatches[0].MatchedBy)

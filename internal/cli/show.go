@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/fatih/color"
@@ -48,15 +47,15 @@ func runShow(cmd *cobra.Command, args []string) error {
 
 	nodesDir := cfg.NodesDir()
 
-	// Load node
-	nodePath := filepath.Join(nodesDir, nodeName+".yaml")
-	spec, err := node.Load(nodePath)
-	if err != nil {
-		return fmt.Errorf("node %s not found: %w", nodeName, err)
-	}
-
 	// Load all nodes for reference lookup
-	allNodes, _ := loadAllNodes(nodesDir)
+	allNodes, err := loadAllNodes(nodesDir)
+	if err != nil {
+		return fmt.Errorf("failed to load nodes: %w", err)
+	}
+	spec := buildSpecLookup(allNodes)[nodeName]
+	if spec == nil {
+		return fmt.Errorf("node %s not found", nodeName)
+	}
 
 	if showInterface {
 		printInterfaceOnly(spec, cfg.Project.Language)
@@ -79,7 +78,7 @@ func runShow(cmd *cobra.Command, args []string) error {
 
 	// Print references if requested
 	if showRefs || showFull {
-		refs := findReferences(nodeName, allNodes)
+		refs := findReferences(spec.QualifiedID(), allNodes)
 		printReferences(refs)
 	}
 
@@ -201,10 +200,12 @@ func printDependencies(deps []node.Dependency) {
 
 func findReferences(nodeName string, allNodes []*node.Spec) []string {
 	var refs []string
+	lookup := buildSpecLookup(allNodes)
+	nodeName = resolveNodeAlias(nodeName, lookup)
 	for _, n := range allNodes {
 		for _, dep := range n.Dependencies {
-			if dep.Target == nodeName {
-				refs = append(refs, n.Node.ID)
+			if resolveNodeAlias(dep.Target, lookup) == nodeName {
+				refs = append(refs, n.QualifiedID())
 				break
 			}
 		}

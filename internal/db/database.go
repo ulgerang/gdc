@@ -18,6 +18,7 @@ type Database struct {
 
 // NodeRecord represents a node in the database
 type NodeRecord struct {
+	QualifiedID    string
 	ID             string
 	Type           string
 	Layer          string
@@ -88,7 +89,8 @@ func (db *Database) InitSchema() error {
 	schema := `
 	-- Nodes table
 	CREATE TABLE IF NOT EXISTS nodes (
-		id TEXT PRIMARY KEY,
+		qualified_id TEXT PRIMARY KEY,
+		id TEXT NOT NULL,
 		type TEXT NOT NULL CHECK(type IN ('class', 'interface', 'module', 'service', 'enum', 'function')),
 		layer TEXT,
 		namespace TEXT,
@@ -162,8 +164,10 @@ func (db *Database) InitSchema() error {
 	);
 
 	-- Indexes
+	CREATE INDEX IF NOT EXISTS idx_nodes_id ON nodes(id);
 	CREATE INDEX IF NOT EXISTS idx_nodes_type ON nodes(type);
 	CREATE INDEX IF NOT EXISTS idx_nodes_layer ON nodes(layer);
+	CREATE INDEX IF NOT EXISTS idx_nodes_namespace ON nodes(namespace);
 	CREATE INDEX IF NOT EXISTS idx_nodes_status ON nodes(status);
 	CREATE INDEX IF NOT EXISTS idx_edges_from ON edges(from_node);
 	CREATE INDEX IF NOT EXISTS idx_edges_to ON edges(to_node);
@@ -189,7 +193,7 @@ func (db *Database) resetDerivedTablesForLegacyNodeTypes() error {
 		return err
 	}
 
-	if strings.Contains(createSQL.String, "'function'") {
+	if strings.Contains(createSQL.String, "'function'") && strings.Contains(createSQL.String, "qualified_id") {
 		return nil
 	}
 
@@ -205,11 +209,11 @@ func (db *Database) resetDerivedTablesForLegacyNodeTypes() error {
 // GetAllNodes returns all nodes from the database
 func (db *Database) GetAllNodes() ([]*NodeRecord, error) {
 	rows, err := db.conn.Query(`
-		SELECT id, type, layer, namespace, spec_path, impl_path, 
+		SELECT qualified_id, id, type, layer, namespace, spec_path, impl_path, 
 			   responsibility, status, spec_hash, impl_hash, 
 			   created_at, updated_at
 		FROM nodes
-		ORDER BY id
+		ORDER BY qualified_id
 	`)
 	if err != nil {
 		return nil, err
@@ -223,7 +227,7 @@ func (db *Database) GetAllNodes() ([]*NodeRecord, error) {
 		var specHash, implHash sql.NullString
 
 		err := rows.Scan(
-			&n.ID, &n.Type, &layer, &namespace, &specPath, &implPath,
+			&n.QualifiedID, &n.ID, &n.Type, &layer, &namespace, &specPath, &implPath,
 			&responsibility, &n.Status, &specHash, &implHash,
 			&n.CreatedAt, &n.UpdatedAt,
 		)
@@ -246,18 +250,18 @@ func (db *Database) GetAllNodes() ([]*NodeRecord, error) {
 }
 
 // GetNode returns a single node by ID
-func (db *Database) GetNode(id string) (*NodeRecord, error) {
+func (db *Database) GetNode(qualifiedID string) (*NodeRecord, error) {
 	n := &NodeRecord{}
 	var layer, namespace, specPath, implPath, responsibility sql.NullString
 	var specHash, implHash sql.NullString
 
 	err := db.conn.QueryRow(`
-		SELECT id, type, layer, namespace, spec_path, impl_path,
+		SELECT qualified_id, id, type, layer, namespace, spec_path, impl_path,
 			   responsibility, status, spec_hash, impl_hash,
 			   created_at, updated_at
-		FROM nodes WHERE id = ?
-	`, id).Scan(
-		&n.ID, &n.Type, &layer, &namespace, &specPath, &implPath,
+		FROM nodes WHERE qualified_id = ?
+	`, qualifiedID).Scan(
+		&n.QualifiedID, &n.ID, &n.Type, &layer, &namespace, &specPath, &implPath,
 		&responsibility, &n.Status, &specHash, &implHash,
 		&n.CreatedAt, &n.UpdatedAt,
 	)
@@ -283,10 +287,11 @@ func (db *Database) GetNode(id string) (*NodeRecord, error) {
 // UpsertNode inserts or updates a node
 func (db *Database) UpsertNode(n *NodeRecord) error {
 	_, err := db.conn.Exec(`
-		INSERT INTO nodes (id, type, layer, namespace, spec_path, impl_path,
+		INSERT INTO nodes (qualified_id, id, type, layer, namespace, spec_path, impl_path,
 						   responsibility, status, spec_hash, impl_hash, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT(id) DO UPDATE SET
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(qualified_id) DO UPDATE SET
+			id = excluded.id,
 			type = excluded.type,
 			layer = excluded.layer,
 			namespace = excluded.namespace,
@@ -297,15 +302,15 @@ func (db *Database) UpsertNode(n *NodeRecord) error {
 			spec_hash = excluded.spec_hash,
 			impl_hash = excluded.impl_hash,
 			updated_at = excluded.updated_at
-	`, n.ID, n.Type, n.Layer, n.Namespace, n.SpecPath, n.ImplPath,
+	`, n.QualifiedID, n.ID, n.Type, n.Layer, n.Namespace, n.SpecPath, n.ImplPath,
 		n.Responsibility, n.Status, n.SpecHash, n.ImplHash, time.Now())
 
 	return err
 }
 
 // DeleteNode removes a node from the database
-func (db *Database) DeleteNode(id string) error {
-	_, err := db.conn.Exec("DELETE FROM nodes WHERE id = ?", id)
+func (db *Database) DeleteNode(qualifiedID string) error {
+	_, err := db.conn.Exec("DELETE FROM nodes WHERE qualified_id = ?", qualifiedID)
 	return err
 }
 

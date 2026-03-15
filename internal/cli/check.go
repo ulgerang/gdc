@@ -97,10 +97,7 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load nodes: %w", err)
 	}
 
-	nodeMap := make(map[string]*node.Spec)
-	for _, n := range nodes {
-		nodeMap[n.Node.ID] = n
-	}
+	nodeMap := buildSpecLookup(nodes)
 
 	var issues []Issue
 	issues = append(issues, checkMissingRefs(nodes, nodeMap)...)
@@ -216,10 +213,10 @@ func checkMissingRefs(nodes []*node.Spec, nodeMap map[string]*node.Spec) []Issue
 				issues = append(issues, Issue{
 					Severity:   "error",
 					Category:   "missing_ref",
-					SourceNode: n.Node.ID,
-					TargetNode: dep.Target,
+					SourceNode: n.QualifiedID(),
+					TargetNode: resolveNodeAlias(dep.Target, nodeMap),
 					Message:    fmt.Sprintf("%s.yaml not found", dep.Target),
-					Suggestion: fmt.Sprintf("Create the node: gdc node create %s --type %s", dep.Target, dep.Type),
+					Suggestion: fmt.Sprintf("Create the node: gdc node create %s --type %s", resolveNodeAlias(dep.Target, nodeMap), dep.Type),
 				})
 			}
 		}
@@ -247,10 +244,10 @@ func checkHashMismatch(nodes []*node.Spec, nodeMap map[string]*node.Spec) []Issu
 				issues = append(issues, Issue{
 					Severity:   "warning",
 					Category:   "hash_mismatch",
-					SourceNode: n.Node.ID,
-					TargetNode: dep.Target,
+					SourceNode: n.QualifiedID(),
+					TargetNode: resolveNodeAlias(dep.Target, nodeMap),
 					Message:    fmt.Sprintf("Expected hash %s, got %s", dep.ContractHash, currentHash),
-					Suggestion: fmt.Sprintf("%s interface has changed since last sync. Review and update contract_hash.", dep.Target),
+					Suggestion: fmt.Sprintf("%s interface has changed since last sync. Review and update contract_hash.", resolveNodeAlias(dep.Target, nodeMap)),
 				})
 			}
 		}
@@ -264,13 +261,13 @@ func checkCycles(nodes []*node.Spec, nodeMap map[string]*node.Spec) []Issue {
 
 	for _, n := range nodes {
 		visited := make(map[string]bool)
-		path := []string{n.Node.ID}
+		path := []string{n.QualifiedID()}
 
-		if cycle := detectCycle(n.Node.ID, nodeMap, visited, path); cycle != nil {
+		if cycle := detectCycle(n.QualifiedID(), nodeMap, visited, path); cycle != nil {
 			issues = append(issues, Issue{
 				Severity:   "error",
 				Category:   "cycle",
-				SourceNode: n.Node.ID,
+				SourceNode: n.QualifiedID(),
 				Message:    fmt.Sprintf("Circular dependency: %s", strings.Join(cycle, " -> ")),
 				Suggestion: "Refactor to break the circular dependency",
 			})
@@ -317,7 +314,7 @@ func checkOrphans(nodes []*node.Spec, rules config.OrphanRules, suppress bool, f
 	referenced := make(map[string]bool)
 	for _, n := range nodes {
 		for _, dep := range n.Dependencies {
-			referenced[dep.Target] = true
+			referenced[resolveNodeAlias(dep.Target, nodeMap)] = true
 		}
 	}
 
@@ -328,11 +325,11 @@ func checkOrphans(nodes []*node.Spec, rules config.OrphanRules, suppress bool, f
 		if shouldIgnoreOrphan(n.Node.ID, rules, filter) {
 			continue
 		}
-		if !referenced[n.Node.ID] {
+		if !referenced[n.QualifiedID()] {
 			issues = append(issues, Issue{
 				Severity:   "info",
 				Category:   "orphan",
-				SourceNode: n.Node.ID,
+				SourceNode: n.QualifiedID(),
 				Message:    "Not referenced by any other node",
 				Suggestion: "This node may be unused or is an entry point",
 			})
@@ -420,10 +417,7 @@ func checkLayerViolations(nodes []*node.Spec, layers []config.LayerRule) []Issue
 		}
 	}
 
-	nodeMap := make(map[string]*node.Spec)
-	for _, n := range nodes {
-		nodeMap[n.Node.ID] = n
-	}
+	nodeMap := buildSpecLookup(nodes)
 
 	for _, n := range nodes {
 		srcLayer := n.Node.Layer
@@ -447,8 +441,8 @@ func checkLayerViolations(nodes []*node.Spec, layers []config.LayerRule) []Issue
 					issues = append(issues, Issue{
 						Severity:   "warning",
 						Category:   "layer_violation",
-						SourceNode: n.Node.ID,
-						TargetNode: dep.Target,
+						SourceNode: n.QualifiedID(),
+						TargetNode: resolveNodeAlias(dep.Target, nodeMap),
 						Message:    fmt.Sprintf("%s layer cannot depend on %s layer", srcLayer, dstLayer),
 						Suggestion: "Restructure dependencies to follow layered architecture",
 					})

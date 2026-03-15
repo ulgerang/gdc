@@ -46,6 +46,7 @@ func TestInitSchemaResetsLegacyNodesTableAndAllowsFunctionType(t *testing.T) {
 	}
 
 	err = database.UpsertNode(&NodeRecord{
+		QualifiedID: "ValidateConfigOwnershipMatrix",
 		ID:        "ValidateConfigOwnershipMatrix",
 		Type:      "function",
 		Status:    "implemented",

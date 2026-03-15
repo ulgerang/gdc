@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/fatih/color"
+	"github.com/gdc-tools/gdc/internal/node"
 	"github.com/spf13/cobra"
 )
 
@@ -116,4 +117,42 @@ func exitWithError(msg string, err error) {
 		printError("%s", msg)
 	}
 	os.Exit(1)
+}
+
+func buildCanonicalSpecMap(nodes []*node.Spec) map[string]*node.Spec {
+	result := make(map[string]*node.Spec, len(nodes))
+	for _, spec := range nodes {
+		if spec == nil {
+			continue
+		}
+		result[spec.QualifiedID()] = spec
+	}
+	return result
+}
+
+func buildSpecLookup(nodes []*node.Spec) map[string]*node.Spec {
+	lookup := buildCanonicalSpecMap(nodes)
+	bareCounts := make(map[string]int, len(nodes))
+	for _, spec := range nodes {
+		if spec == nil {
+			continue
+		}
+		bareCounts[spec.Node.ID]++
+	}
+	for _, spec := range nodes {
+		if spec == nil {
+			continue
+		}
+		if bareCounts[spec.Node.ID] == 1 {
+			lookup[spec.Node.ID] = spec
+		}
+	}
+	return lookup
+}
+
+func resolveNodeAlias(id string, lookup map[string]*node.Spec) string {
+	if spec, ok := lookup[id]; ok && spec != nil {
+		return spec.QualifiedID()
+	}
+	return id
 }

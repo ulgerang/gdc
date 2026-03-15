@@ -23,6 +23,7 @@ type Spec struct {
 	Implementations []string       `yaml:"implementations,omitempty"`
 	Logic           Logic          `yaml:"logic,omitempty"`
 	Metadata        Metadata       `yaml:"metadata"`
+	SourcePath      string         `yaml:"-"`
 }
 
 // NodeInfo contains basic node identification
@@ -223,6 +224,7 @@ func Load(path string) (*Spec, error) {
 	if spec.SchemaVersion == "" {
 		spec.SchemaVersion = "1.0"
 	}
+	spec.SourcePath = path
 
 	return &spec, nil
 }
@@ -290,4 +292,18 @@ func (s *Spec) HasDependency(target string) bool {
 		}
 	}
 	return false
+}
+
+func (s *Spec) QualifiedID() string {
+	if s == nil {
+		return ""
+	}
+	return s.Node.QualifiedID()
+}
+
+func (n NodeInfo) QualifiedID() string {
+	if n.Namespace == "" {
+		return n.ID
+	}
+	return n.Namespace + "." + n.ID
 }
