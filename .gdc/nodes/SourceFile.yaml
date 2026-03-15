@@ -1,0 +1,33 @@
+schema_version: "1.0"
+node:
+    id: SourceFile
+    type: class
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Path
+          type: string
+          access: get; set
+        - name: Content
+          type: string
+          access: get; set
+        - name: Lines
+          type: int
+          access: get; set
+        - name: Language
+          type: string
+          access: get; set
+        - name: Checksum
+          type: string
+          access: get; set
+        - name: LastModified
+          type: time.Time
+          access: get; set
+metadata:
+    status: ""

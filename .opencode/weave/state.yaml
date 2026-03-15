@@ -1,0 +1,9 @@
+initialized: true
+version: "1"
+created_at: "2026-02-12"
+last_run:
+  command: "weave-spec"
+  source: "docs/CODERLM_INTEGRATION.md"
+  run_at: "2026-02-12"
+
+active_plan: "gdc-coderlm-extension"

@@ -1,0 +1,50 @@
+schema_version: "1.0"
+node:
+    id: AssemblyResult
+    type: class
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Output
+          type: string
+          access: get; set
+          description: The formatted output
+        - name: Data
+          type: '*ExtractedContext'
+          access: get; set
+          description: Structured data for programmatic access
+        - name: AssemblyTime
+          type: time.Duration
+          access: get; set
+          description: Assembly metadata
+        - name: NodeFound
+          type: bool
+          access: get; set
+        - name: ImplFound
+          type: bool
+          access: get; set
+        - name: TestsFound
+          type: int
+          access: get; set
+        - name: CallersFound
+          type: int
+          access: get; set
+        - name: DepsResolved
+          type: int
+          access: get; set
+        - name: Errors
+          type: '[]AssemblyError'
+          access: get; set
+          description: Errors encountered during assembly (non-critical)
+        - name: Warnings
+          type: '[]string'
+          access: get; set
+          description: Warnings about data quality or completeness
+metadata:
+    status: ""

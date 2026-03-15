@@ -1,0 +1,33 @@
+schema_version: "1.0"
+node:
+    id: parser.typescript_parser.TypeScriptParser
+    type: class
+    namespace: parser
+    file_path: E:\works\gdc\internal\parser\typescript_parser.go
+language_spec:
+    language: go
+    package: parser
+responsibility:
+    summary: ""
+interface:
+    constructors:
+        - signature: NewTypeScriptParser() *TypeScriptParser
+          description: NewTypeScriptParser creates a new TypeScript parser
+    methods:
+        - name: Language
+          signature: Language() string
+          description: Language returns "typescript"
+          returns:
+            type: string
+          exported: true
+        - name: ParseFile
+          signature: ParseFile(filePath string) (*ExtractedNode, error)
+          description: ParseFile parses a TypeScript source file
+          parameters:
+            - name: filePath
+              type: string
+          returns:
+            type: (*ExtractedNode, error)
+          exported: true
+metadata:
+    status: draft

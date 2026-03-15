@@ -1,0 +1,65 @@
+schema_version: "1.0"
+node:
+    id: SearchOptions
+    type: class
+    namespace: search
+    file_path: E:\works\gdc\internal\search\interface.go
+language_spec:
+    language: go
+    package: search
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: CaseSensitive
+          type: bool
+          access: get; set
+          description: |-
+            CaseSensitive determines whether the search respects case.
+            Default is false (case-insensitive).
+        - name: WholeWord
+          type: bool
+          access: get; set
+          description: |-
+            WholeWord requires matches to be bounded by word boundaries.
+            Useful for finding exact symbol names.
+        - name: Regex
+          type: bool
+          access: get; set
+          description: |-
+            Regex treats the pattern as a regular expression.
+            When false, the pattern is treated as a literal string.
+        - name: FilePattern
+          type: string
+          access: get; set
+          description: |-
+            FilePattern filters results to files matching this glob pattern.
+            Examples: "*.go", "**/*.ts", "src/**/*.java"
+            Empty string matches all files.
+        - name: MaxResults
+          type: int
+          access: get; set
+          description: |-
+            MaxResults limits the number of results returned.
+            A value of 0 or negative means unlimited.
+        - name: ContextLines
+          type: int
+          access: get; set
+          description: |-
+            ContextLines specifies the number of lines before and after
+            the match to include in SearchResult.Context.
+            A value of 0 omits context.
+        - name: ExcludePatterns
+          type: '[]string'
+          access: get; set
+          description: |-
+            ExcludePatterns specifies glob patterns for files/directories to exclude.
+            Common patterns: "vendor/*", "node_modules/*", "*.generated.*"
+        - name: IncludeHidden
+          type: bool
+          access: get; set
+          description: |-
+            IncludeHidden includes hidden files (starting with .) in search.
+            Default is false.
+metadata:
+    status: ""

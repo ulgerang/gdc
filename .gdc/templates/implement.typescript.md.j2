@@ -1,0 +1,280 @@
+{# ═══════════════════════════════════════════════════════════════════════════════
+   GDC Implementation Prompt Template - TypeScript Language
+   Version: 1.0.0
+   
+   TypeScript 언어에 최적화된 구현 요청 프롬프트를 생성합니다.
+   ═══════════════════════════════════════════════════════════════════════════════ #}
+
+# Implementation Request: {{ node.id }}
+
+## Context
+This is a structured implementation request for a **TypeScript** module.
+Implement the following according to the specification.
+Use ONLY the provided interfaces - do not assume or access any external systems not listed here.
+
+---
+
+## Target Node Specification
+
+### Basic Information
+- **Name**: `{{ node.id }}`
+- **Type**: {{ node.type }}
+{% if node.namespace %}
+- **Module Path**: `{{ node.namespace }}`
+{% endif %}
+{% if node.layer %}
+- **Layer**: {{ node.layer }}
+{% endif %}
+
+### Responsibility
+{{ node.responsibility.summary }}
+
+{% if node.responsibility.details %}
+**Details:**
+{{ node.responsibility.details | indent(4) }}
+{% endif %}
+
+{% if node.responsibility.invariants %}
+### Invariants (Must Always Hold)
+{% for inv in node.responsibility.invariants %}
+- {{ inv }}
+{% endfor %}
+{% endif %}
+
+---
+
+## Public Interface to Implement
+
+```typescript
+{% if node.type == 'interface' %}
+/**
+ * {{ node.responsibility.summary | default('Interface definition') }}
+ */
+export interface {{ node.id }} {
+{% for prop in node.interface.properties %}
+{% if prop.description %}
+  /** {{ prop.description }} */
+{% elif prop.needs_description %}
+  /** ⚠️ [NEEDS DESCRIPTION] */
+{% endif %}
+{% if prop.access == 'get' %}
+  readonly {{ prop.name | camelCase }}: {{ prop.type }};
+{% else %}
+  {{ prop.name | camelCase }}: {{ prop.type }};
+{% endif %}
+
+{% endfor %}
+{% for method in node.interface.methods %}
+{% if method.description %}
+  /**
+   * {{ method.description }}
+{% for param in method.parameters %}
+   * @param {{ param.name }} {{ param.description | default('⚠️ Needs description') }}
+{% endfor %}
+{% if method.returns and method.returns.type != 'void' %}
+   * @returns {{ method.returns.description | default('⚠️ Needs description') }}
+{% endif %}
+   */
+{% elif method.needs_description %}
+  /** ⚠️ [NEEDS DESCRIPTION] - Please document this method */
+{% endif %}
+  {{ method.name }}({% for param in method.parameters %}{{ param.name }}: {{ param.type }}{% if not loop.last %}, {% endif %}{% endfor %}): {{ method.returns.type | default('void') }};
+
+{% endfor %}
+}
+{% else %}
+{% for dep in dependencies %}
+import type { {{ dep.target }} } from './{{ dep.target | kebabCase }}';
+{% endfor %}
+
+/**
+ * {{ node.responsibility.summary | default('Class implementation') }}
+ */
+export class {{ node.id }} {
+  // Private fields for dependencies
+{% for dep in dependencies %}
+  private readonly {{ dep.field_name | default(dep.target | camelCase) }}: {{ dep.target }};
+{% endfor %}
+
+  // Properties
+{% for prop in node.interface.properties %}
+{% if prop.description %}
+  /** {{ prop.description }} */
+{% elif prop.needs_description %}
+  /** ⚠️ [NEEDS DESCRIPTION] */
+{% endif %}
+{% if prop.access == 'get' %}
+  private _{{ prop.name | camelCase }}: {{ prop.type }};
+  get {{ prop.name | camelCase }}(): {{ prop.type }} {
+    return this._{{ prop.name | camelCase }};
+  }
+{% else %}
+  public {{ prop.name | camelCase }}: {{ prop.type }};
+{% endif %}
+
+{% endfor %}
+
+{% for ctor in node.interface.constructors %}
+{% if ctor.description %}
+  /**
+   * {{ ctor.description }}
+{% for param in ctor.parameters %}
+   * @param {{ param.name }} {{ param.description | default('⚠️ Needs description') }}
+{% endfor %}
+   */
+{% elif ctor.needs_description %}
+  /** ⚠️ [NEEDS DESCRIPTION] - Please document this constructor */
+{% endif %}
+  constructor(
+{% for dep in dependencies %}
+    {{ dep.field_name | default(dep.target | camelCase) }}: {{ dep.target }},
+{% endfor %}
+{% for param in ctor.parameters %}
+    {{ param.name }}: {{ param.type }}{% if not loop.last %},{% endif %}
+
+{% endfor %}
+  ) {
+{% for dep in dependencies %}
+    this.{{ dep.field_name | default(dep.target | camelCase) }} = {{ dep.field_name | default(dep.target | camelCase) }};
+{% endfor %}
+    // TODO: Initialize properties
+  }
+{% endfor %}
+
+{% for method in node.interface.methods %}
+{% if method.description %}
+  /**
+   * {{ method.description }}
+{% for param in method.parameters %}
+   * @param {{ param.name }} {{ param.description | default('⚠️ Needs description') }}
+{% endfor %}
+{% if method.returns and method.returns.type != 'void' %}
+   * @returns {{ method.returns.description | default('⚠️ Needs description') }}
+{% endif %}
+{% for ex in method.throws %}
+   * @throws {{ ex.type }} {{ ex.condition }}
+{% endfor %}
+   */
+{% elif method.needs_description %}
+  /** ⚠️ [NEEDS DESCRIPTION] - Please document this method */
+{% endif %}
+  public {{ method.name }}({% for param in method.parameters %}{{ param.name }}: {{ param.type }}{% if not loop.last %}, {% endif %}{% endfor %}): {{ method.returns.type | default('void') }} {
+    // TODO: Implement
+    throw new Error('Not implemented');
+  }
+
+{% endfor %}
+}
+{% endif %}
+```
+
+{% if node.interface.methods %}
+### Method Specifications
+
+{% for method in node.interface.methods %}
+#### `{{ method.name }}`
+{% if method.description %}
+{{ method.description }}
+{% else %}
+⚠️ **[NEEDS DESCRIPTION]** - This method requires documentation.
+{% endif %}
+
+{% if method.parameters %}
+**Parameters:**
+{% for param in method.parameters %}
+- `{{ param.name }}` (`{{ param.type }}`): {{ param.description | default('⚠️ Needs description') }}{% if param.constraint %} [Constraint: {{ param.constraint }}]{% endif %}
+
+{% endfor %}
+{% endif %}
+{% if method.returns and method.returns.type != 'void' %}
+**Returns:** `{{ method.returns.type }}`{% if method.returns.description %} - {{ method.returns.description }}{% endif %}
+
+{% endif %}
+{% if method.throws %}
+**Throws:**
+{% for ex in method.throws %}
+- `{{ ex.type }}`: {{ ex.condition }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+---
+
+## Available Dependencies (Contracts)
+
+Use ONLY these interfaces. Do not access any other systems.
+
+{% for dep in dependencies %}
+### {{ dep.target }}{% if dep.optional %} (Optional){% endif %}
+
+**Injection**: {{ dep.injection | default('constructor') }}
+
+```typescript
+{{ dep.interface_code }}
+```
+
+{% if dep.usage %}
+**Usage Notes:**
+{{ dep.usage | indent(4) }}
+{% endif %}
+
+{% if dep.missing_descriptions %}
+⚠️ **Warning**: The following methods in this dependency need documentation:
+{% for method in dep.missing_descriptions %}
+- `{{ method }}`
+{% endfor %}
+{% endif %}
+
+---
+{% endfor %}
+
+{% if node.logic %}
+## Implementation Logic
+
+{% if node.logic.state_machine %}
+### State Machine
+
+- **Initial State**: `{{ node.logic.state_machine.initial }}`
+
+| State | Transitions |
+|-------|-------------|
+{% for state in node.logic.state_machine.states %}
+| {{ state.name }} | {% for t in state.transitions %}→ {{ t.to }} ({{ t.trigger }}){% if not loop.last %}, {% endif %}{% endfor %} |
+{% endfor %}
+
+Consider using XState or a simple state enum pattern.
+{% endif %}
+
+{% if node.logic.algorithms %}
+### Algorithms
+{% for algo in node.logic.algorithms %}
+#### {{ algo.name }}
+{{ algo.description }}
+
+{% if algo.pseudocode %}
+```
+{{ algo.pseudocode }}
+```
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+---
+
+## Implementation Guidelines for TypeScript
+
+1. **TypeScript Best Practices**: Enable strict mode. Use types over `any`.
+2. **Naming Conventions**: camelCase for variables/functions, PascalCase for classes/interfaces.
+3. **Immutability**: Prefer `readonly` for properties that shouldn't change.
+4. **Null Safety**: Use strict null checks. Prefer `undefined` over `null`.
+5. **Error Handling**: Use custom Error classes. Consider Result/Either pattern for expected failures.
+6. **Async/Await**: Return `Promise<T>` for async operations. Handle errors with try/catch.
+7. **JSDoc Comments**: Document all public APIs with JSDoc for IDE support.
+
+{% if node.metadata and node.metadata.notes %}
+## Additional Notes
+{{ node.metadata.notes }}
+{% endif %}

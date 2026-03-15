@@ -1,0 +1,64 @@
+schema_version: "1.0"
+node:
+    id: CallerResolver
+    type: interface
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: FindCallers
+          signature: FindCallers(ctx context.Context, spec *NodeSpec, maxCallers int) ([]*CallerInfo, error)
+          description: |-
+            FindCallers finds all call sites for a node's methods.
+            Returns up to maxCallers results, ordered by relevance.
+          parameters:
+            - name: ctx
+              type: context.Context
+            - name: spec
+              type: '*NodeSpec'
+            - name: maxCallers
+              type: int
+          returns:
+            type: ([]*CallerInfo, error)
+          exported: true
+        - name: FindReferences
+          signature: FindReferences(ctx context.Context, spec *NodeSpec, maxRefs int) ([]*ReferenceInfo, error)
+          description: FindReferences finds all references to the node (imports, type usage, etc.).
+          parameters:
+            - name: ctx
+              type: context.Context
+            - name: spec
+              type: '*NodeSpec'
+            - name: maxRefs
+              type: int
+          returns:
+            type: ([]*ReferenceInfo, error)
+          exported: true
+        - name: FindFunctionCallers
+          signature: FindFunctionCallers(ctx context.Context, spec *NodeSpec, functionName string, maxCallers int) ([]*CallerInfo, error)
+          description: FindFunctionCallers finds callers of a specific function.
+          parameters:
+            - name: ctx
+              type: context.Context
+            - name: spec
+              type: '*NodeSpec'
+            - name: functionName
+              type: string
+            - name: maxCallers
+              type: int
+          returns:
+            type: ([]*CallerInfo, error)
+          exported: true
+        - name: IsAvailable
+          signature: IsAvailable() bool
+          description: IsAvailable checks if caller resolution is available.
+          returns:
+            type: bool
+          exported: true
+metadata:
+    status: ""

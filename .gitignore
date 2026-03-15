@@ -1,0 +1,27 @@
+# GDC Project
+.gdc/graph.db
+.gdc/*.db-*
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Build outputs
+bin/
+obj/
+dist/
+build/
+*.exe
+gdc
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

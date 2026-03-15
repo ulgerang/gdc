@@ -1,0 +1,54 @@
+schema_version: "1.0"
+node:
+    id: ExtractedMethod
+    type: class
+    namespace: parser
+    file_path: E:\works\gdc\internal\parser\parser.go
+language_spec:
+    language: go
+    package: parser
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Name
+          type: string
+          access: get; set
+        - name: Signature
+          type: string
+          access: get; set
+        - name: Parameters
+          type: '[]ExtractedParameter'
+          access: get; set
+        - name: Returns
+          type: string
+          access: get; set
+        - name: Description
+          type: string
+          access: get; set
+          description: from doc comments
+        - name: IsPublic
+          type: bool
+          access: get; set
+        - name: Exported
+          type: bool
+          access: get; set
+          description: Language-specific fields
+        - name: Async
+          type: bool
+          access: get; set
+          description: 'TS/C#: async method'
+        - name: Static
+          type: bool
+          access: get; set
+          description: 'C#/TS: static method'
+        - name: Access
+          type: string
+          access: get; set
+          description: 'C#: public, private, internal, protected'
+        - name: Attributes
+          type: '[]string'
+          access: get; set
+          description: 'C#: method-level attributes'
+metadata:
+    status: ""

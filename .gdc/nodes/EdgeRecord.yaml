@@ -1,0 +1,39 @@
+schema_version: "1.0"
+node:
+    id: EdgeRecord
+    type: class
+    namespace: db
+    file_path: E:\works\gdc\internal\db\database.go
+language_spec:
+    language: go
+    package: db
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: ID
+          type: int64
+          access: get; set
+        - name: FromNode
+          type: string
+          access: get; set
+        - name: ToNode
+          type: string
+          access: get; set
+        - name: DependencyType
+          type: string
+          access: get; set
+        - name: InjectionType
+          type: string
+          access: get; set
+        - name: IsOptional
+          type: bool
+          access: get; set
+        - name: ContractHash
+          type: string
+          access: get; set
+        - name: UsageSummary
+          type: string
+          access: get; set
+metadata:
+    status: ""

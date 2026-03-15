@@ -1,0 +1,24 @@
+schema_version: "1.0"
+node:
+    id: TestCoverage
+    type: class
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: OverallPercent
+          type: float64
+          access: get; set
+        - name: ByFunction
+          type: map[string]float64
+          access: get; set
+        - name: LastUpdated
+          type: time.Time
+          access: get; set
+metadata:
+    status: ""

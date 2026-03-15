@@ -1,0 +1,54 @@
+schema_version: "1.0"
+node:
+    id: NodeRecord
+    type: class
+    namespace: db
+    file_path: E:\works\gdc\internal\db\database.go
+language_spec:
+    language: go
+    package: db
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: ID
+          type: string
+          access: get; set
+        - name: Type
+          type: string
+          access: get; set
+        - name: Layer
+          type: string
+          access: get; set
+        - name: Namespace
+          type: string
+          access: get; set
+        - name: SpecPath
+          type: string
+          access: get; set
+        - name: ImplPath
+          type: string
+          access: get; set
+        - name: Responsibility
+          type: string
+          access: get; set
+        - name: Status
+          type: string
+          access: get; set
+        - name: SpecHash
+          type: string
+          access: get; set
+        - name: ImplHash
+          type: string
+          access: get; set
+        - name: ContractHash
+          type: string
+          access: get; set
+        - name: CreatedAt
+          type: time.Time
+          access: get; set
+        - name: UpdatedAt
+          type: time.Time
+          access: get; set
+metadata:
+    status: ""

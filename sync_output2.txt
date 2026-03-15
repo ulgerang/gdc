@@ -1,0 +1,23 @@
+﻿Extracting interfaces from source code...
+Found 19 source files
+
+  + Created: Issue
+     ?붴? ?좑툘 6 members need documentation
+  + Created: DependencyInfo
+     ?붴? ?좑툘 7 members need documentation
+  + Created: Edge
+     ?붴? ?좑툘 4 members need documentation
+  + Created: nodeInfo
+     ?붴? ?좑툘 5 members need documentation
+  + Created: Generator
+  + Created: Config
+     ?붴? ?좑툘 10 members need documentation
+  + Created: Database
+  + Created: Spec
+     ?붴? ?좑툘 8 members need documentation
+  + Created: CSharpParser
+  + Created: GoParser
+  + Created: Parser
+  + Created: TypeScriptParser
+
+??Synced: 12 created, 0 updated, 7 skipped

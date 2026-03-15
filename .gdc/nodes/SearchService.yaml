@@ -1,0 +1,65 @@
+schema_version: "1.0"
+node:
+    id: SearchService
+    type: interface
+    namespace: search
+    file_path: E:\works\gdc\internal\search\interface.go
+language_spec:
+    language: go
+    package: search
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: Search
+          signature: Search(pattern string, opts SearchOptions) ([]SearchResult, error)
+          description: |-
+            Search searches for a pattern in the codebase.
+            The pattern interpretation depends on SearchOptions.Regex:
+            - When Regex is false: literal string match
+            - When Regex is true: regular expression match
+
+            Returns ErrInvalidPattern if the pattern is malformed.
+            Returns ErrSearchTimeout if the operation exceeds internal limits.
+            Returns ErrIndexNotBuilt if index is required but not available.
+          parameters:
+            - name: pattern
+              type: string
+            - name: opts
+              type: SearchOptions
+          returns:
+            type: ([]SearchResult, error)
+          exported: true
+        - name: SearchInFile
+          signature: SearchInFile(filePath string, pattern string, opts SearchOptions) ([]SearchResult, error)
+          description: |-
+            SearchInFile searches for a pattern within a specific file.
+            This is more efficient than filtering Search results by file path.
+          parameters:
+            - name: filePath
+              type: string
+            - name: pattern
+              type: string
+            - name: opts
+              type: SearchOptions
+          returns:
+            type: ([]SearchResult, error)
+          exported: true
+        - name: IsIndexAvailable
+          signature: IsIndexAvailable() bool
+          description: |-
+            IsIndexAvailable returns true if the code index is built and ready.
+            When false, search operations may still work using filesystem fallback.
+          returns:
+            type: bool
+          exported: true
+        - name: IndexStatus
+          signature: IndexStatus() string
+          description: |-
+            IndexStatus returns a human-readable status message about the index.
+            Useful for CLI output and debugging.
+          returns:
+            type: string
+          exported: true
+metadata:
+    status: ""

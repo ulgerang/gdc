@@ -1,0 +1,164 @@
+schema_version: "1.0"
+node:
+    id: Database
+    type: class
+    namespace: db
+    file_path: E:\works\gdc\internal\db\database.go
+language_spec:
+    language: go
+    package: db
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: Close
+          signature: Close() error
+          description: Close closes the database connection
+          returns:
+            type: error
+          exported: true
+        - name: InitSchema
+          signature: InitSchema() error
+          description: InitSchema creates the database schema
+          returns:
+            type: error
+          exported: true
+        - name: GetAllNodes
+          signature: GetAllNodes() ([]*NodeRecord, error)
+          description: GetAllNodes returns all nodes from the database
+          returns:
+            type: ([]*NodeRecord, error)
+          exported: true
+        - name: GetNode
+          signature: GetNode(id string) (*NodeRecord, error)
+          description: GetNode returns a single node by ID
+          parameters:
+            - name: id
+              type: string
+          returns:
+            type: (*NodeRecord, error)
+          exported: true
+        - name: UpsertNode
+          signature: UpsertNode(n *NodeRecord) error
+          description: UpsertNode inserts or updates a node
+          parameters:
+            - name: "n"
+              type: '*NodeRecord'
+          returns:
+            type: error
+          exported: true
+        - name: DeleteNode
+          signature: DeleteNode(id string) error
+          description: DeleteNode removes a node from the database
+          parameters:
+            - name: id
+              type: string
+          returns:
+            type: error
+          exported: true
+        - name: InsertEdge
+          signature: InsertEdge(e *EdgeRecord) error
+          description: InsertEdge inserts a dependency edge
+          parameters:
+            - name: e
+              type: '*EdgeRecord'
+          returns:
+            type: error
+          exported: true
+        - name: DeleteEdgesFrom
+          signature: DeleteEdgesFrom(nodeID string) error
+          description: DeleteEdgesFrom removes all edges from a node
+          parameters:
+            - name: nodeID
+              type: string
+          returns:
+            type: error
+          exported: true
+        - name: GetEdgesFrom
+          signature: GetEdgesFrom(nodeID string) ([]*EdgeRecord, error)
+          description: GetEdgesFrom returns all edges from a node
+          parameters:
+            - name: nodeID
+              type: string
+          returns:
+            type: ([]*EdgeRecord, error)
+          exported: true
+        - name: GetEdgesTo
+          signature: GetEdgesTo(nodeID string) ([]*EdgeRecord, error)
+          description: GetEdgesTo returns all edges to a node
+          parameters:
+            - name: nodeID
+              type: string
+          returns:
+            type: ([]*EdgeRecord, error)
+          exported: true
+        - name: InsertInterfaceMember
+          signature: InsertInterfaceMember(m *InterfaceMember) error
+          description: InsertInterfaceMember inserts an interface member
+          parameters:
+            - name: m
+              type: '*InterfaceMember'
+          returns:
+            type: error
+          exported: true
+        - name: DeleteInterfaceMembers
+          signature: DeleteInterfaceMembers(nodeID string) error
+          description: DeleteInterfaceMembers removes all interface members for a node
+          parameters:
+            - name: nodeID
+              type: string
+          returns:
+            type: error
+          exported: true
+        - name: InsertTag
+          signature: InsertTag(nodeID string, tag string) error
+          description: InsertTag inserts a tag for a node
+          parameters:
+            - name: nodeID
+              type: string
+            - name: tag
+              type: string
+          returns:
+            type: error
+          exported: true
+        - name: DeleteTags
+          signature: DeleteTags(nodeID string) error
+          description: DeleteTags removes all tags for a node
+          parameters:
+            - name: nodeID
+              type: string
+          returns:
+            type: error
+          exported: true
+        - name: GetNodesByTag
+          signature: GetNodesByTag(tag string) ([]string, error)
+          description: GetNodesByTag returns all nodes with a specific tag
+          parameters:
+            - name: tag
+              type: string
+          returns:
+            type: ([]string, error)
+          exported: true
+        - name: LogSync
+          signature: LogSync(created int, updated int, deleted int, durationMs int64) error
+          description: LogSync records a sync operation
+          parameters:
+            - name: created
+              type: int
+            - name: updated
+              type: int
+            - name: deleted
+              type: int
+            - name: durationMs
+              type: int64
+          returns:
+            type: error
+          exported: true
+        - name: GetStats
+          signature: GetStats() (map[string]int, error)
+          description: GetStats returns basic statistics
+          returns:
+            type: (map[string]int, error)
+          exported: true
+metadata:
+    status: draft

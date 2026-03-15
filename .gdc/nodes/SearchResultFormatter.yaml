@@ -1,0 +1,40 @@
+schema_version: "1.0"
+node:
+    id: SearchResultFormatter
+    type: interface
+    namespace: search
+    file_path: E:\works\gdc\internal\search\interface.go
+language_spec:
+    language: go
+    package: search
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: Format
+          signature: Format(result SearchResult) string
+          description: Format formats a single search result.
+          parameters:
+            - name: result
+              type: SearchResult
+          returns:
+            type: string
+          exported: true
+        - name: FormatAll
+          signature: FormatAll(results []SearchResult) string
+          description: FormatAll formats multiple results, potentially with grouping.
+          parameters:
+            - name: results
+              type: '[]SearchResult'
+          returns:
+            type: string
+          exported: true
+        - name: SetColorEnabled
+          signature: SetColorEnabled(enabled bool)
+          description: SetColorEnabled enables or disables colored output.
+          parameters:
+            - name: enabled
+              type: bool
+          exported: true
+metadata:
+    status: ""

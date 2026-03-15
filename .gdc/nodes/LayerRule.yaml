@@ -1,0 +1,21 @@
+schema_version: "1.0"
+node:
+    id: LayerRule
+    type: class
+    namespace: config
+    file_path: E:\works\gdc\internal\config\config.go
+language_spec:
+    language: go
+    package: config
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Name
+          type: string
+          access: get; set
+        - name: CanDependOn
+          type: '[]string'
+          access: get; set
+metadata:
+    status: ""

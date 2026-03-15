@@ -1,0 +1,28 @@
+schema_version: "1.0"
+node:
+    id: SpecLoadResult
+    type: class
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Spec
+          type: '*NodeSpec'
+          access: get; set
+        - name: Path
+          type: string
+          access: get; set
+        - name: LoadTime
+          type: time.Duration
+          access: get; set
+        - name: Errors
+          type: '[]error'
+          access: get; set
+          description: Parse warnings, validation issues, etc.
+metadata:
+    status: ""

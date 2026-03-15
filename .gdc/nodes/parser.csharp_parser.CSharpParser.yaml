@@ -1,0 +1,33 @@
+schema_version: "1.0"
+node:
+    id: parser.csharp_parser.CSharpParser
+    type: class
+    namespace: parser
+    file_path: E:\works\gdc\internal\parser\csharp_parser.go
+language_spec:
+    language: go
+    package: parser
+responsibility:
+    summary: ""
+interface:
+    constructors:
+        - signature: NewCSharpParser() *CSharpParser
+          description: NewCSharpParser creates a new C# parser
+    methods:
+        - name: Language
+          signature: Language() string
+          description: Language returns "csharp"
+          returns:
+            type: string
+          exported: true
+        - name: ParseFile
+          signature: ParseFile(filePath string) (*ExtractedNode, error)
+          description: ParseFile parses a C# source file
+          parameters:
+            - name: filePath
+              type: string
+          returns:
+            type: (*ExtractedNode, error)
+          exported: true
+metadata:
+    status: draft

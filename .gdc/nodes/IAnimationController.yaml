@@ -1,0 +1,42 @@
+schema_version: "1.0"
+
+node:
+  id: "IAnimationController"
+  type: "interface"
+  layer: "application"
+  namespace: "Game.Animation"
+
+responsibility:
+  summary: "Animation trigger and parameter abstraction"
+  details: |
+    Synchronizes gameplay state with animation state without exposing engine-
+    specific animator details to the caller.
+
+interface:
+  methods:
+    - name: "SetTrigger"
+      signature: "void SetTrigger(string name)"
+      description: "Sets a one-shot animation trigger."
+      parameters:
+        - name: "name"
+          type: "string"
+          description: "Trigger identifier."
+
+    - name: "SetFloat"
+      signature: "void SetFloat(string name, float value)"
+      description: "Sets a float animation parameter."
+      parameters:
+        - name: "name"
+          type: "string"
+          description: "Parameter identifier."
+        - name: "value"
+          type: "float"
+          description: "Parameter value."
+
+metadata:
+  author: "developer@example.com"
+  created: "2026-03-07"
+  updated: "2026-03-07"
+  tags: ["core", "animation", "abstraction"]
+  status: "specified"
+  spec_hash: "29429fc5"

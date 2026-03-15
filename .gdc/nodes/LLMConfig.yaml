@@ -1,0 +1,27 @@
+schema_version: "1.0"
+node:
+    id: LLMConfig
+    type: class
+    namespace: config
+    file_path: E:\works\gdc\internal\config\config.go
+language_spec:
+    language: go
+    package: config
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: DefaultProvider
+          type: string
+          access: get; set
+        - name: DefaultModel
+          type: string
+          access: get; set
+        - name: PromptMaxTokens
+          type: int
+          access: get; set
+        - name: Providers
+          type: map[string]string
+          access: get; set
+metadata:
+    status: ""

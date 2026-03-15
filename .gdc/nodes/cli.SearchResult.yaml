@@ -1,0 +1,32 @@
+schema_version: "1.0"
+node:
+    id: cli.SearchResult
+    type: class
+    namespace: cli
+    file_path: E:\works\gdc\internal\cli\search.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: File
+          type: string
+          access: get; set
+        - name: Line
+          type: int
+          access: get; set
+        - name: Content
+          type: string
+          access: get; set
+        - name: ContextBefore
+          type: '[]string'
+          access: get; set
+          description: lines before the match (for --context)
+        - name: ContextAfter
+          type: '[]string'
+          access: get; set
+          description: lines after the match (for --context)
+metadata:
+    status: ""

@@ -1,0 +1,24 @@
+schema_version: "1.0"
+node:
+    id: NamingConventions
+    type: class
+    namespace: config
+    file_path: E:\works\gdc\internal\config\config.go
+language_spec:
+    language: go
+    package: config
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: InterfacePrefix
+          type: string
+          access: get; set
+        - name: AbstractPrefix
+          type: string
+          access: get; set
+        - name: ServiceSuffix
+          type: string
+          access: get; set
+metadata:
+    status: ""

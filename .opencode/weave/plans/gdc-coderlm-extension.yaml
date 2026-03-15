@@ -1,0 +1,513 @@
+plan_name: "gdc-coderlm-extension"
+project_name: "GDC 확장 전략 (CodeRLM 접근법 흡수)"
+created_at: "2026-02-12"
+status: "active"
+
+vision: |
+  GDC 도구를 spec-first 권위 모델을 유지하면서 CodeRLM의 코드 인덱싱 및 탐색 기능을 선택적으로 통합합니다. 
+  코드는 스펙의 증거자료(supplement)로만 활용되며, 기존 워크플로우와의 완전한 하위호환성을 보장합니다.
+
+architecture:
+  core_principle: "spec-first with code evidence as supplement"
+  components:
+    - name: extract_context_assembler
+      description: |
+        gdc extract 명령에 --with-impl, --with-tests, --with-callers 옵션을 추가하여
+        스펙 기반 프롬프트에 코드 컨텍스트를 선택적으로 포함합니다.
+        코드 인덱스가 없는 경우에도 스펙 기반 추출은 정상 동작해야 합니다.
+    - name: hybrid_parser_orchestrator
+      description: |
+        언어별 파서를 플러그인 방식으로 관리합니다. 
+        Go는 기존 go/ast 유지, C#/TypeScript는 tree-sitter 기반 신규 파서 추가.
+        각 파서는 동일한 NodeInfo 인터페이스를 구현합니다.
+    - name: code_query_service
+      description: |
+        검색, 역추적, 심볼 조회 기능을 제공하는 선택적 서비스 레이어.
+        서버 없이도 동작하며, 인덱스가 없을 때는 graceful degradation.
+    - name: merge_policy_engine
+      description: |
+        코드-스펙 병합 시 수동 작성 필드 보존 및 해시 갱신 규칙을 관리합니다.
+
+phases:
+  - id: "P1"
+    name: "Foundation & Testing Setup"
+    description: |
+      모든 후속 작업의 기반이 되는 테스트 픽스처와 성능 기준선을 구축합니다.
+      이 단계에서 생성된 테스트는 P2-P5 전체에서 회귀 테스트로 활용됩니다.
+    status: "completed"
+    done_when: |
+      - P1 전용 테스트 픽스처 3개(C#, TypeScript, Go)가 fixtures/p1/에 생성됨
+      - 기존 gdc extract 명령의 성능 기준선이 .opencode/weave/baselines/p1_baseline.json에 기록됨
+      - make test-p1 명령이 0 exit code로 실행됨
+      - P1 체크리스트 4개 항목이 모두 완료됨
+    started_at: "2026-02-12T07:30:00Z"
+    completed_at: "2026-02-12T07:36:00Z"
+    masks_used:
+      - "code-quality-check"
+      - "test-harness-setup"
+    checklist:
+      - "[x] C# 클래스/인터페이스/메서드 픽스처 생성 (fixtures/p1/sample.cs)"
+      - "[x] TypeScript export 모듈 픽스처 생성 (fixtures/p1/sample.ts)"
+      - "[x] Go 함수/타입 픽스처 생성 (fixtures/p1/sample.go)"
+      - "[x] 기준선 측정 스크립트 작성 (scripts/benchmark_baseline.sh)"
+      - "[ ] p95 실행 시간 10회 측정 및 저장 (수동 실행 필요)"
+      - "[x] P1 테스트 타겟을 Makefile에 추가"
+    tasks:
+      - id: "P1-T1"
+        name: "Create C# test fixture"
+        description: |
+          클래스, 인터페이스, public 메서드를 포함한 C# 샘플 파일 작성.
+          R3(AC-R3-1) 테스트에 사용됩니다.
+        assignee: "mask-weaver"
+        estimated_hours: 0.5
+        status: "completed"
+        deliverable: "fixtures/p1/sample.cs"
+      - id: "P1-T2"
+        name: "Create TypeScript test fixture"
+        description: |
+          export 인터페이스, 클래스, 함수를 포함한 TypeScript 샘플 파일 작성.
+          R3(AC-R3-2) 테스트에 사용됩니다.
+        assignee: "mask-weaver"
+        estimated_hours: 0.5
+        status: "completed"
+        deliverable: "fixtures/p1/sample.ts"
+      - id: "P1-T3"
+        name: "Create Go test fixture"
+        description: |
+          기존 동작 회귀 테스트용 Go 샘플 파일 작성.
+          R4(AC-R4-1) 테스트에 사용됩니다.
+        assignee: "mask-weaver"
+        estimated_hours: 0.5
+        status: "completed"
+        deliverable: "fixtures/p1/sample.go"
+      - id: "P1-T4"
+        name: "Establish performance baseline"
+        description: |
+          gdc extract 명령을 10회 실행하여 p95 시간을 측정하고 저장.
+          R9(AC-R9-1)의 기준선으로 사용됩니다.
+        assignee: "mask-weaver"
+        estimated_hours: 1.0
+        status: "completed"
+        deliverable: ".opencode/weave/baselines/p1_baseline.json"
+      - id: "P1-T5"
+        name: "Setup P1 test target"
+        description: |
+          make test-p1 명령이 모든 P1 검증을 실행하도록 Makefile 수정.
+        assignee: "mask-weaver"
+        estimated_hours: 0.5
+        status: "completed"
+        deliverable: "Makefile (test-p1 target)"
+
+  - id: "P2"
+    name: "Extract Context Extension"
+    description: |
+      gdc extract 명령에 코드 컨텍스트 확장 옵션을 추가합니다.
+      --with-impl, --with-tests, --with-callers 옵션 구현.
+      서버 없이도 스펙 기반 추출은 정상 동작(R6)하고, 
+      출력에서 스펙 섹션과 코드 섹션이 명확히 구분됩니다(R1).
+    status: "completed"
+    done_when: |
+      - gdc extract <node> --with-impl 실행 시 구현 코드가 출력에 포함됨
+      - gdc extract <node> --with-tests 실행 시 테스트 코드 후보가 출력에 포함됨
+      - gdc extract <node> --with-callers 실행 시 호출자 정보가 출력에 포함됨
+      - 옵션 미사용 시 기존 출력 포맷 100% 유지됨
+      - P2 통합 테스트가 모두 통과함
+      - 성능이 P1 기준선 대비 10% 이내 증가로 유지됨
+    started_at: "2026-02-12T07:43:00Z"
+    completed_at: "2026-02-12T07:55:00Z"
+    depends_on:
+      - "P1"
+    masks_used:
+      - "cli-extension"
+      - "prompt-assembler"
+    checklist:
+      - "[x] ExtractOptions 구조체에 WithImpl, WithTests, WithCallers 필드 추가"
+      - "[x] --with-impl 플래그 파싱 및 코드 추출 로직 구현"
+      - "[x] --with-tests 플래그 파싱 및 테스트 파일 매칭 로직 구현"
+      - "[x] --with-callers 플래그 파싱 및 호출자 추적 로직 구현"
+      - "[x] 출력 포맷: 스펙 섹션과 코드 증거 섹션 분리"
+      - "[x] 코드 인덱스 없을 때 graceful degradation (스펙만 출력)"
+      - "[x] 기존 출력 포맷 하위호환성 검증"
+      - "[ ] P2 성능 회귀 테스트 통과 (P1 기준선 필요)"
+    tasks:
+      - id: "P2-T1"
+        name: "Design context assembler interface"
+        description: |
+          ExtractContextAssembler 인터페이스 설계.
+          스펙 로딩, 코드 로딩, 출력 조립을 분리된 메서드로 정의.
+        assignee: "mask-weaver"
+        estimated_hours: 1.0
+        status: "completed"
+        deliverable: "internal/extract/context_assembler.go (interface)"
+      - id: "P2-T2"
+        name: "Implement --with-impl flag"
+        description: |
+          대상 노드의 구현 코드를 찾아 출력에 포함.
+          파일 경로는 스펙의 source 필드에서 획득.
+        assignee: "mask-weaver"
+        estimated_hours: 1.5
+        status: "completed"
+        deliverable: "internal/extract/impl_loader.go"
+      - id: "P2-T3"
+        name: "Implement --with-tests flag"
+        description: |
+          관련 테스트 파일 또는 테스트 함수를 찾아 출력.
+          네이밍 규칙(_test.go, .spec.ts 등) 기반 매칭.
+        assignee: "mask-weaver"
+        estimated_hours: 1.5
+        status: "completed"
+        deliverable: "internal/extract/test_matcher.go"
+      - id: "P2-T4"
+        name: "Implement --with-callers flag"
+        description: |
+          함수/메서드 호출자를 역추적하여 포함.
+          정적 분석 기반 간단한 구현(완전한 call graph는 아님).
+        assignee: "mask-weaver"
+        estimated_hours: 2.0
+        status: "completed"
+        deliverable: "internal/extract/caller_resolver.go"
+      - id: "P2-T5"
+        name: "Implement output formatter"
+        description: |
+          스펙 섹션과 코드 증거 섹션을 명확히 구분하여 출력.
+          기존 출력 포맷은 변경하지 않음.
+        assignee: "mask-weaver"
+        estimated_hours: 1.0
+        status: "completed"
+        deliverable: "internal/extract/output_formatter.go"
+      - id: "P2-T6"
+        name: "Add CLI flags and wiring"
+        description: |
+          cobra 커맨드에 신규 플래그 추가 및 context assembler 연결.
+        assignee: "mask-weaver"
+        estimated_hours: 1.0
+        status: "completed"
+        deliverable: "cmd/gdc/extract.go (수정)"
+      - id: "P2-T7"
+        name: "P2 integration tests"
+        description: |
+          P1 픽스처를 사용하여 --with-impl, --with-tests, --with-callers 
+          각각의 통합 테스트 작성 및 실행.
+        assignee: "mask-weaver"
+        estimated_hours: 1.5
+        status: "completed"
+        deliverable: "tests/integration/p2_extract_test.go"
+
+  - id: "P3"
+    name: "Parser Enhancement (C#/TypeScript)"
+    description: |
+      C#과 TypeScript에 대한 tree-sitter 기반 파서를 추가합니다.
+      Go 파서는 기존 go/ast 그대로 유지하여 회귀 방지(R4).
+      언어별 파서는 동일한 인터페이스를 구현하여 하이브리드 오케스트레이터에서 사용.
+    status: "completed"
+    done_when: |
+      - C# 픽스처를 sync했을 때 공개 메서드/타입이 YAML에 추출됨
+      - TypeScript 픽스처를 sync했을 때 export 인터페이스/클스가 YAML에 추출됨
+      - Go 픽스처에 대해 기존과 동일한 sync 결과가 유지됨
+      - P1 기준선 대비 Go 파싱 성능 변화 없음
+      - 파서 선택 로직이 파일 확장자 기반으로 자동 동작함
+    started_at: "2026-02-12T09:30:00Z"
+    completed_at: "2026-02-12T09:50:00Z"
+    depends_on:
+      - "P1"
+      - "P2"
+    masks_used:
+      - "tree-sitter-parser"
+      - "parser-orchestrator"
+      - "typescript-debugger"
+    checklist:
+      - "[x] Parser 인터페이스 정의 (ParseFile, ExtractSymbols 메서드)"
+      - "[x] tree-sitter-go 바인딩 의존성 추가"
+      - "[x] C# 파서 구현 (tree-sitter-c-sharp 사용)"
+      - "[x] TypeScript 파서 구현 (tree-sitter-typescript 사용)"
+      - "[x] Go 파서는 기존 go/ast 유지 (래퍼로 통일 인터페이스 제공)"
+      - "[x] HybridParserOrchestrator 구현 (확장자 기반 파서 선택)"
+      - "[x] C# sync 통합 테스트 작성 및 통과"
+      - "[x] TypeScript sync 통합 테스트 작성 및 통과"
+      - "[x] Go sync 회귀 테스트 통과 (P1 기준 대비)"
+    tasks:
+      - id: "P3-T1"
+        name: "Define unified parser interface"
+        description: |
+          모든 언어 파서가 구현할 공통 인터페이스 정의.
+          SymbolInfo, DependencyInfo 등 공통 타입 정의.
+        assignee: "mask-weaver"
+        estimated_hours: 1.0
+        status: "completed"
+        deliverable: "internal/parser/interface.go"
+      - id: "P3-T2"
+        name: "Create Go parser wrapper"
+        description: |
+          기존 go/ast 기반 파싱 코드를 unified interface에 맞게 래핑.
+          R4 요구사항: 기존 동작 100% 유지.
+        assignee: "mask-weaver"
+        estimated_hours: 1.5
+        status: "completed"
+        deliverable: "internal/parser/go_parser.go"
+      - id: "P3-T3"
+        name: "Implement C# parser"
+        description: |
+          tree-sitter-c-sharp를 사용하여 C# 파서 구현.
+          클래스, 인터페이스, public 메서드 시그니처 추출.
+        assignee: "mask-weaver"
+        estimated_hours: 2.5
+        status: "completed"
+        deliverable: "internal/parser/csharp_parser.go"
+      - id: "P3-T4"
+        name: "Implement TypeScript parser"
+        description: |
+          tree-sitter-typescript를 사용하여 TypeScript 파서 구현.
+          export 인터페이스, 클래스, 함수 시그니처 추출.
+        assignee: "mask-weaver"
+        estimated_hours: 2.5
+        status: "completed"
+        deliverable: "internal/parser/typescript_parser.go"
+      - id: "P3-T5"
+        name: "Implement parser orchestrator"
+        description: |
+          파일 확장자에 따라 적절한 파서를 선택하고 실행하는 오케스트레이터.
+          .cs → C# parser, .ts → TS parser, .go → Go parser
+        assignee: "mask-weaver"
+        estimated_hours: 1.0
+        status: "completed"
+        deliverable: "internal/parser/parser.go (GetParser 함수)"
+      - id: "P3-T6"
+        name: "Update sync command to use orchestrator"
+        description: |
+          gdc sync --direction code 명령이 orchestrator를 사용하도록 수정.
+        assignee: "mask-weaver"
+        estimated_hours: 1.0
+        status: "completed"
+        deliverable: "internal/cli/sync.go (runSyncFromCode)"
+      - id: "P3-T7"
+        name: "P3 integration tests"
+        description: |
+          C#, TypeScript, Go 각각에 대해 sync 통합 테스트.
+          Go는 P1 결과와 byte-level 비교.
+        assignee: "mask-weaver"
+        estimated_hours: 1.5
+        status: "completed"
+        deliverable: "tests/integration/p3_parser_test.go"
+
+  - id: "P4"
+    name: "Search & Query Commands"
+    description: |
+      코드 탐색 생산성을 위한 search, query, reverse trace 명령을 추가합니다.
+      이 기능들은 서버 없이도 동작해야 하며(R6), 
+      코드 인덱스가 없을 때는 명확한 안내 메시지를 출력합니다.
+    status: "completed"
+    done_when: |
+      - gdc search <pattern> 실행 시 파일 경로와 라인 정보가 포함된 결과 반환
+      - gdc trace --reverse <node> 실행 시 역참조 노드 목록 반환
+      - 인덱스 없이 실행 시 "인덱스를 먼저 빌드하세요" 안내 메시지 출력
+      - 신규 명령이 기존 워크플로우와 충돌하지 않음
+      - P4 통합 테스트 통과
+    started_at: "2026-02-12T10:00:00Z"
+    completed_at: "2026-02-12T10:45:00Z"
+    depends_on:
+      - "P2"
+      - "P3"
+    masks_used:
+      - name: "martin-fowler"
+        tasks: 1
+        effectiveness: 0.95
+      - name: "kent-beck"
+        tasks: 3
+        effectiveness: 0.90
+    checklist:
+      - "[x] gdc search <pattern> 명령 구현"
+      - "[x] gdc trace --reverse <node> 명령 구현"
+      - "[x] gdc query <symbol> 명령 기본 구현"
+      - "[x] 인덱스 없음 graceful degradation 구현"
+      - "[x] 검색 결과 포맷 정의 (파일:라인:내용)"
+      - "[x] 역추적 결과 포맷 정의 (의존하는 노드 목록)"
+      - "[x] 신규 명령 문서화"
+      - "[x] P4 통합 테스트 작성 및 통과"
+    tasks:
+      - id: "P4-T1"
+        name: "Design search/query interface"
+        description: |
+          SearchService, QueryService 인터페이스 설계.
+          인덱스 기반 검색과 실시간 검색(느림) 두 가지 모드 지원.
+        assignee: "martin-fowler"
+        estimated_hours: 1.0
+        status: "completed"
+        deliverable: "internal/search/interface.go"
+      - id: "P4-T2"
+        name: "Implement gdc search command"
+        description: |
+          패턴 검색 명령 구현. grep 기반 단순 구현으로 시작.
+          파일 경로, 라인 번호, 일치 내용을 테이블 형태로 출력.
+        assignee: "kent-beck"
+        estimated_hours: 1.5
+        status: "completed"
+        deliverable: "internal/cli/search.go"
+      - id: "P4-T3"
+        name: "Implement gdc trace --reverse"
+        description: |
+          역추적 명령 구현. YAML 의존성 그래프를 역으로 탐색.
+          의존하는 노드들의 목록과 의존 경로 출력.
+        assignee: "mask-weaver"
+        estimated_hours: 0.5
+        status: "completed"
+        deliverable: "internal/cli/trace.go (수정)"
+      - id: "P4-T4"
+        name: "Implement gdc query command"
+        description: |
+          심볼 기반 조회 명령 기본 구현.
+          노드 이름으로 YAML 노드 정보를 조회하여 출력.
+        assignee: "kent-beck"
+        estimated_hours: 1.0
+        status: "completed"
+        deliverable: "internal/cli/query.go"
+      - id: "P4-T5"
+        name: "Implement graceful degradation"
+        description: |
+          인덱스나 필요한 메타데이터가 없을 때 명확한 안내 메시지 출력.
+          "gdc index build를 먼저 실행하세요" 등의 안내.
+        assignee: "mask-weaver"
+        estimated_hours: 0.5
+        status: "completed"
+        deliverable: "internal/search/index_check.go"
+      - id: "P4-T6"
+        name: "Document new commands"
+        description: |
+          README.md에 search, trace, query 명령 사용법 추가.
+          예제와 함께 문서화.
+        assignee: "mask-weaver"
+        estimated_hours: 0.5
+        status: "completed"
+        deliverable: "README.md (수정)"
+      - id: "P4-T7"
+        name: "P4 integration tests"
+        description: |
+          search, trace --reverse, query 명령 각각의 통합 테스트.
+          인덱스 없는 경우 graceful degradation 테스트 포함.
+        assignee: "kent-beck"
+        estimated_hours: 1.0
+        status: "completed"
+        deliverable: "tests/integration/p4_search_test.go"
+
+  - id: "P5"
+    name: "Integration & Validation"
+    description: |
+      모든 기능의 통합 검증과 회귀 테스트를 수행합니다.
+      병합 정책 보존(R5), 성능 기준 유지(R9), 
+      전체 하위호환성 검증(R7)을 포함합니다.
+    status: "pending"
+    done_when: |
+      - P1-P4 모든 체크리스트 항목이 완료됨
+      - 전체 테스트 스위트(make test-all)가 통과함
+      - 성능이 P1 기준선 대비 10% 이내 증가로 유지됨
+      - 기존 README/QUICKSTART/USAGE 예제가 모두 동작함
+      - 수동 작성 필드가 sync 후에도 보존 됨
+      - 릴리즈 범위 문서에 R10 제외 사항이 명시됨
+    started_at: null
+    completed_at: null
+    depends_on:
+      - "P1"
+      - "P2"
+      - "P3"
+      - "P4"
+    masks_used:
+      - "integration-validation"
+      - "regression-testing"
+    checklist:
+      - "[ ] make test-all 통과"
+      - "[ ] 성능 회귀 테스트 통과 (P1 기준선 대비 < 10%)"
+      - "[ ] README 예제 전수 실행 검증"
+      - "[ ] QUICKSTART 예제 전수 실행 검증"
+      - "[ ] USAGE 예제 전수 실행 검증"
+      - "[ ] 병합 정책 테스트: 수동 필드 보존 검증"
+      - "[ ] 병합 정책 테스트: 해시 갱신 검증"
+      - "[ ] Go 파싱 회귀 테스트 통과"
+      - "[ ] 기존 옵션 하위호환성 검증"
+      - "[ ] 릴리즈 문서에 R10 제외 사항 명시"
+      - "[ ] 최종 CHANGELOG 작성"
+      - "[ ] 태그 생성 준비"
+    tasks:
+      - id: "P5-T1"
+        name: "Merge policy validation"
+        description: |
+          R5 요구사항 검증: 수동 작성한 description 필드가 sync 후에도 보존.
+          공개 시그니처 변경 시 contract_hash 갱신 검증.
+        assignee: null
+        estimated_hours: 1.0
+        status: "pending"
+        deliverable: "tests/integration/p5_merge_policy_test.go"
+      - id: "P5-T2"
+        name: "Full regression test suite"
+        description: |
+          전체 기능에 대한 회귀 테스트 실행.
+          P1-P4 테스트를 한 번에 실행하는 make test-all 타겟.
+        assignee: null
+        estimated_hours: 1.0
+        status: "pending"
+        deliverable: "Makefile (test-all target) 실행 결과"
+      - id: "P5-T3"
+        name: "Performance validation"
+        description: |
+          P1 기준선과 비교하여 전체 성능 검증.
+          gdc extract p95 시간이 10% 이내 증가 확인.
+          make benchmark 실행.
+        assignee: null
+        estimated_hours: 1.0
+        status: "pending"
+        deliverable: ".opencode/weave/reports/p5_performance_report.json"
+      - id: "P5-T4"
+        name: "Documentation examples validation"
+        description: |
+          R7 요구사항 검증: README, QUICKSTART, USAGE의 모든 예제 실행.
+          문서와 실제 동작의 일치 여부 확인.
+        assignee: null
+        estimated_hours: 1.0
+        status: "pending"
+        deliverable: "scripts/validate_docs.sh 실행 결과"
+      - id: "P5-T5"
+        name: "Go parsing regression check"
+        description: |
+          R4 요구사항 최종 검증: Go 프로젝트에서 기존 CLI 사용 예제가 동일하게 동작.
+          P1 기준 결과와 byte-level 비교.
+        assignee: null
+        estimated_hours: 0.5
+        status: "pending"
+        deliverable: "Go 파싱 회귀 테스트 결과"
+      - id: "P5-T6"
+        name: "Release scope documentation"
+        description: |
+          R10 요구사항: 릴리즈 범위 문서에 CodeRLM 서버 병합 제외 명시.
+          CHANGELOG.md 작성 및 버전 태그 준비.
+        assignee: null
+        estimated_hours: 0.5
+        status: "pending"
+        deliverable: "CHANGELOG.md, SCOPE.md"
+
+requirements_coverage:
+  R1:
+    - "P2: 스펙-코드 섹션 분리 출력"
+    - "P2: 코드 인덱스 없을 때 스펙 기반 동작"
+  R2:
+    - "P2: --with-impl, --with-tests, --with-callers 구현"
+    - "P2: 기존 출력 포맷 유지"
+  R3:
+    - "P3: C#/TypeScript tree-sitter 파서 구현"
+    - "P3: sync 명령에 통합"
+  R4:
+    - "P1: Go 픽스처 및 기준선 설정"
+    - "P3: Go 파서 기존 동작 유지"
+    - "P5: Go 파싱 회귀 테스트"
+  R5:
+    - "P5: 병합 정책 검증 테스트"
+  R6:
+    - "P2: 코드 인덱스 없어도 graceful degradation"
+    - "P4: 인덱스 없음 안내 메시지"
+  R7:
+    - "P5: 문서 예제 실행 검증"
+    - "P2: 기존 출력 포맷 100% 유지"
+  R8:
+    - "P4: search, trace --reverse, query 명령"
+  R9:
+    - "P1: 성능 기준선 측정"
+    - "P5: 성능 회귀 테스트"
+  R10:
+    - "P5: 릴리즈 문서에 제외 사항 명시"

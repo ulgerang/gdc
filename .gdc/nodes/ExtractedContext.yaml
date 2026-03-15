@@ -1,0 +1,45 @@
+schema_version: "1.0"
+node:
+    id: ExtractedContext
+    type: class
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Node
+          type: '*NodeSpec'
+          access: get; set
+          description: Core specification
+        - name: Dependencies
+          type: '[]*DependencyInfo'
+          access: get; set
+        - name: Implementation
+          type: '*CodeLoadResult'
+          access: get; set
+          description: Optional code evidence
+        - name: Tests
+          type: '[]*TestFileContent'
+          access: get; set
+        - name: Callers
+          type: '[]*CallerInfo'
+          access: get; set
+        - name: References
+          type: '[]*ReferenceInfo'
+          access: get; set
+        - name: Options
+          type: ExtractOptions
+          access: get; set
+          description: Metadata
+        - name: AssembledAt
+          type: time.Time
+          access: get; set
+        - name: Warnings
+          type: '[]string'
+          access: get; set
+metadata:
+    status: ""

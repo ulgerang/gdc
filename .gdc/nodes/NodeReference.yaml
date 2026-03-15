@@ -1,0 +1,41 @@
+schema_version: "1.0"
+node:
+    id: NodeReference
+    type: class
+    namespace: search
+    file_path: E:\works\gdc\internal\search\interface.go
+language_spec:
+    language: go
+    package: search
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: NodeID
+          type: string
+          access: get; set
+          description: NodeID is the unique identifier of the referenced node.
+        - name: NodeType
+          type: string
+          access: get; set
+          description: NodeType is the type of the referenced node (class, interface, etc.).
+        - name: FilePath
+          type: string
+          access: get; set
+          description: FilePath is the file where the reference occurs.
+        - name: LineNumber
+          type: int
+          access: get; set
+          description: LineNumber is the line where the reference occurs.
+        - name: Reference
+          type: string
+          access: get; set
+          description: |-
+            Reference describes how the node is referenced.
+            Examples: "import", "implements", "calls", "extends", "uses"
+        - name: CodeSnippet
+          type: string
+          access: get; set
+          description: CodeSnippet shows the actual code making the reference.
+metadata:
+    status: ""

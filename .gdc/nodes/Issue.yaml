@@ -1,0 +1,33 @@
+schema_version: "1.0"
+node:
+    id: Issue
+    type: class
+    namespace: cli
+    file_path: E:\works\gdc\internal\cli\check.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Severity
+          type: string
+          access: get; set
+        - name: Category
+          type: string
+          access: get; set
+        - name: SourceNode
+          type: string
+          access: get; set
+        - name: TargetNode
+          type: string
+          access: get; set
+        - name: Message
+          type: string
+          access: get; set
+        - name: Suggestion
+          type: string
+          access: get; set
+metadata:
+    status: draft

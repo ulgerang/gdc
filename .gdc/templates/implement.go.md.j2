@@ -1,0 +1,208 @@
+{# ═══════════════════════════════════════════════════════════════════════════════
+   GDC Implementation Prompt Template - Go Language
+   Version: 1.0.0
+   
+   Go 언어에 최적화된 구현 요청 프롬프트를 생성합니다.
+   ═══════════════════════════════════════════════════════════════════════════════ #}
+
+# Implementation Request: {{ node.id }}
+
+## Context
+This is a structured implementation request for a **Go** module/package.
+Implement the following according to the specification.
+Use ONLY the provided interfaces - do not assume or access any external systems not listed here.
+
+---
+
+## Target Node Specification
+
+### Basic Information
+- **Name**: `{{ node.id }}`
+- **Type**: {{ node.type }}
+- **Package**: `{{ node.namespace | default('main') }}`
+{% if node.layer %}
+- **Layer**: {{ node.layer }}
+{% endif %}
+
+### Responsibility
+{{ node.responsibility.summary }}
+
+{% if node.responsibility.details %}
+**Details:**
+{{ node.responsibility.details | indent(4) }}
+{% endif %}
+
+{% if node.responsibility.invariants %}
+### Invariants (Must Always Hold)
+{% for inv in node.responsibility.invariants %}
+- {{ inv }}
+{% endfor %}
+{% endif %}
+
+---
+
+## Public Interface to Implement
+
+```go
+package {{ node.namespace | default('main') }}
+
+{% if node.type == 'interface' %}
+// {{ node.id }} defines the interface for {{ node.responsibility.summary | default('...') }}
+type {{ node.id }} interface {
+{% for method in node.interface.methods %}
+{% if method.description %}
+    // {{ method.description }}
+{% elif method.needs_description %}
+    // ⚠️ [NEEDS DESCRIPTION] - Please document this method
+{% endif %}
+    {{ method.signature }}
+{% endfor %}
+}
+{% else %}
+// {{ node.id }} implements {{ node.responsibility.summary | default('...') }}
+type {{ node.id }} struct {
+{% for prop in node.interface.properties %}
+{% if prop.description %}
+    // {{ prop.description }}
+{% elif prop.needs_description %}
+    // ⚠️ [NEEDS DESCRIPTION]
+{% endif %}
+    {{ prop.name }} {{ prop.type }}
+{% endfor %}
+{% for dep in dependencies %}
+    {{ dep.field_name | default(dep.target | lower) }} {{ dep.target }}
+{% endfor %}
+}
+
+{% for ctor in node.interface.constructors %}
+{% if ctor.description %}
+// {{ ctor.description }}
+{% elif ctor.needs_description %}
+// ⚠️ [NEEDS DESCRIPTION] - Please document this constructor
+{% endif %}
+func New{{ node.id }}({{ ctor.parameters | join(', ') }}) *{{ node.id }} {
+    // TODO: Implement constructor
+}
+{% endfor %}
+
+{% for method in node.interface.methods %}
+{% if method.description %}
+// {{ method.name }} {{ method.description }}
+{% elif method.needs_description %}
+// {{ method.name }} ⚠️ [NEEDS DESCRIPTION] - Please document this method
+{% endif %}
+func (s *{{ node.id }}) {{ method.signature }} {
+    // TODO: Implement
+}
+
+{% endfor %}
+{% endif %}
+```
+
+{% if node.interface.methods %}
+### Method Specifications
+
+{% for method in node.interface.methods %}
+#### `{{ method.name }}`
+{% if method.description %}
+{{ method.description }}
+{% else %}
+⚠️ **[NEEDS DESCRIPTION]** - This method requires documentation.
+{% endif %}
+
+{% if method.parameters %}
+**Parameters:**
+{% for param in method.parameters %}
+- `{{ param.name }}` (`{{ param.type }}`): {{ param.description | default('⚠️ Needs description') }}{% if param.constraint %} [Constraint: {{ param.constraint }}]{% endif %}
+
+{% endfor %}
+{% endif %}
+{% if method.returns %}
+**Returns:** `{{ method.returns.type }}`{% if method.returns.description %} - {{ method.returns.description }}{% endif %}
+
+{% endif %}
+{% if method.throws %}
+**Errors:**
+{% for ex in method.throws %}
+- `{{ ex.type }}`: {{ ex.condition }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+---
+
+## Available Dependencies (Contracts)
+
+Use ONLY these interfaces. Do not access any other systems.
+
+{% for dep in dependencies %}
+### {{ dep.target }}{% if dep.optional %} (Optional){% endif %}
+
+**Injection**: {{ dep.injection | default('constructor') }}
+
+```go
+{{ dep.interface_code }}
+```
+
+{% if dep.usage %}
+**Usage Notes:**
+{{ dep.usage | indent(4) }}
+{% endif %}
+
+{% if dep.missing_descriptions %}
+⚠️ **Warning**: The following methods in this dependency need documentation:
+{% for method in dep.missing_descriptions %}
+- `{{ method }}`
+{% endfor %}
+{% endif %}
+
+---
+{% endfor %}
+
+{% if node.logic %}
+## Implementation Logic
+
+{% if node.logic.state_machine %}
+### State Machine
+
+- **Initial State**: `{{ node.logic.state_machine.initial }}`
+
+| State | Transitions |
+|-------|-------------|
+{% for state in node.logic.state_machine.states %}
+| {{ state.name }} | {% for t in state.transitions %}→ {{ t.to }} ({{ t.trigger }}){% if not loop.last %}, {% endif %}{% endfor %} |
+{% endfor %}
+{% endif %}
+
+{% if node.logic.algorithms %}
+### Algorithms
+{% for algo in node.logic.algorithms %}
+#### {{ algo.name }}
+{{ algo.description }}
+
+{% if algo.pseudocode %}
+```
+{{ algo.pseudocode }}
+```
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+---
+
+## Implementation Guidelines for Go
+
+1. **Idiomatic Go**: Follow Go conventions (gofmt, effective go).
+2. **Error Handling**: Return `error` as the last return value. Wrap errors with context using `fmt.Errorf("context: %w", err)`.
+3. **Interface Compliance**: Implement exactly the interface specified. Ensure type compatibility.
+4. **Dependency Injection**: Accept dependencies via constructor. Store as struct fields.
+5. **Concurrency Safety**: If methods may be called concurrently, use appropriate synchronization (`sync.Mutex`, channels).
+6. **Documentation**: Write godoc comments for all exported functions and types.
+
+{% if node.metadata and node.metadata.notes %}
+## Additional Notes
+{{ node.metadata.notes }}
+{% endif %}

@@ -1,0 +1,284 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Example Node: PlayerController (Class)
+# GDC Node Specification
+# ═══════════════════════════════════════════════════════════════════════════════
+
+schema_version: "1.0"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# 노드 기본 정보
+# ─────────────────────────────────────────────────────────────────────────────────
+node:
+  id: "PlayerController"
+  type: "class"
+  layer: "application"
+  namespace: "Game.Controllers"
+  file_path: "src/Controllers/PlayerController.cs"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# 책임 정의
+# ─────────────────────────────────────────────────────────────────────────────────
+responsibility:
+  summary: "플레이어 입력 처리 및 캐릭터 상태 관리"
+  details: |
+    - 사용자 입력을 받아 캐릭터 행동으로 변환
+    - 이동, 점프, 공격 등 액션 상태 머신 관리
+    - 애니메이션 컨트롤러에 트리거 전달
+    - 물리 엔진을 통한 실제 이동 처리
+  
+  invariants:
+    - "플레이어 속도는 항상 0 이상 MaxSpeed 이하"
+    - "체력은 0에서 MaxHealth 사이"
+    - "상태 머신은 항상 유효한 상태를 유지"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# 인터페이스 정의
+# ─────────────────────────────────────────────────────────────────────────────────
+interface:
+  constructors:
+    - signature: "PlayerController(IInputManager input, IPhysicsEngine physics)"
+      description: "필수 의존성을 주입받는 기본 생성자"
+      parameters:
+        - name: "input"
+          type: "IInputManager"
+          description: "입력 처리 인터페이스"
+        - name: "physics"
+          type: "IPhysicsEngine"
+          description: "물리 엔진 인터페이스"
+  
+  methods:
+    - name: "Update"
+      signature: "void Update(float deltaTime)"
+      description: "매 프레임 호출되어 입력을 처리하고 상태를 업데이트"
+      parameters:
+        - name: "deltaTime"
+          type: "float"
+          description: "이전 프레임으로부터 경과 시간(초)"
+          constraint: "> 0"
+    
+    - name: "Move"
+      signature: "void Move(Vector2 direction)"
+      description: "주어진 방향으로 플레이어를 이동시킵니다."
+      parameters:
+        - name: "direction"
+          type: "Vector2"
+          description: "정규화된 이동 방향 벡터"
+          constraint: "magnitude <= 1.0"
+      throws:
+        - type: "InvalidOperationException"
+          condition: "플레이어가 사망 상태일 때"
+    
+    - name: "Jump"
+      signature: "bool Jump()"
+      description: "점프를 시도합니다. 성공 여부를 반환합니다."
+      returns:
+        type: "bool"
+        description: "점프 성공 시 true, 실패 시 false"
+      preconditions:
+        - "IsGrounded == true"
+        - "CurrentState != Dead"
+      postconditions:
+        - "IsGrounded == false (성공 시)"
+        - "velocity.y > 0 (성공 시)"
+    
+    - name: "TakeDamage"
+      signature: "void TakeDamage(int amount, DamageType type)"
+      description: "데미지를 받고 체력을 감소시킵니다."
+      parameters:
+        - name: "amount"
+          type: "int"
+          description: "받는 데미지 양"
+          constraint: ">= 0"
+        - name: "type"
+          type: "DamageType"
+          description: "데미지 타입"
+      postconditions:
+        - "Health <= 이전 Health"
+        - "Health >= 0"
+    
+    - name: "Heal"
+      signature: "void Heal(int amount)"
+      description: "체력을 회복합니다."
+      parameters:
+        - name: "amount"
+          type: "int"
+          constraint: ">= 0"
+      postconditions:
+        - "Health >= 이전 Health"
+        - "Health <= MaxHealth"
+
+  properties:
+    - name: "Health"
+      type: "int"
+      access: "get"
+      description: "현재 체력"
+    
+    - name: "MaxHealth"
+      type: "int"
+      access: "get"
+      description: "최대 체력"
+    
+    - name: "IsGrounded"
+      type: "bool"
+      access: "get"
+      description: "지면에 닿아있는지 여부"
+    
+    - name: "CurrentState"
+      type: "PlayerState"
+      access: "get"
+      description: "현재 상태 머신 상태"
+    
+    - name: "Velocity"
+      type: "Vector3"
+      access: "get"
+      description: "현재 속도 벡터"
+
+  events:
+    - name: "OnDeath"
+      signature: "event Action OnDeath"
+      description: "플레이어가 사망했을 때 발생"
+    
+    - name: "OnDamaged"
+      signature: "event Action<int, DamageType> OnDamaged"
+      description: "데미지를 받았을 때 발생 (데미지량, 타입)"
+    
+    - name: "OnHealed"
+      signature: "event Action<int> OnHealed"
+      description: "체력을 회복했을 때 발생 (회복량)"
+    
+    - name: "OnStateChanged"
+      signature: "event Action<PlayerState, PlayerState> OnStateChanged"
+      description: "상태가 변경되었을 때 발생 (이전상태, 새상태)"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# 의존성 정의 (Edges)
+# ─────────────────────────────────────────────────────────────────────────────────
+dependencies:
+  - target: "IInputManager"
+    type: "interface"
+    injection: "constructor"
+    usage: |
+      - GetMovementAxis(): 매 프레임 이동 입력 조회
+      - IsActionJustPressed("Jump"): 점프 입력 감지
+      - IsActionPressed("Sprint"): 달리기 상태 확인
+      - GetActionStrength("Attack"): 공격 강도 조회
+    contract_hash: "53f35b63"
+
+  - target: "IPhysicsEngine"
+    type: "interface"
+    injection: "constructor"
+    usage: |
+      - ApplyForce(Vector3): 점프 힘 적용
+      - Move(Vector3): 실제 이동 처리
+      - Raycast(origin, down): 지면 감지
+      - GetVelocity(): 현재 속도 조회
+    contract_hash: "652c3701"
+
+  - target: "IAnimationController"
+    type: "interface"
+    injection: "property"
+    optional: true
+    usage: |
+      - SetTrigger("Jump"): 점프 애니메이션 트리거
+      - SetFloat("Speed", velocity.magnitude): 이동 블렌딩
+      - SetBool("IsGrounded", isGrounded): 상태 동기화
+    contract_hash: "29429fc5"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# 내부 로직 스펙
+# ─────────────────────────────────────────────────────────────────────────────────
+logic:
+  state_machine:
+    initial: "Idle"
+    states:
+      - name: "Idle"
+        entry_action: "SetAnimationTrigger('Idle')"
+        transitions:
+          - to: "Walking"
+            trigger: "movement input magnitude > 0.1"
+          - to: "Jumping"
+            trigger: "Jump() called && IsGrounded"
+          - to: "Dead"
+            trigger: "Health <= 0"
+      
+      - name: "Walking"
+        transitions:
+          - to: "Idle"
+            trigger: "movement input magnitude < 0.1"
+          - to: "Running"
+            trigger: "sprint button held && movement input > 0.5"
+          - to: "Jumping"
+            trigger: "Jump() called && IsGrounded"
+          - to: "Dead"
+            trigger: "Health <= 0"
+      
+      - name: "Running"
+        transitions:
+          - to: "Walking"
+            trigger: "sprint button released"
+          - to: "Idle"
+            trigger: "movement input magnitude < 0.1"
+          - to: "Jumping"
+            trigger: "Jump() called && IsGrounded"
+          - to: "Dead"
+            trigger: "Health <= 0"
+      
+      - name: "Jumping"
+        entry_action: "ApplyJumpForce()"
+        transitions:
+          - to: "Falling"
+            trigger: "velocity.y < 0"
+          - to: "Dead"
+            trigger: "Health <= 0"
+      
+      - name: "Falling"
+        transitions:
+          - to: "Idle"
+            trigger: "IsGrounded && movement input < 0.1"
+          - to: "Walking"
+            trigger: "IsGrounded && movement input >= 0.1"
+          - to: "Dead"
+            trigger: "Health <= 0"
+      
+      - name: "Dead"
+        entry_action: "TriggerDeathEvent(); DisableInput()"
+        transitions: []  # 최종 상태
+
+  algorithms:
+    - name: "DamageCalculation"
+      description: |
+        데미지 계산 공식:
+        1. 기본 데미지에 타입별 배율 적용
+        2. 방어력 감산
+        3. 최소 데미지 보장 (1)
+      pseudocode: |
+        multiplier = GetTypeMultiplier(damageType)
+        rawDamage = baseDamage * multiplier
+        finalDamage = max(1, rawDamage - defense)
+        return finalDamage
+      references:
+        - "DamageType enum 참조"
+    
+    - name: "GroundDetection"
+      description: |
+        지면 감지 로직:
+        발 아래로 짧은 레이캐스트 수행
+      pseudocode: |
+        origin = transform.position + Vector3(0, 0.1, 0)
+        hit = physics.Raycast(origin, Vector3.down, 0.2)
+        isGrounded = hit != null && hit.normal.y > 0.7
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# 메타데이터
+# ─────────────────────────────────────────────────────────────────────────────────
+metadata:
+  author: "developer@example.com"
+  created: "2026-01-15"
+  updated: "2026-02-03"
+  tags: ["core", "gameplay", "player", "controller"]
+  status: "specified"
+  impl_hash: ""  # 아직 구현 안됨
+  spec_hash: "b3c4d5e6"
+  notes: |
+    - V2에서 슬라이딩, 벽타기 상태 추가 예정
+    - 멀티플레이 동기화는 별도 컴포넌트에서 처리

@@ -1,0 +1,37 @@
+schema_version: "1.0"
+node:
+    id: InterfaceMember
+    type: class
+    namespace: db
+    file_path: E:\works\gdc\internal\db\database.go
+language_spec:
+    language: go
+    package: db
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: ID
+          type: int64
+          access: get; set
+        - name: NodeID
+          type: string
+          access: get; set
+        - name: MemberType
+          type: string
+          access: get; set
+          description: method, property, event, constructor
+        - name: Name
+          type: string
+          access: get; set
+        - name: Signature
+          type: string
+          access: get; set
+        - name: ReturnType
+          type: string
+          access: get; set
+        - name: Description
+          type: string
+          access: get; set
+metadata:
+    status: ""

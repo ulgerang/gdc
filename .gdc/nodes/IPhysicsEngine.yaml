@@ -1,0 +1,45 @@
+schema_version: "1.0"
+
+node:
+  id: "IPhysicsEngine"
+  type: "interface"
+  layer: "domain"
+  namespace: "Game.Physics"
+
+responsibility:
+  summary: "Physics engine abstraction for gameplay movement"
+  details: |
+    Provides physics operations required by gameplay controllers without
+    coupling them to a concrete engine implementation.
+
+interface:
+  methods:
+    - name: "ApplyForce"
+      signature: "void ApplyForce(Vector3 force)"
+      description: "Applies a force vector to the controlled body."
+      parameters:
+        - name: "force"
+          type: "Vector3"
+          description: "Force vector to apply."
+
+    - name: "Raycast"
+      signature: "RaycastHit? Raycast(Vector3 origin, Vector3 direction)"
+      description: "Casts a ray and returns hit data when a collider is found."
+      parameters:
+        - name: "origin"
+          type: "Vector3"
+          description: "Raycast start position."
+        - name: "direction"
+          type: "Vector3"
+          description: "Normalized ray direction."
+      returns:
+        type: "RaycastHit?"
+        description: "Hit information when the ray collides."
+
+metadata:
+  author: "developer@example.com"
+  created: "2026-03-07"
+  updated: "2026-03-07"
+  tags: ["core", "physics", "abstraction"]
+  status: "specified"
+  spec_hash: "652c3701"

@@ -1,0 +1,48 @@
+schema_version: "1.0"
+node:
+    id: PromptFormatter
+    type: class
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\output_formatter.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    constructors:
+        - signature: NewPromptFormatter() *PromptFormatter
+          description: NewPromptFormatter creates a new prompt formatter with default template.
+        - signature: NewPromptFormatterWithTemplate(template string) *PromptFormatter
+          parameters:
+            - name: template
+              type: string
+          description: NewPromptFormatterWithTemplate creates a formatter with a custom template.
+    methods:
+        - name: FormatName
+          signature: FormatName() string
+          description: FormatName returns the formatter name.
+          returns:
+            type: string
+          exported: true
+        - name: ContentType
+          signature: ContentType() string
+          description: ContentType returns the MIME type.
+          returns:
+            type: string
+          exported: true
+        - name: Format
+          signature: Format(ctx context.Context, data *ExtractedContext, opts FormatOptions) (string, error)
+          description: Format converts the extracted context to a prompt.
+          parameters:
+            - name: ctx
+              type: context.Context
+            - name: data
+              type: '*ExtractedContext'
+            - name: opts
+              type: FormatOptions
+          returns:
+            type: (string, error)
+          exported: true
+metadata:
+    status: ""

@@ -1,0 +1,47 @@
+schema_version: "1.0"
+node:
+    id: SymbolInfo
+    type: class
+    namespace: search
+    file_path: E:\works\gdc\internal\search\interface.go
+language_spec:
+    language: go
+    package: search
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Name
+          type: string
+          access: get; set
+          description: Name is the symbol's identifier.
+        - name: Kind
+          type: string
+          access: get; set
+          description: Kind is the symbol's kind (function, method, class, interface, etc.).
+        - name: FilePath
+          type: string
+          access: get; set
+          description: FilePath is the file containing the symbol definition.
+        - name: LineNumber
+          type: int
+          access: get; set
+          description: LineNumber is the line where the symbol is defined.
+        - name: Signature
+          type: string
+          access: get; set
+          description: Signature is the full signature for functions/methods.
+        - name: Documentation
+          type: string
+          access: get; set
+          description: Documentation contains any doc comments for the symbol.
+        - name: Parent
+          type: string
+          access: get; set
+          description: Parent is the containing scope (class for methods, package for functions).
+        - name: Exported
+          type: bool
+          access: get; set
+          description: Exported indicates whether the symbol is publicly accessible.
+metadata:
+    status: ""

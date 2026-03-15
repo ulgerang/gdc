@@ -1,0 +1,42 @@
+schema_version: "1.0"
+node:
+    id: queryNodeJSON
+    type: class
+    namespace: cli
+    file_path: E:\works\gdc\internal\cli\query.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: ID
+          type: string
+          access: get; set
+        - name: Type
+          type: string
+          access: get; set
+        - name: Layer
+          type: string
+          access: get; set
+        - name: Status
+          type: string
+          access: get; set
+        - name: Namespace
+          type: string
+          access: get; set
+        - name: Responsibility
+          type: string
+          access: get; set
+        - name: Dependencies
+          type: '[]string'
+          access: get; set
+        - name: Methods
+          type: '[]string'
+          access: get; set
+        - name: Properties
+          type: '[]string'
+          access: get; set
+metadata:
+    status: ""

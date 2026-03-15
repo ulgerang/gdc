@@ -1,0 +1,27 @@
+schema_version: "1.0"
+node:
+    id: Algorithm
+    type: class
+    namespace: node
+    file_path: E:\works\gdc\internal\node\spec.go
+language_spec:
+    language: go
+    package: node
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Name
+          type: string
+          access: get; set
+        - name: Description
+          type: string
+          access: get; set
+        - name: Complexity
+          type: string
+          access: get; set
+        - name: Steps
+          type: string
+          access: get; set
+metadata:
+    status: ""

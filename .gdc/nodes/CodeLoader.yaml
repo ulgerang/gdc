@@ -1,0 +1,53 @@
+schema_version: "1.0"
+node:
+    id: CodeLoader
+    type: interface
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: LoadImplementation
+          signature: LoadImplementation(ctx context.Context, spec *NodeSpec) (*CodeLoadResult, error)
+          description: |-
+            LoadImplementation retrieves the implementation code for a node.
+            Returns ErrCodeNotFound if implementation cannot be located.
+            Returns ErrCodeIndexUnavailable if index is required but not available.
+          parameters:
+            - name: ctx
+              type: context.Context
+            - name: spec
+              type: '*NodeSpec'
+          returns:
+            type: (*CodeLoadResult, error)
+          exported: true
+        - name: LoadFunction
+          signature: LoadFunction(ctx context.Context, spec *NodeSpec, functionName string) (*FunctionCode, error)
+          description: |-
+            LoadFunction retrieves a specific function/method implementation.
+            Useful for loading individual methods when full implementation
+            is not needed or available.
+          parameters:
+            - name: ctx
+              type: context.Context
+            - name: spec
+              type: '*NodeSpec'
+            - name: functionName
+              type: string
+          returns:
+            type: (*FunctionCode, error)
+          exported: true
+        - name: IsAvailable
+          signature: IsAvailable() bool
+          description: |-
+            IsAvailable checks if the code loader has access to implementation code.
+            Returns true if LoadImplementation is expected to succeed.
+          returns:
+            type: bool
+          exported: true
+metadata:
+    status: ""

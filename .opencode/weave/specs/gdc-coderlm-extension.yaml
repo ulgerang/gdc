@@ -1,0 +1,129 @@
+spec_name: "gdc-coderlm-extension"
+project_name: "GDC 확장 전략 (CodeRLM 접근법 흡수)"
+created_at: "2026-02-12"
+source_docs:
+  - "docs/CODERLM_INTEGRATION.md"
+
+requirements:
+  - id: R1
+    description: "GDC는 spec-first 권위 모델을 유지하고 YAML 스펙을 단일 진실의 원천으로 사용한다"
+    category: functional
+    priority: must
+    acceptance:
+      - id: AC-R1-1
+        scenario: "코드 인덱싱 기능이 비활성화된 상태에서도 `gdc extract <node>`가 YAML 스펙 기반 프롬프트를 생성한다"
+        type: script
+      - id: AC-R1-2
+        scenario: "코드 컨텍스트 옵션 사용 시 출력에서 스펙 기반 섹션과 코드 증거 섹션이 구분되어 표시된다"
+        type: integration
+
+  - id: R2
+    description: "`gdc extract`는 opt-in 방식으로 구현/테스트/호출자 컨텍스트를 포함할 수 있어야 한다"
+    category: functional
+    priority: must
+    acceptance:
+      - id: AC-R2-1
+        scenario: "`gdc extract <node> --with-impl` 실행 시 대상 노드의 구현 코드 스니펫이 포함된다"
+        type: script
+      - id: AC-R2-2
+        scenario: "`gdc extract <node> --with-tests` 실행 시 관련 테스트 파일 또는 테스트 함수 후보가 포함된다"
+        type: script
+      - id: AC-R2-3
+        scenario: "`gdc extract <node> --with-callers` 실행 시 주요 호출자 정보가 포함된다"
+        type: script
+      - id: AC-R2-4
+        scenario: "옵션 없이 `gdc extract <node>`를 실행하면 기존 출력 포맷과 필수 섹션이 유지된다"
+        type: integration
+
+  - id: R3
+    description: "`gdc sync --direction code`의 정확도 향상을 위해 C#과 TypeScript 파싱을 단계적으로 tree-sitter 기반으로 강화한다"
+    category: functional
+    priority: should
+    acceptance:
+      - id: AC-R3-1
+        scenario: "C# fixture 코드를 sync하면 공개 메서드 시그니처와 의존성 정보가 YAML에 추출된다"
+        type: integration
+      - id: AC-R3-2
+        scenario: "TypeScript fixture 코드를 sync하면 export된 인터페이스/클래스 시그니처가 YAML에 추출된다"
+        type: integration
+
+  - id: R4
+    description: "Go 파싱은 기존 go/ast 기반 동작을 유지하며 회귀 없이 동작해야 한다"
+    category: constraint
+    priority: must
+    acceptance:
+      - id: AC-R4-1
+        scenario: "기존 Go fixture에 대해 `gdc sync --direction code` 결과가 기존 기준 대비 회귀 없이 유지된다"
+        type: integration
+      - id: AC-R4-2
+        scenario: "Go 프로젝트에서 파서 전환 여부와 무관하게 기존 CLI 사용 예제가 동일하게 실행된다"
+        type: script
+
+  - id: R5
+    description: "코드-스펙 병합 시 수동 작성한 설명을 보존하고 계약 해시 갱신 규칙을 일관되게 적용해야 한다"
+    category: functional
+    priority: should
+    acceptance:
+      - id: AC-R5-1
+        scenario: "기존 YAML의 responsibility/interface description을 유지한 상태로 코드 기반 필드만 갱신된다"
+        type: integration
+      - id: AC-R5-2
+        scenario: "공개 시그니처가 변경되면 spec_hash 또는 contract_hash 변경이 sync 결과에 반영된다"
+        type: integration
+
+  - id: R6
+    description: "기본 워크플로우는 서버 비의존으로 유지되어야 하며 필수 데몬을 요구하지 않는다"
+    category: constraint
+    priority: must
+    acceptance:
+      - id: AC-R6-1
+        scenario: "데몬 프로세스 없이 `gdc init`, `gdc sync`, `gdc check`, `gdc extract`가 실행 가능하다"
+        type: script
+      - id: AC-R6-2
+        scenario: "신규 기능은 서버가 없어도 graceful degradation으로 동작하거나 명확한 안내를 출력한다"
+        type: manual
+
+  - id: R7
+    description: "기존 사용자 워크플로우와 명령어 호환성을 유지해야 한다"
+    category: constraint
+    priority: must
+    acceptance:
+      - id: AC-R7-1
+        scenario: "README/QUICKSTART/USAGE에 있는 기존 명령 예제가 수정 없이 실행된다"
+        type: script
+      - id: AC-R7-2
+        scenario: "기존 옵션은 의미 변경 없이 동작하고 신규 옵션은 기본 OFF로 제공된다"
+        type: integration
+
+  - id: R8
+    description: "코드 탐색 생산성을 위해 `search/query/reverse trace` 계열 명령을 단계적으로 확장한다"
+    category: functional
+    priority: could
+    acceptance:
+      - id: AC-R8-1
+        scenario: "`gdc search <pattern>` 실행 시 파일 경로와 라인 정보를 포함한 검색 결과를 반환한다"
+        type: script
+      - id: AC-R8-2
+        scenario: "`gdc trace --reverse <node>` 실행 시 역참조 노드 목록을 반환한다"
+        type: script
+      - id: AC-R8-3
+        scenario: "심볼 기반 조회(`gdc query ...`)의 최소 동작 예제가 문서화된다"
+        type: manual
+
+  - id: R9
+    description: "기본 `gdc extract` 성능은 확장 이전 대비 의미 있게 저하되지 않아야 한다"
+    category: performance
+    priority: should
+    acceptance:
+      - id: AC-R9-1
+        scenario: "동일 fixture에서 옵션 없는 `gdc extract` p95 실행 시간이 기준선 대비 10% 이내 증가로 유지된다"
+        type: performance
+
+  - id: R10
+    description: "CodeRLM 서버를 제품 단위로 직접 병합하는 작업은 이번 범위에서 제외한다"
+    category: constraint
+    priority: wont
+    acceptance:
+      - id: AC-R10-1
+        scenario: "이번 릴리즈 범위 문서에 '외부 Rust 서버의 내장/강결합은 제외'가 명시되어 있다"
+        type: manual

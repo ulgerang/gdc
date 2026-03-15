@@ -1,0 +1,54 @@
+schema_version: "1.0"
+node:
+    id: NamingConventionTestMatcher
+    type: class
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\test_matcher.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    constructors:
+        - signature: NewNamingConventionTestMatcher(projectRoot string) *NamingConventionTestMatcher
+          parameters:
+            - name: projectRoot
+              type: string
+          description: NewNamingConventionTestMatcher creates a new test matcher.
+    methods:
+        - name: FindTests
+          signature: FindTests(ctx context.Context, spec *NodeSpec) ([]*TestFile, error)
+          description: FindTests locates test files for a given node using naming conventions.
+          parameters:
+            - name: ctx
+              type: context.Context
+            - name: spec
+              type: '*NodeSpec'
+          returns:
+            type: ([]*TestFile, error)
+          exported: true
+        - name: LoadTestContent
+          signature: LoadTestContent(ctx context.Context, tests []*TestFile) ([]*TestFileContent, error)
+          description: LoadTestContent loads the content of test files.
+          parameters:
+            - name: ctx
+              type: context.Context
+            - name: tests
+              type: '[]*TestFile'
+          returns:
+            type: ([]*TestFileContent, error)
+          exported: true
+        - name: GetTestCoverage
+          signature: GetTestCoverage(ctx context.Context, spec *NodeSpec) (*TestCoverage, error)
+          description: GetTestCoverage returns coverage information if available.
+          parameters:
+            - name: ctx
+              type: context.Context
+            - name: spec
+              type: '*NodeSpec'
+          returns:
+            type: (*TestCoverage, error)
+          exported: true
+metadata:
+    status: ""

@@ -1,0 +1,159 @@
+# GDC Node Specification Schema
+# Version: 1.0.0
+# 
+# 이 파일은 노드 명세 YAML 파일의 표준 스키마를 정의합니다.
+# 각 필드에 대한 상세 설명과 예시를 포함합니다.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ROOT SCHEMA
+# ═══════════════════════════════════════════════════════════════════════════════
+
+schema_version: "1.0"  # 스키마 버전 (필수)
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# NODE: 노드 기본 정보
+# ─────────────────────────────────────────────────────────────────────────────────
+node:
+  id: string                    # 고유 식별자 (필수, PascalCase 권장)
+  type: enum                    # 노드 타입 (필수)
+    # - class:     일반 클래스
+    # - interface: 인터페이스/추상
+    # - module:    모듈/네임스페이스
+    # - service:   서비스 클래스
+    # - enum:      열거형
+  layer: enum                   # 아키텍처 레이어 (선택)
+    # - domain:         핵심 비즈니스 로직
+    # - application:    유스케이스/서비스
+    # - infrastructure: 외부 시스템 연동
+    # - presentation:   UI/API
+  namespace: string             # 네임스페이스/패키지 (선택)
+  file_path: string             # 구현 파일 상대 경로 (선택)
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# RESPONSIBILITY: 책임 정의
+# ─────────────────────────────────────────────────────────────────────────────────
+responsibility:
+  summary: string               # 한 줄 요약 (필수)
+  details: string               # 상세 설명 (선택, 멀티라인)
+  invariants:                   # 불변식 목록 (선택)
+    - string                    # 항상 참이어야 하는 조건
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# INTERFACE: 공개 인터페이스 정의
+# ─────────────────────────────────────────────────────────────────────────────────
+interface:
+  constructors:                 # 생성자 목록 (선택)
+    - signature: string         # 전체 시그니처
+      description: string       # 설명
+      parameters:               # 파라미터 목록
+        - name: string
+          type: string
+          description: string
+          default: any          # 기본값 (선택)
+  
+  methods:                      # 메서드 목록 (선택)
+    - name: string              # 메서드 이름 (필수)
+      signature: string         # 전체 시그니처 (필수)
+      description: string       # 설명 (선택)
+      parameters:               # 파라미터 목록
+        - name: string
+          type: string
+          description: string
+          constraint: string    # 제약 조건 (선택)
+          examples: [any]       # 예시 값들 (선택)
+      returns:                  # 반환값 정보
+        type: string
+        description: string
+        constraint: string      # 제약 조건 (선택)
+      throws:                   # 예외 목록 (선택)
+        - type: string
+          condition: string
+      preconditions: [string]   # 사전 조건 (선택)
+      postconditions: [string]  # 사후 조건 (선택)
+      async: boolean            # 비동기 여부 (기본: false)
+  
+  properties:                   # 속성 목록 (선택)
+    - name: string              # 속성 이름 (필수)
+      type: string              # 타입 (필수)
+      access: enum              # 접근 방식 (필수)
+        # - get:         읽기 전용
+        # - set:         쓰기 전용
+        # - get/set:     읽기/쓰기
+      description: string       # 설명 (선택)
+      default: any              # 기본값 (선택)
+  
+  events:                       # 이벤트 목록 (선택)
+    - name: string              # 이벤트 이름 (필수)
+      signature: string         # 전체 시그니처 (필수)
+      description: string       # 설명 (선택)
+      payload:                  # 페이로드 정보 (선택)
+        - name: string
+          type: string
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# DEPENDENCIES: 의존성 정의 (Edges)
+# ─────────────────────────────────────────────────────────────────────────────────
+dependencies:
+  - target: string              # 의존 대상 노드 ID (필수)
+    type: enum                  # 대상 타입 (필수)
+      # - interface: 인터페이스
+      # - class:     클래스
+      # - service:   서비스
+    injection: enum             # 주입 방식 (선택)
+      # - constructor: 생성자 주입
+      # - property:    속성 주입
+      # - method:      메서드 주입
+    optional: boolean           # 선택적 의존성 여부 (기본: false)
+    usage: string               # 사용 방식 설명 (멀티라인)
+    contract_hash: string       # 의존 시점의 대상 spec_hash (자동 생성)
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# LOGIC: 내부 로직 스펙 (선택)
+# ─────────────────────────────────────────────────────────────────────────────────
+logic:
+  state_machine:                # 상태 머신 정의 (선택)
+    initial: string             # 초기 상태
+    states:                     # 상태 목록
+      - name: string            # 상태 이름
+        entry_action: string    # 진입 시 동작 (선택)
+        exit_action: string     # 퇴장 시 동작 (선택)
+        transitions:            # 전이 목록
+          - to: string          # 목적지 상태
+            trigger: string     # 트리거 조건
+            guard: string       # 가드 조건 (선택)
+            action: string      # 전이 시 동작 (선택)
+  
+  algorithms:                   # 알고리즘 설명 (선택)
+    - name: string              # 알고리즘 이름
+      description: string       # 상세 설명
+      pseudocode: string        # 의사 코드 (선택)
+      references: [string]      # 참조 (선택)
+  
+  rules:                        # 비즈니스 규칙 (선택)
+    - name: string
+      condition: string
+      action: string
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# IMPLEMENTATIONS: 구현체 목록 (인터페이스 노드용)
+# ─────────────────────────────────────────────────────────────────────────────────
+implementations:                # 이 인터페이스를 구현하는 클래스 목록 (선택)
+  - string                      # 노드 ID
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# METADATA: 메타데이터
+# ─────────────────────────────────────────────────────────────────────────────────
+metadata:
+  author: string                # 작성자 (선택)
+  created: date                 # 생성일 (YYYY-MM-DD)
+  updated: date                 # 수정일 (YYYY-MM-DD)
+  tags: [string]                # 태그 목록 (선택)
+  status: enum                  # 상태 (선택)
+    # - draft:       초안
+    # - specified:   명세 완료
+    # - implemented: 구현 완료
+    # - tested:      테스트 완료
+    # - deprecated:  폐기 예정
+  impl_hash: string             # 구현 코드 해시 (자동 생성)
+  spec_hash: string             # 명세 해시 (자동 생성)
+  notes: string                 # 메모 (선택)

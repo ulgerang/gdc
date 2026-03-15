@@ -1,0 +1,40 @@
+schema_version: "1.0"
+node:
+    id: OutputFormatter
+    type: interface
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: Format
+          signature: Format(ctx context.Context, data *ExtractedContext, opts FormatOptions) (string, error)
+          description: Format converts the extracted context to the output format.
+          parameters:
+            - name: ctx
+              type: context.Context
+            - name: data
+              type: '*ExtractedContext'
+            - name: opts
+              type: FormatOptions
+          returns:
+            type: (string, error)
+          exported: true
+        - name: FormatName
+          signature: FormatName() string
+          description: FormatName returns the name of this formatter.
+          returns:
+            type: string
+          exported: true
+        - name: ContentType
+          signature: ContentType() string
+          description: ContentType returns the MIME type of the output.
+          returns:
+            type: string
+          exported: true
+metadata:
+    status: ""

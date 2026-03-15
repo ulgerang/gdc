@@ -1,0 +1,206 @@
+{# ═══════════════════════════════════════════════════════════════════════════════
+   GDC Implementation Prompt Template
+   Version: 1.0.0
+   
+   이 템플릿은 AI에게 특정 노드의 구현을 요청하기 위한 최적화된 프롬프트를 생성합니다.
+   Context Isolation 원칙에 따라 필요한 정보만 포함합니다.
+   ═══════════════════════════════════════════════════════════════════════════════ #}
+
+# Implementation Request: {{ node.id }}
+
+## Context
+This is a structured implementation request. Implement the following class/module according to the specification. Use ONLY the provided interfaces - do not assume or access any external systems not listed here.
+
+---
+
+## Target Node Specification
+
+### Basic Information
+- **Name**: `{{ node.id }}`
+- **Type**: {{ node.type }}
+- **Layer**: {{ node.layer | default('not specified') }}
+{% if node.namespace %}
+- **Namespace**: `{{ node.namespace }}`
+{% endif %}
+
+### Responsibility
+{{ node.responsibility.summary }}
+
+{% if node.responsibility.details %}
+**Details:**
+{{ node.responsibility.details | indent(4) }}
+{% endif %}
+
+{% if node.responsibility.invariants %}
+### Invariants (Must Always Hold)
+{% for inv in node.responsibility.invariants %}
+- {{ inv }}
+{% endfor %}
+{% endif %}
+
+---
+
+## Public Interface to Implement
+
+```{{ config.language | default('csharp') }}
+{% if node.type == 'class' %}
+public class {{ node.id }}
+{% elif node.type == 'interface' %}
+public interface {{ node.id }}
+{% elif node.type == 'module' %}
+public static class {{ node.id }}
+{% endif %}
+{
+{% if node.interface.constructors %}
+    // === Constructors ===
+{% for ctor in node.interface.constructors %}
+    {{ ctor.signature }};
+{% endfor %}
+
+{% endif %}
+{% if node.interface.properties %}
+    // === Properties ===
+{% for prop in node.interface.properties %}
+    {{ prop.type }} {{ prop.name }} { {{ prop.access }}; }{% if prop.description %}  // {{ prop.description }}{% endif %}
+
+{% endfor %}
+
+{% endif %}
+{% if node.interface.methods %}
+    // === Methods ===
+{% for method in node.interface.methods %}
+    {{ method.signature }};{% if method.description %}  // {{ method.description }}{% endif %}
+
+{% endfor %}
+
+{% endif %}
+{% if node.interface.events %}
+    // === Events ===
+{% for event in node.interface.events %}
+    {{ event.signature }};{% if event.description %}  // {{ event.description }}{% endif %}
+
+{% endfor %}
+{% endif %}
+}
+```
+
+{% if node.interface.methods %}
+### Method Specifications
+
+{% for method in node.interface.methods %}
+#### `{{ method.name }}`
+{% if method.description %}
+{{ method.description }}
+{% endif %}
+
+{% if method.parameters %}
+**Parameters:**
+{% for param in method.parameters %}
+- `{{ param.name }}` ({{ param.type }}): {{ param.description | default('') }}{% if param.constraint %} [Constraint: {{ param.constraint }}]{% endif %}
+
+{% endfor %}
+{% endif %}
+{% if method.returns %}
+**Returns:** `{{ method.returns.type }}`{% if method.returns.description %} - {{ method.returns.description }}{% endif %}
+
+{% endif %}
+{% if method.preconditions %}
+**Preconditions:**
+{% for pre in method.preconditions %}
+- {{ pre }}
+{% endfor %}
+{% endif %}
+{% if method.postconditions %}
+**Postconditions:**
+{% for post in method.postconditions %}
+- {{ post }}
+{% endfor %}
+{% endif %}
+{% if method.throws %}
+**Exceptions:**
+{% for ex in method.throws %}
+- `{{ ex.type }}`: {{ ex.condition }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+---
+
+## Available Dependencies (Contracts)
+
+Use ONLY these interfaces. Do not access any other systems.
+
+{% for dep in dependencies %}
+### {{ dep.target }}{% if dep.optional %} (Optional){% endif %}
+
+**Injection**: {{ dep.injection | default('constructor') }}
+
+```{{ config.language | default('csharp') }}
+{{ dep.interface_code }}
+```
+
+{% if dep.usage %}
+**Usage Notes:**
+{{ dep.usage | indent(4) }}
+{% endif %}
+
+---
+{% endfor %}
+
+{% if node.logic %}
+## Implementation Logic
+
+{% if node.logic.state_machine %}
+### State Machine
+
+- **Initial State**: `{{ node.logic.state_machine.initial }}`
+
+| State | Transitions |
+|-------|-------------|
+{% for state in node.logic.state_machine.states %}
+| {{ state.name }} | {% for t in state.transitions %}→ {{ t.to }} ({{ t.trigger }}){% if not loop.last %}, {% endif %}{% endfor %} |
+{% endfor %}
+
+{% if node.logic.state_machine.states %}
+**State Details:**
+{% for state in node.logic.state_machine.states %}
+{% if state.entry_action or state.exit_action %}
+- **{{ state.name }}**:{% if state.entry_action %} Entry: {{ state.entry_action }}{% endif %}{% if state.exit_action %} Exit: {{ state.exit_action }}{% endif %}
+
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if node.logic.algorithms %}
+### Algorithms
+
+{% for algo in node.logic.algorithms %}
+#### {{ algo.name }}
+{{ algo.description }}
+
+{% if algo.pseudocode %}
+```
+{{ algo.pseudocode }}
+```
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+---
+
+## Implementation Guidelines
+
+1. **Strict Interface Compliance**: Implement EXACTLY the interface specified above.
+2. **Dependency Injection Only**: Use only the provided dependencies. No direct instantiation of external classes.
+3. **Maintain Invariants**: Ensure all listed invariants hold after every public method call.
+4. **Error Handling**: Handle edge cases appropriately. Throw specified exceptions with clear messages.
+5. **Code Style**: Follow {{ config.language | default('the language') }}'s idiomatic conventions.
+
+{% if node.metadata and node.metadata.notes %}
+## Additional Notes
+{{ node.metadata.notes }}
+{% endif %}

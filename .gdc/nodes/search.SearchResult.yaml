@@ -1,0 +1,60 @@
+schema_version: "1.0"
+node:
+    id: search.SearchResult
+    type: class
+    namespace: search
+    file_path: E:\works\gdc\internal\search\interface.go
+language_spec:
+    language: go
+    package: search
+responsibility:
+    summary: ""
+interface:
+    constructors:
+        - signature: NewSearchResult(filePath string, lineNum int, column int, content string, context string) SearchResult
+          parameters:
+            - name: filePath
+              type: string
+            - name: lineNum
+              type: int
+            - name: column
+              type: int
+            - name: content
+              type: string
+            - name: context
+              type: string
+          description: NewSearchResult creates a SearchResult with computed match positions.
+    properties:
+        - name: FilePath
+          type: string
+          access: get; set
+          description: FilePath is the absolute or relative path to the file containing the match.
+        - name: LineNumber
+          type: int
+          access: get; set
+          description: LineNumber is the 1-based line number where the match occurs.
+        - name: Column
+          type: int
+          access: get; set
+          description: Column is the 1-based column position where the match starts.
+        - name: Content
+          type: string
+          access: get; set
+          description: Content is the actual matched text.
+        - name: Context
+          type: string
+          access: get; set
+          description: |-
+            Context provides surrounding lines for display purposes.
+            The number of lines is determined by SearchOptions.ContextLines.
+            Lines are separated by newlines.
+        - name: MatchStart
+          type: int
+          access: get; set
+          description: MatchStart is the byte offset where the match begins in the line.
+        - name: MatchEnd
+          type: int
+          access: get; set
+          description: MatchEnd is the byte offset where the match ends in the line.
+metadata:
+    status: ""

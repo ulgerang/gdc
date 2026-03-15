@@ -1,0 +1,30 @@
+schema_version: "1.0"
+node:
+    id: codeSyncPlan
+    type: class
+    namespace: cli
+    file_path: E:\works\gdc\internal\cli\sync.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Extracted
+          type: '*parser.ExtractedNode'
+          access: get; set
+        - name: BareID
+          type: string
+          access: get; set
+        - name: FinalID
+          type: string
+          access: get; set
+        - name: ExistingSpec
+          type: '*node.Spec'
+          access: get; set
+        - name: StaleSpecPath
+          type: string
+          access: get; set
+metadata:
+    status: ""

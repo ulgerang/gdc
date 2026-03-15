@@ -1,0 +1,74 @@
+schema_version: "1.0"
+node:
+    id: ExtractOptions
+    type: class
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: NodeName
+          type: string
+          access: get; set
+          description: Node identification
+        - name: NodePath
+          type: string
+          access: get; set
+          description: 'Optional: explicit path to node spec'
+        - name: IncludeImpl
+          type: bool
+          access: get; set
+          description: Context inclusion flags
+        - name: IncludeTests
+          type: bool
+          access: get; set
+          description: Load related test files
+        - name: IncludeCallers
+          type: bool
+          access: get; set
+          description: Load callers/references
+        - name: DependencyDepth
+          type: int
+          access: get; set
+          description: Scope control
+        - name: IncludeLogic
+          type: bool
+          access: get; set
+          description: Include internal logic specification
+        - name: OutputFormat
+          type: OutputFormat
+          access: get; set
+          description: Output configuration
+        - name: TemplateName
+          type: string
+          access: get; set
+          description: For custom prompt templates
+        - name: Language
+          type: string
+          access: get; set
+          description: Language and project context
+        - name: ProjectRoot
+          type: string
+          access: get; set
+        - name: MaxCodeLines
+          type: int
+          access: get; set
+          description: Advanced options
+        - name: MaxCallers
+          type: int
+          access: get; set
+          description: Limit number of callers shown
+        - name: StrictMode
+          type: bool
+          access: get; set
+          description: Fail on missing dependencies
+        - name: IndexRequired
+          type: bool
+          access: get; set
+          description: Require code index to be available
+metadata:
+    status: ""

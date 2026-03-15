@@ -1,0 +1,37 @@
+schema_version: "1.0"
+node:
+    id: FunctionCode
+    type: class
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Name
+          type: string
+          access: get; set
+        - name: Signature
+          type: string
+          access: get; set
+        - name: Body
+          type: string
+          access: get; set
+        - name: StartLine
+          type: int
+          access: get; set
+        - name: EndLine
+          type: int
+          access: get; set
+        - name: File
+          type: string
+          access: get; set
+        - name: Comments
+          type: string
+          access: get; set
+          description: Leading comments/documentation
+metadata:
+    status: ""

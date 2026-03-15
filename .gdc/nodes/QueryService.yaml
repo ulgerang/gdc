@@ -1,0 +1,99 @@
+schema_version: "1.0"
+node:
+    id: QueryService
+    type: interface
+    namespace: search
+    file_path: E:\works\gdc\internal\search\interface.go
+language_spec:
+    language: go
+    package: search
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: QuerySymbol
+          signature: QuerySymbol(name string) (*SymbolInfo, error)
+          description: |-
+            QuerySymbol looks up a symbol by name.
+            Name can be:
+            - Simple name: "UserService"
+            - Qualified name: "auth.UserService"
+            - Fully qualified: "github.com/myorg/myapp/auth.UserService"
+
+            Returns ErrNodeNotFound if no symbol matches.
+            Returns ErrIndexNotBuilt if index is required but not available.
+          parameters:
+            - name: name
+              type: string
+          returns:
+            type: (*SymbolInfo, error)
+          exported: true
+        - name: QuerySymbolByPrefix
+          signature: QuerySymbolByPrefix(prefix string, limit int) ([]SymbolInfo, error)
+          description: |-
+            QuerySymbolByPrefix finds all symbols starting with the given prefix.
+            Useful for autocomplete and symbol discovery.
+          parameters:
+            - name: prefix
+              type: string
+            - name: limit
+              type: int
+          returns:
+            type: ([]SymbolInfo, error)
+          exported: true
+        - name: FindReferences
+          signature: FindReferences(nodeID string) ([]NodeReference, error)
+          description: |-
+            FindReferences finds all references to a node in the codebase.
+            This includes imports, usages, implementations, and extensions.
+
+            Returns ErrNodeNotFound if the node doesn't exist.
+          parameters:
+            - name: nodeID
+              type: string
+          returns:
+            type: ([]NodeReference, error)
+          exported: true
+        - name: FindImplementations
+          signature: FindImplementations(interfaceID string) ([]SymbolInfo, error)
+          description: |-
+            FindImplementations finds all types that implement the given interface.
+            For non-interface nodes, this returns types that extend or inherit.
+          parameters:
+            - name: interfaceID
+              type: string
+          returns:
+            type: ([]SymbolInfo, error)
+          exported: true
+        - name: FindCallers
+          signature: FindCallers(functionName string) ([]NodeReference, error)
+          description: FindCallers finds all locations where a function/method is called.
+          parameters:
+            - name: functionName
+              type: string
+          returns:
+            type: ([]NodeReference, error)
+          exported: true
+        - name: FindCallees
+          signature: FindCallees(functionName string) ([]SymbolInfo, error)
+          description: FindCallees finds all functions/methods called by the given function.
+          parameters:
+            - name: functionName
+              type: string
+          returns:
+            type: ([]SymbolInfo, error)
+          exported: true
+        - name: IsIndexAvailable
+          signature: IsIndexAvailable() bool
+          description: IsIndexAvailable returns true if the code index is built and ready.
+          returns:
+            type: bool
+          exported: true
+        - name: IndexStatus
+          signature: IndexStatus() string
+          description: IndexStatus returns a human-readable status message about the index.
+          returns:
+            type: string
+          exported: true
+metadata:
+    status: ""

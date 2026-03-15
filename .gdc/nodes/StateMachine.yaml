@@ -1,0 +1,21 @@
+schema_version: "1.0"
+node:
+    id: StateMachine
+    type: class
+    namespace: node
+    file_path: E:\works\gdc\internal\node\spec.go
+language_spec:
+    language: go
+    package: node
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Initial
+          type: string
+          access: get; set
+        - name: States
+          type: '[]State'
+          access: get; set
+metadata:
+    status: ""

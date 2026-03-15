@@ -1,0 +1,30 @@
+schema_version: "1.0"
+node:
+    id: Parser
+    type: interface
+    namespace: parser
+    file_path: E:\works\gdc\internal\parser\parser.go
+language_spec:
+    language: go
+    package: parser
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: ParseFile
+          signature: ParseFile(filePath string) (*ExtractedNode, error)
+          description: ParseFile parses a source file and extracts interface information
+          parameters:
+            - name: filePath
+              type: string
+          returns:
+            type: (*ExtractedNode, error)
+          exported: true
+        - name: Language
+          signature: Language() string
+          description: Language returns the language this parser handles
+          returns:
+            type: string
+          exported: true
+metadata:
+    status: draft

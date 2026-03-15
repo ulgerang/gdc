@@ -1,0 +1,33 @@
+schema_version: "1.0"
+node:
+    id: Parameter
+    type: class
+    namespace: node
+    file_path: E:\works\gdc\internal\node\spec.go
+language_spec:
+    language: go
+    package: node
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Name
+          type: string
+          access: get; set
+        - name: Type
+          type: string
+          access: get; set
+        - name: Description
+          type: string
+          access: get; set
+        - name: Optional
+          type: bool
+          access: get; set
+        - name: Default
+          type: string
+          access: get; set
+        - name: Constraint
+          type: string
+          access: get; set
+metadata:
+    status: ""

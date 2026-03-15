@@ -1,0 +1,27 @@
+schema_version: "1.0"
+node:
+    id: Transition
+    type: class
+    namespace: node
+    file_path: E:\works\gdc\internal\node\spec.go
+language_spec:
+    language: go
+    package: node
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: To
+          type: string
+          access: get; set
+        - name: Trigger
+          type: string
+          access: get; set
+        - name: Guard
+          type: string
+          access: get; set
+        - name: Action
+          type: string
+          access: get; set
+metadata:
+    status: ""

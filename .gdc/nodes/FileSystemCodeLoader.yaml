@@ -1,0 +1,51 @@
+schema_version: "1.0"
+node:
+    id: FileSystemCodeLoader
+    type: class
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\impl_loader.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    constructors:
+        - signature: NewFileSystemCodeLoader(projectRoot string) *FileSystemCodeLoader
+          parameters:
+            - name: projectRoot
+              type: string
+          description: NewFileSystemCodeLoader creates a new file system based code loader.
+    methods:
+        - name: IsAvailable
+          signature: IsAvailable() bool
+          description: IsAvailable always returns true for file system loader.
+          returns:
+            type: bool
+          exported: true
+        - name: LoadImplementation
+          signature: LoadImplementation(ctx context.Context, spec *NodeSpec) (*CodeLoadResult, error)
+          description: LoadImplementation retrieves implementation code for a node.
+          parameters:
+            - name: ctx
+              type: context.Context
+            - name: spec
+              type: '*NodeSpec'
+          returns:
+            type: (*CodeLoadResult, error)
+          exported: true
+        - name: LoadFunction
+          signature: LoadFunction(ctx context.Context, spec *NodeSpec, functionName string) (*FunctionCode, error)
+          description: LoadFunction retrieves a specific function implementation.
+          parameters:
+            - name: ctx
+              type: context.Context
+            - name: spec
+              type: '*NodeSpec'
+            - name: functionName
+              type: string
+          returns:
+            type: (*FunctionCode, error)
+          exported: true
+metadata:
+    status: ""

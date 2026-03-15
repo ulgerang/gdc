@@ -1,0 +1,23 @@
+﻿Extracting interfaces from source code...
+Found 19 source files
+
+  + Would create: E:\works\gdc\internal\cli\check.go ??E:\works\gdc\.gdc\nodes\Issue.yaml
+     ?붴? ?좑툘 6 members need documentation
+  + Would create: E:\works\gdc\internal\cli\extract.go ??E:\works\gdc\.gdc\nodes\DependencyInfo.yaml
+     ?붴? ?좑툘 7 members need documentation
+  + Would create: E:\works\gdc\internal\cli\graph.go ??E:\works\gdc\.gdc\nodes\Edge.yaml
+     ?붴? ?좑툘 4 members need documentation
+  + Would create: E:\works\gdc\internal\cli\list.go ??E:\works\gdc\.gdc\nodes\nodeInfo.yaml
+     ?붴? ?좑툘 5 members need documentation
+  + Would create: E:\works\gdc\internal\codegen\codegen.go ??E:\works\gdc\.gdc\nodes\Generator.yaml
+  + Would create: E:\works\gdc\internal\config\config.go ??E:\works\gdc\.gdc\nodes\Config.yaml
+     ?붴? ?좑툘 10 members need documentation
+  + Would create: E:\works\gdc\internal\db\database.go ??E:\works\gdc\.gdc\nodes\Database.yaml
+  + Would create: E:\works\gdc\internal\node\spec.go ??E:\works\gdc\.gdc\nodes\Spec.yaml
+     ?붴? ?좑툘 8 members need documentation
+  + Would create: E:\works\gdc\internal\parser\csharp_parser.go ??E:\works\gdc\.gdc\nodes\CSharpParser.yaml
+  + Would create: E:\works\gdc\internal\parser\go_parser.go ??E:\works\gdc\.gdc\nodes\GoParser.yaml
+  + Would create: E:\works\gdc\internal\parser\parser.go ??E:\works\gdc\.gdc\nodes\Parser.yaml
+  + Would create: E:\works\gdc\internal\parser\typescript_parser.go ??E:\works\gdc\.gdc\nodes\TypeScriptParser.yaml
+
+??No new nodes extracted

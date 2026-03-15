@@ -1,0 +1,30 @@
+schema_version: "1.0"
+node:
+    id: Validation
+    type: class
+    namespace: config
+    file_path: E:\works\gdc\internal\config\config.go
+language_spec:
+    language: go
+    package: config
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: StrictMode
+          type: bool
+          access: get; set
+        - name: SRPThreshold
+          type: int
+          access: get; set
+        - name: WarnOnly
+          type: '[]string'
+          access: get; set
+        - name: Disabled
+          type: '[]string'
+          access: get; set
+        - name: RequiredFields
+          type: '[]string'
+          access: get; set
+metadata:
+    status: ""

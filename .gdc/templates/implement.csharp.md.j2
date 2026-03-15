@@ -1,0 +1,282 @@
+{# ═══════════════════════════════════════════════════════════════════════════════
+   GDC Implementation Prompt Template - C# Language
+   Version: 1.0.0
+   
+   C# 언어에 최적화된 구현 요청 프롬프트를 생성합니다.
+   ═══════════════════════════════════════════════════════════════════════════════ #}
+
+# Implementation Request: {{ node.id }}
+
+## Context
+This is a structured implementation request for a **C#** class.
+Implement the following according to the specification.
+Use ONLY the provided interfaces - do not assume or access any external systems not listed here.
+
+---
+
+## Target Node Specification
+
+### Basic Information
+- **Name**: `{{ node.id }}`
+- **Type**: {{ node.type }}
+- **Namespace**: `{{ node.namespace | default('Application') }}`
+{% if node.layer %}
+- **Layer**: {{ node.layer }}
+{% endif %}
+
+### Responsibility
+{{ node.responsibility.summary }}
+
+{% if node.responsibility.details %}
+**Details:**
+{{ node.responsibility.details | indent(4) }}
+{% endif %}
+
+{% if node.responsibility.invariants %}
+### Invariants (Must Always Hold)
+{% for inv in node.responsibility.invariants %}
+- {{ inv }}
+{% endfor %}
+{% endif %}
+
+---
+
+## Public Interface to Implement
+
+```csharp
+namespace {{ node.namespace | default('Application') }}
+{
+{% if node.type == 'interface' %}
+    /// <summary>
+    /// {{ node.responsibility.summary | default('Interface definition') }}
+    /// </summary>
+    public interface {{ node.id }}
+    {
+{% for method in node.interface.methods %}
+{% if method.description %}
+        /// <summary>{{ method.description }}</summary>
+{% elif method.needs_description %}
+        /// <summary>⚠️ [NEEDS DESCRIPTION] - Please document this method</summary>
+{% endif %}
+{% for param in method.parameters %}
+        /// <param name="{{ param.name }}">{{ param.description | default('⚠️ Needs description') }}</param>
+{% endfor %}
+{% if method.returns and method.returns.type != 'void' %}
+        /// <returns>{{ method.returns.description | default('⚠️ Needs description') }}</returns>
+{% endif %}
+        {{ method.signature }};
+
+{% endfor %}
+    }
+{% else %}
+    /// <summary>
+    /// {{ node.responsibility.summary | default('Class implementation') }}
+    /// </summary>
+    public class {{ node.id }}
+    {
+        #region Private Fields
+{% for dep in dependencies %}
+        private readonly {{ dep.target }} _{{ dep.field_name | default(dep.target | lower) }};
+{% endfor %}
+{% for prop in node.interface.properties %}
+{% if prop.access == 'get' %}
+        private {{ prop.type }} _{{ prop.name | lower }};
+{% endif %}
+{% endfor %}
+        #endregion
+
+        #region Constructors
+{% for ctor in node.interface.constructors %}
+{% if ctor.description %}
+        /// <summary>{{ ctor.description }}</summary>
+{% elif ctor.needs_description %}
+        /// <summary>⚠️ [NEEDS DESCRIPTION] - Please document this constructor</summary>
+{% endif %}
+{% for param in ctor.parameters %}
+        /// <param name="{{ param.name }}">{{ param.description | default('⚠️ Needs description') }}</param>
+{% endfor %}
+        public {{ ctor.signature }}
+        {
+            // TODO: Implement constructor
+{% for dep in dependencies %}
+            _{{ dep.field_name | default(dep.target | lower) }} = {{ dep.field_name | default(dep.target | lower) }} ?? throw new ArgumentNullException(nameof({{ dep.field_name | default(dep.target | lower) }}));
+{% endfor %}
+        }
+{% endfor %}
+        #endregion
+
+        #region Properties
+{% for prop in node.interface.properties %}
+{% if prop.description %}
+        /// <summary>{{ prop.description }}</summary>
+{% elif prop.needs_description %}
+        /// <summary>⚠️ [NEEDS DESCRIPTION]</summary>
+{% endif %}
+        public {{ prop.type }} {{ prop.name }} { {{ prop.access }}; }
+
+{% endfor %}
+        #endregion
+
+        #region Public Methods
+{% for method in node.interface.methods %}
+{% if method.description %}
+        /// <summary>{{ method.description }}</summary>
+{% elif method.needs_description %}
+        /// <summary>⚠️ [NEEDS DESCRIPTION] - Please document this method</summary>
+{% endif %}
+{% for param in method.parameters %}
+        /// <param name="{{ param.name }}">{{ param.description | default('⚠️ Needs description') }}</param>
+{% endfor %}
+{% if method.returns and method.returns.type != 'void' %}
+        /// <returns>{{ method.returns.description | default('⚠️ Needs description') }}</returns>
+{% endif %}
+{% for ex in method.throws %}
+        /// <exception cref="{{ ex.type }}">{{ ex.condition }}</exception>
+{% endfor %}
+        public {{ method.signature }}
+        {
+            // TODO: Implement
+            throw new NotImplementedException();
+        }
+
+{% endfor %}
+        #endregion
+
+        #region Events
+{% for event in node.interface.events %}
+{% if event.description %}
+        /// <summary>{{ event.description }}</summary>
+{% elif event.needs_description %}
+        /// <summary>⚠️ [NEEDS DESCRIPTION]</summary>
+{% endif %}
+        public {{ event.signature }};
+
+{% endfor %}
+        #endregion
+    }
+{% endif %}
+}
+```
+
+{% if node.interface.methods %}
+### Method Specifications
+
+{% for method in node.interface.methods %}
+#### `{{ method.name }}`
+{% if method.description %}
+{{ method.description }}
+{% else %}
+⚠️ **[NEEDS DESCRIPTION]** - This method requires documentation.
+{% endif %}
+
+{% if method.parameters %}
+**Parameters:**
+{% for param in method.parameters %}
+- `{{ param.name }}` (`{{ param.type }}`): {{ param.description | default('⚠️ Needs description') }}{% if param.constraint %} [Constraint: {{ param.constraint }}]{% endif %}
+
+{% endfor %}
+{% endif %}
+{% if method.returns and method.returns.type != 'void' %}
+**Returns:** `{{ method.returns.type }}`{% if method.returns.description %} - {{ method.returns.description }}{% endif %}
+
+{% endif %}
+{% if method.preconditions %}
+**Preconditions:**
+{% for pre in method.preconditions %}
+- {{ pre }}
+{% endfor %}
+{% endif %}
+{% if method.postconditions %}
+**Postconditions:**
+{% for post in method.postconditions %}
+- {{ post }}
+{% endfor %}
+{% endif %}
+{% if method.throws %}
+**Exceptions:**
+{% for ex in method.throws %}
+- `{{ ex.type }}`: {{ ex.condition }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+---
+
+## Available Dependencies (Contracts)
+
+Use ONLY these interfaces. Do not access any other systems.
+
+{% for dep in dependencies %}
+### {{ dep.target }}{% if dep.optional %} (Optional){% endif %}
+
+**Injection**: {{ dep.injection | default('constructor') }}
+
+```csharp
+{{ dep.interface_code }}
+```
+
+{% if dep.usage %}
+**Usage Notes:**
+{{ dep.usage | indent(4) }}
+{% endif %}
+
+{% if dep.missing_descriptions %}
+⚠️ **Warning**: The following methods in this dependency need documentation:
+{% for method in dep.missing_descriptions %}
+- `{{ method }}`
+{% endfor %}
+{% endif %}
+
+---
+{% endfor %}
+
+{% if node.logic %}
+## Implementation Logic
+
+{% if node.logic.state_machine %}
+### State Machine
+
+- **Initial State**: `{{ node.logic.state_machine.initial }}`
+
+| State | Transitions |
+|-------|-------------|
+{% for state in node.logic.state_machine.states %}
+| {{ state.name }} | {% for t in state.transitions %}→ {{ t.to }} ({{ t.trigger }}){% if not loop.last %}, {% endif %}{% endfor %} |
+{% endfor %}
+
+Consider using a state machine library or enum-based state pattern.
+{% endif %}
+
+{% if node.logic.algorithms %}
+### Algorithms
+{% for algo in node.logic.algorithms %}
+#### {{ algo.name }}
+{{ algo.description }}
+
+{% if algo.pseudocode %}
+```
+{{ algo.pseudocode }}
+```
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+---
+
+## Implementation Guidelines for C#
+
+1. **C# Conventions**: Follow Microsoft C# coding guidelines. Use PascalCase for public members.
+2. **Null Safety**: Use nullable reference types. Add null checks in constructors.
+3. **Exception Handling**: Throw appropriate exceptions as specified. Use `ArgumentNullException`, `InvalidOperationException`, etc.
+4. **Dependency Injection**: Accept dependencies via constructor. Store as private readonly fields.
+5. **Immutability**: Prefer immutable objects where possible. Use `init` properties for DTOs.
+6. **Async/Await**: If methods are async, follow async naming conventions (`MethodAsync`).
+7. **XML Documentation**: All public members must have XML doc comments.
+
+{% if node.metadata and node.metadata.notes %}
+## Additional Notes
+{{ node.metadata.notes }}
+{% endif %}

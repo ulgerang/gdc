@@ -1,0 +1,48 @@
+schema_version: "1.0"
+node:
+    id: Metadata
+    type: class
+    namespace: node
+    file_path: E:\works\gdc\internal\node\spec.go
+language_spec:
+    language: go
+    package: node
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Status
+          type: string
+          access: get; set
+          description: draft, specified, implemented, tested, deprecated
+        - name: Created
+          type: string
+          access: get; set
+        - name: Updated
+          type: string
+          access: get; set
+        - name: Author
+          type: string
+          access: get; set
+        - name: Tags
+          type: '[]string'
+          access: get; set
+        - name: SpecHash
+          type: string
+          access: get; set
+        - name: ImplHash
+          type: string
+          access: get; set
+        - name: Notes
+          type: string
+          access: get; set
+        - name: SRPThreshold
+          type: int
+          access: get; set
+          description: Per-node SRP threshold override (0 = use global)
+        - name: Layer
+          type: string
+          access: get; set
+          description: Optional layer override
+metadata:
+    status: ""

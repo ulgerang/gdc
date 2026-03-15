@@ -1,0 +1,49 @@
+schema_version: "1.0"
+node:
+    id: AssemblerConfig
+    type: class
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: ProjectRoot
+          type: string
+          access: get; set
+          description: Required
+        - name: NodesDir
+          type: string
+          access: get; set
+        - name: Language
+          type: string
+          access: get; set
+        - name: DatabasePath
+          type: string
+          access: get; set
+          description: Optional - if provided, enables database-backed code loading
+        - name: SourceDir
+          type: string
+          access: get; set
+          description: Optional - if provided, enables source directory scanning
+        - name: SpecLoader
+          type: SpecLoader
+          access: get; set
+          description: Component overrides (for testing or customization)
+        - name: CodeLoader
+          type: CodeLoader
+          access: get; set
+        - name: TestMatcher
+          type: TestMatcher
+          access: get; set
+        - name: CallerResolver
+          type: CallerResolver
+          access: get; set
+        - name: Formatter
+          type: OutputFormatter
+          access: get; set
+metadata:
+    status: ""

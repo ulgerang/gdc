@@ -1,0 +1,36 @@
+schema_version: "1.0"
+node:
+    id: Generator
+    type: class
+    namespace: codegen
+    file_path: E:\works\gdc\internal\codegen\codegen.go
+language_spec:
+    language: go
+    package: codegen
+responsibility:
+    summary: ""
+interface:
+    constructors:
+        - signature: NewGenerator(lang string) (*Generator, error)
+          parameters:
+            - name: lang
+              type: string
+          description: NewGenerator creates a new code generator for the specified language
+    methods:
+        - name: Language
+          signature: Language() string
+          description: Language returns the language name as a string
+          returns:
+            type: string
+          exported: true
+        - name: GenerateInterface
+          signature: GenerateInterface(spec *node.Spec) string
+          description: GenerateInterface generates language-specific interface code
+          parameters:
+            - name: spec
+              type: '*node.Spec'
+          returns:
+            type: string
+          exported: true
+metadata:
+    status: draft

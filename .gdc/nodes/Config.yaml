@@ -1,0 +1,77 @@
+schema_version: "1.0"
+node:
+    id: Config
+    type: class
+    namespace: config
+    file_path: E:\works\gdc\internal\config\config.go
+language_spec:
+    language: go
+    package: config
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: ResolvePath
+          signature: ResolvePath(relativePath string) string
+          description: ResolvePath converts a relative path to absolute path based on project root
+          parameters:
+            - name: relativePath
+              type: string
+          returns:
+            type: string
+          exported: true
+        - name: NodesDir
+          signature: NodesDir() string
+          description: NodesDir returns the absolute path to the nodes directory
+          returns:
+            type: string
+          exported: true
+        - name: DatabasePath
+          signature: DatabasePath() string
+          description: DatabasePath returns the absolute path to the database
+          returns:
+            type: string
+          exported: true
+        - name: TemplatesDir
+          signature: TemplatesDir() string
+          description: TemplatesDir returns the absolute path to the templates directory
+          returns:
+            type: string
+          exported: true
+    properties:
+        - name: Schema
+          type: string
+          access: get; set
+        - name: Project
+          type: Project
+          access: get; set
+        - name: Storage
+          type: Storage
+          access: get; set
+        - name: Database
+          type: DatabaseConfig
+          access: get; set
+        - name: Indexer
+          type: Indexer
+          access: get; set
+        - name: Validation
+          type: Validation
+          access: get; set
+        - name: LLM
+          type: LLMConfig
+          access: get; set
+        - name: Output
+          type: Output
+          access: get; set
+        - name: Architecture
+          type: Architecture
+          access: get; set
+        - name: NamingConventions
+          type: NamingConventions
+          access: get; set
+        - name: ProjectRoot
+          type: string
+          access: get; set
+          description: Runtime fields (not saved to YAML)
+metadata:
+    status: draft

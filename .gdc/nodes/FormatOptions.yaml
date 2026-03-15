@@ -1,0 +1,35 @@
+schema_version: "1.0"
+node:
+    id: FormatOptions
+    type: class
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Template
+          type: string
+          access: get; set
+          description: Custom template name/path
+        - name: TemplateVars
+          type: map[string]string
+          access: get; set
+          description: Variables for template substitution
+        - name: MaxLength
+          type: int
+          access: get; set
+          description: Maximum output length
+        - name: IncludeLineNums
+          type: bool
+          access: get; set
+          description: Include line numbers in code blocks
+        - name: Language
+          type: string
+          access: get; set
+          description: Target language for syntax
+metadata:
+    status: ""

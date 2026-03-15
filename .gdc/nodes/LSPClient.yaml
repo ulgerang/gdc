@@ -1,0 +1,47 @@
+schema_version: "1.0"
+node:
+    id: LSPClient
+    type: interface
+    namespace: parser
+    file_path: E:\works\gdc\internal\parser\parser.go
+language_spec:
+    language: go
+    package: parser
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: Connect
+          signature: Connect(host string, port int) error
+          description: Connect attempts to connect to an already running LSP server
+          parameters:
+            - name: host
+              type: string
+            - name: port
+              type: int
+          returns:
+            type: error
+          exported: true
+        - name: IsConnected
+          signature: IsConnected() bool
+          description: IsConnected returns true if connected to LSP server
+          returns:
+            type: bool
+          exported: true
+        - name: Close
+          signature: Close() error
+          description: Close closes the connection
+          returns:
+            type: error
+          exported: true
+        - name: GetSymbols
+          signature: GetSymbols(filePath string) ([]Symbol, error)
+          description: GetSymbols retrieves symbols from a file
+          parameters:
+            - name: filePath
+              type: string
+          returns:
+            type: ([]Symbol, error)
+          exported: true
+metadata:
+    status: ""

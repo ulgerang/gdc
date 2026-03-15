@@ -1,0 +1,32 @@
+schema_version: "1.0"
+node:
+    id: NodeInfo
+    type: class
+    namespace: node
+    file_path: E:\works\gdc\internal\node\spec.go
+language_spec:
+    language: go
+    package: node
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: ID
+          type: string
+          access: get; set
+        - name: Type
+          type: string
+          access: get; set
+          description: class, interface, module, service, enum
+        - name: Layer
+          type: string
+          access: get; set
+          description: domain, application, infrastructure, presentation
+        - name: Namespace
+          type: string
+          access: get; set
+        - name: FilePath
+          type: string
+          access: get; set
+metadata:
+    status: ""

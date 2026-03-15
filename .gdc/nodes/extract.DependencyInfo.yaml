@@ -1,0 +1,39 @@
+schema_version: "1.0"
+node:
+    id: extract.DependencyInfo
+    type: class
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Target
+          type: string
+          access: get; set
+        - name: Type
+          type: string
+          access: get; set
+        - name: Injection
+          type: string
+          access: get; set
+        - name: Optional
+          type: bool
+          access: get; set
+        - name: Usage
+          type: string
+          access: get; set
+        - name: Spec
+          type: '*NodeSpec'
+          access: get; set
+        - name: InterfaceCode
+          type: string
+          access: get; set
+        - name: MissingDescriptions
+          type: '[]string'
+          access: get; set
+metadata:
+    status: ""

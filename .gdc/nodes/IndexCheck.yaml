@@ -1,0 +1,47 @@
+schema_version: "1.0"
+node:
+    id: IndexCheck
+    type: interface
+    namespace: search
+    file_path: E:\works\gdc\internal\search\interface.go
+language_spec:
+    language: go
+    package: search
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: Check
+          signature: Check() error
+          description: |-
+            Check verifies the index status and returns an error if unavailable.
+            The error message should be user-friendly and actionable.
+          returns:
+            type: error
+          exported: true
+        - name: SuggestCommand
+          signature: SuggestCommand() string
+          description: |-
+            SuggestCommand returns a command the user can run to fix index issues.
+            Example: "gdc sync --rebuild"
+          returns:
+            type: string
+          exported: true
+        - name: IsStale
+          signature: IsStale() bool
+          description: |-
+            IsStale returns true if the index exists but may be outdated
+            based on file modification times.
+          returns:
+            type: bool
+          exported: true
+        - name: LastSyncTime
+          signature: LastSyncTime() time.Time
+          description: |-
+            LastSyncTime returns when the index was last synchronized.
+            Returns zero time if never synced.
+          returns:
+            type: time.Time
+          exported: true
+metadata:
+    status: ""

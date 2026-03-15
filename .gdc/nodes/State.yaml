@@ -1,0 +1,30 @@
+schema_version: "1.0"
+node:
+    id: State
+    type: class
+    namespace: node
+    file_path: E:\works\gdc\internal\node\spec.go
+language_spec:
+    language: go
+    package: node
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Name
+          type: string
+          access: get; set
+        - name: Description
+          type: string
+          access: get; set
+        - name: OnEnter
+          type: string
+          access: get; set
+        - name: OnExit
+          type: string
+          access: get; set
+        - name: Transitions
+          type: '[]Transition'
+          access: get; set
+metadata:
+    status: ""

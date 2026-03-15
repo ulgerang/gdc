@@ -1,0 +1,80 @@
+schema_version: "1.0"
+node:
+    id: ContextAssembler
+    type: interface
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    constructors:
+        - signature: NewContextAssembler(cfg *AssemblerConfig) (ContextAssembler, error)
+          parameters:
+            - name: cfg
+              type: '*AssemblerConfig'
+          description: |-
+            NewContextAssembler creates a default ContextAssembler with all components.
+            This is the primary entry point for creating an assembler.
+
+            The assembler uses file-based adapters by default, with optional
+            database-backed code loading when available.
+        - signature: NewDefaultAssembler(projectRoot string, nodesDir string) (ContextAssembler, error)
+          parameters:
+            - name: projectRoot
+              type: string
+            - name: nodesDir
+              type: string
+          description: |-
+            NewDefaultAssembler creates a ContextAssembler with default file-based adapters.
+            This works without any database or server process.
+        - signature: NewIndexedAssembler(projectRoot string, nodesDir string, dbPath string) (ContextAssembler, error)
+          parameters:
+            - name: projectRoot
+              type: string
+            - name: nodesDir
+              type: string
+            - name: dbPath
+              type: string
+          description: |-
+            NewIndexedAssembler creates a ContextAssembler with database-backed code resolution.
+            Requires the GDC database to be present and initialized.
+    methods:
+        - name: Assemble
+          signature: Assemble(ctx context.Context, opts ExtractOptions) (*AssemblyResult, error)
+          description: |-
+            Assemble collects all requested context for a node and formats it.
+
+            The assembly process:
+              1. Load node specification (always required)
+              2. Load implementation code (if IncludeImpl)
+              3. Load test files (if IncludeTests)
+              4. Resolve callers (if IncludeCallers)
+              5. Load dependencies (up to DependencyDepth)
+              6. Format and return output
+
+            Errors are aggregated in AssemblyResult.Errors. Critical errors
+            that prevent assembly will be returned as the error value.
+          parameters:
+            - name: ctx
+              type: context.Context
+            - name: opts
+              type: ExtractOptions
+          returns:
+            type: (*AssemblyResult, error)
+          exported: true
+        - name: ValidateOptions
+          signature: ValidateOptions(opts ExtractOptions) error
+          description: |-
+            ValidateOptions checks if the provided options are valid and
+            can be satisfied with available resources.
+          parameters:
+            - name: opts
+              type: ExtractOptions
+          returns:
+            type: error
+          exported: true
+metadata:
+    status: ""

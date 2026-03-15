@@ -1,0 +1,60 @@
+schema_version: "1.0"
+node:
+    id: SpecLoader
+    type: interface
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: Load
+          signature: Load(ctx context.Context, nodeName string, nodePath string) (*SpecLoadResult, error)
+          description: |-
+            Load retrieves a node specification by name or path.
+            Returns ErrSpecNotFound if the spec cannot be located.
+          parameters:
+            - name: ctx
+              type: context.Context
+            - name: nodeName
+              type: string
+            - name: nodePath
+              type: string
+          returns:
+            type: (*SpecLoadResult, error)
+          exported: true
+        - name: LoadAll
+          signature: LoadAll(ctx context.Context, nodesDir string) ([]*SpecLoadResult, error)
+          description: |-
+            LoadAll loads all available node specifications.
+            Useful for dependency resolution.
+          parameters:
+            - name: ctx
+              type: context.Context
+            - name: nodesDir
+              type: string
+          returns:
+            type: ([]*SpecLoadResult, error)
+          exported: true
+        - name: ResolveDependencies
+          signature: ResolveDependencies(ctx context.Context, spec *NodeSpec, depth int, allSpecs map[string]*NodeSpec) ([]*DependencyInfo, error)
+          description: |-
+            ResolveDependencies finds and loads dependencies for a spec.
+            Returns specs up to the specified depth.
+          parameters:
+            - name: ctx
+              type: context.Context
+            - name: spec
+              type: '*NodeSpec'
+            - name: depth
+              type: int
+            - name: allSpecs
+              type: map[string]*NodeSpec
+          returns:
+            type: ([]*DependencyInfo, error)
+          exported: true
+metadata:
+    status: ""

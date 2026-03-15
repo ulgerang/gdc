@@ -1,0 +1,25 @@
+schema_version: "1.0"
+node:
+    id: Output
+    type: class
+    namespace: config
+    file_path: E:\works\gdc\internal\config\config.go
+language_spec:
+    language: go
+    package: config
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: ColorEnabled
+          type: bool
+          access: get; set
+        - name: DateFormat
+          type: string
+          access: get; set
+        - name: Language
+          type: string
+          access: get; set
+          description: en, ko, ja
+metadata:
+    status: ""

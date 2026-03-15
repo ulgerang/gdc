@@ -1,0 +1,32 @@
+schema_version: "1.0"
+node:
+    id: RecoverableError
+    type: class
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: Error
+          signature: Error() string
+          returns:
+            type: string
+          exported: true
+        - name: Unwrap
+          signature: Unwrap() error
+          returns:
+            type: error
+          exported: true
+    properties:
+        - name: Component
+          type: string
+          access: get; set
+        - name: Err
+          type: error
+          access: get; set
+metadata:
+    status: ""

@@ -1,0 +1,30 @@
+schema_version: "1.0"
+node:
+    id: Symbol
+    type: class
+    namespace: parser
+    file_path: E:\works\gdc\internal\parser\parser.go
+language_spec:
+    language: go
+    package: parser
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Name
+          type: string
+          access: get; set
+        - name: Kind
+          type: SymbolKind
+          access: get; set
+        - name: Range
+          type: Range
+          access: get; set
+        - name: Children
+          type: '[]Symbol'
+          access: get; set
+        - name: Detail
+          type: string
+          access: get; set
+metadata:
+    status: ""

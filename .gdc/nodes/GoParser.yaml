@@ -1,0 +1,53 @@
+schema_version: "1.0"
+node:
+    id: GoParser
+    type: class
+    namespace: parser
+    file_path: E:\works\gdc\internal\parser\go_parser.go
+language_spec:
+    language: go
+    package: parser
+responsibility:
+    summary: ""
+interface:
+    constructors:
+        - signature: NewGoParser() *GoParser
+          description: NewGoParser creates a new Go parser.
+    methods:
+        - name: Language
+          signature: Language() string
+          description: Language returns "go".
+          returns:
+            type: string
+          exported: true
+        - name: ParseFile
+          signature: ParseFile(filePath string) (*ExtractedNode, error)
+          description: |-
+            ParseFile parses a Go source file and returns the first extracted node for
+            backward compatibility.
+          parameters:
+            - name: filePath
+              type: string
+          returns:
+            type: (*ExtractedNode, error)
+          exported: true
+        - name: ParseFileNodes
+          signature: ParseFileNodes(filePath string) ([]*ExtractedNode, error)
+          description: ParseFileNodes parses a Go source file and extracts all named nodes.
+          parameters:
+            - name: filePath
+              type: string
+          returns:
+            type: ([]*ExtractedNode, error)
+          exported: true
+        - name: ParseDirectory
+          signature: ParseDirectory(dirPath string) ([]*ExtractedNode, error)
+          description: ParseDirectory parses all Go files in a directory.
+          parameters:
+            - name: dirPath
+              type: string
+          returns:
+            type: ([]*ExtractedNode, error)
+          exported: true
+metadata:
+    status: draft

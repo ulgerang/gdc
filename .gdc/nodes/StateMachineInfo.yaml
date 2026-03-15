@@ -1,0 +1,21 @@
+schema_version: "1.0"
+node:
+    id: StateMachineInfo
+    type: class
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Initial
+          type: string
+          access: get; set
+        - name: States
+          type: '[]StateInfo'
+          access: get; set
+metadata:
+    status: ""

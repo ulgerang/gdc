@@ -1,0 +1,24 @@
+schema_version: "1.0"
+node:
+    id: DatabaseConfig
+    type: class
+    namespace: config
+    file_path: E:\works\gdc\internal\config\config.go
+language_spec:
+    language: go
+    package: config
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Path
+          type: string
+          access: get; set
+        - name: WALMode
+          type: bool
+          access: get; set
+        - name: CacheSize
+          type: int
+          access: get; set
+metadata:
+    status: ""

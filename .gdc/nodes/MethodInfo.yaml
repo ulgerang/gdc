@@ -1,0 +1,30 @@
+schema_version: "1.0"
+node:
+    id: MethodInfo
+    type: class
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Name
+          type: string
+          access: get; set
+        - name: Signature
+          type: string
+          access: get; set
+        - name: Description
+          type: string
+          access: get; set
+        - name: Parameters
+          type: '[]ParameterInfo'
+          access: get; set
+        - name: Returns
+          type: ReturnInfo
+          access: get; set
+metadata:
+    status: ""

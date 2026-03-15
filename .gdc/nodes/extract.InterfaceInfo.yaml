@@ -1,0 +1,27 @@
+schema_version: "1.0"
+node:
+    id: extract.InterfaceInfo
+    type: class
+    namespace: extract
+    file_path: E:\works\gdc\internal\extract\context_assembler.go
+language_spec:
+    language: go
+    package: extract
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Constructors
+          type: '[]ConstructorInfo'
+          access: get; set
+        - name: Methods
+          type: '[]MethodInfo'
+          access: get; set
+        - name: Properties
+          type: '[]PropertyInfo'
+          access: get; set
+        - name: Events
+          type: '[]EventInfo'
+          access: get; set
+metadata:
+    status: ""

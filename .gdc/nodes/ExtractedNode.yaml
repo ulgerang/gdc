@@ -1,0 +1,71 @@
+schema_version: "1.0"
+node:
+    id: ExtractedNode
+    type: class
+    namespace: parser
+    file_path: E:\works\gdc\internal\parser\parser.go
+language_spec:
+    language: go
+    package: parser
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: ToNodeSpec
+          signature: ToNodeSpec(oldSpec *node.Spec) *node.Spec
+          description: |-
+            ToNodeSpec converts extracted information to a node.Spec
+            Preserves existing descriptions from the old spec
+          parameters:
+            - name: oldSpec
+              type: '*node.Spec'
+          returns:
+            type: '*node.Spec'
+          exported: true
+    properties:
+        - name: ID
+          type: string
+          access: get; set
+        - name: Type
+          type: string
+          access: get; set
+          description: '"class", "interface", "struct"'
+        - name: Namespace
+          type: string
+          access: get; set
+        - name: Language
+          type: string
+          access: get; set
+          description: Language-specific fields (for Hybrid Specification Strategy)
+        - name: Package
+          type: string
+          access: get; set
+          description: 'Go: package name'
+        - name: Module
+          type: string
+          access: get; set
+          description: 'TS: module path'
+        - name: Attributes
+          type: '[]string'
+          access: get; set
+          description: 'C#: class-level attributes'
+        - name: Constructors
+          type: '[]ExtractedConstructor'
+          access: get; set
+        - name: Methods
+          type: '[]ExtractedMethod'
+          access: get; set
+        - name: Properties
+          type: '[]ExtractedProperty'
+          access: get; set
+        - name: Events
+          type: '[]ExtractedEvent'
+          access: get; set
+        - name: Dependencies
+          type: '[]ExtractedDependency'
+          access: get; set
+        - name: FilePath
+          type: string
+          access: get; set
+metadata:
+    status: ""

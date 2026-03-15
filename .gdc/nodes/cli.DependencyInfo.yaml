@@ -1,0 +1,40 @@
+schema_version: "1.0"
+node:
+    id: cli.DependencyInfo
+    type: class
+    namespace: cli
+    file_path: E:\works\gdc\internal\cli\extract.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Target
+          type: string
+          access: get; set
+        - name: Type
+          type: string
+          access: get; set
+        - name: Injection
+          type: string
+          access: get; set
+        - name: Optional
+          type: bool
+          access: get; set
+        - name: Usage
+          type: string
+          access: get; set
+        - name: InterfaceCode
+          type: string
+          access: get; set
+        - name: Spec
+          type: '*node.Spec'
+          access: get; set
+        - name: MissingDescriptions
+          type: '[]string'
+          access: get; set
+          description: List of methods/properties that need documentation
+metadata:
+    status: draft

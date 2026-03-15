@@ -1,0 +1,31 @@
+schema_version: "1.0"
+node:
+    id: codegen.InterfaceInfo
+    type: class
+    namespace: codegen
+    file_path: E:\works\gdc\internal\codegen\codegen.go
+language_spec:
+    language: go
+    package: codegen
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: NodeID
+          type: string
+          access: get; set
+        - name: NodeType
+          type: string
+          access: get; set
+        - name: Members
+          type: '[]MemberInfo'
+          access: get; set
+        - name: HasMissing
+          type: bool
+          access: get; set
+          description: true if any member needs description
+        - name: MissingCount
+          type: int
+          access: get; set
+metadata:
+    status: ""

@@ -1,0 +1,36 @@
+schema_version: "1.0"
+node:
+    id: IndexChecker
+    type: class
+    namespace: search
+    file_path: E:\works\gdc\internal\search\index_check.go
+language_spec:
+    language: go
+    package: search
+responsibility:
+    summary: ""
+interface:
+    constructors:
+        - signature: NewIndexChecker(projectRoot string) *IndexChecker
+          parameters:
+            - name: projectRoot
+              type: string
+          description: NewIndexChecker creates a new index checker
+    methods:
+        - name: Check
+          signature: Check() error
+          description: Check verifies if the required index/data is available
+          returns:
+            type: error
+          exported: true
+        - name: SuggestCommand
+          signature: SuggestCommand(err error) string
+          description: SuggestCommand returns a helpful message for the user
+          parameters:
+            - name: err
+              type: error
+          returns:
+            type: string
+          exported: true
+metadata:
+    status: ""

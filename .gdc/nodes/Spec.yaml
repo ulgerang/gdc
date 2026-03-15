@@ -1,0 +1,65 @@
+schema_version: "1.0"
+node:
+    id: Spec
+    type: class
+    namespace: node
+    file_path: E:\works\gdc\internal\node\spec.go
+language_spec:
+    language: go
+    package: node
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: Validate
+          signature: Validate() []string
+          description: Validate checks if the specification is valid
+          returns:
+            type: '[]string'
+          exported: true
+        - name: GetDependencyTargets
+          signature: GetDependencyTargets() []string
+          description: GetDependencyTargets returns a list of all dependency targets
+          returns:
+            type: '[]string'
+          exported: true
+        - name: HasDependency
+          signature: HasDependency(target string) bool
+          description: HasDependency checks if the node depends on the given target
+          parameters:
+            - name: target
+              type: string
+          returns:
+            type: bool
+          exported: true
+    properties:
+        - name: SchemaVersion
+          type: string
+          access: get; set
+        - name: Node
+          type: NodeInfo
+          access: get; set
+        - name: LanguageSpec
+          type: LanguageSpec
+          access: get; set
+          description: Language-specific configuration
+        - name: Responsibility
+          type: Responsibility
+          access: get; set
+        - name: Interface
+          type: Interface
+          access: get; set
+        - name: Dependencies
+          type: '[]Dependency'
+          access: get; set
+        - name: Implementations
+          type: '[]string'
+          access: get; set
+        - name: Logic
+          type: Logic
+          access: get; set
+        - name: Metadata
+          type: Metadata
+          access: get; set
+metadata:
+    status: draft
