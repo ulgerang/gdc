@@ -381,3 +381,61 @@ make clean
 ## 📄 License
 
 MIT License
+## Recent CLI Updates
+
+The commands below reflect the current CLI behavior.
+
+### sync
+
+```bash
+# Extract signatures from code into YAML
+gdc sync --direction code --auto-status
+
+# Run code sync and refresh the DB index in one step
+gdc sync --direction both --strategy merge
+
+# Review drift/conflicts discovered during code sync
+gdc sync --direction both --conflict-log .gdc/conflicts.log
+
+# Show timings and write a JSON profile report
+gdc sync --timing --profile --profile-output .gdc/sync-profile.json
+```
+
+### check
+
+```bash
+# Verify file_path, symbol existence, and member drift
+gdc check --verify-impl
+gdc check --verify-impl --fail-on-missing
+
+# CI-friendly output and thresholds
+gdc check --ci-mode --max-warnings 5
+gdc check --exit-on-warning
+
+# Reduce orphan noise or enforce layer failures
+gdc check --no-orphan-info
+gdc check --orphan-filter "entry-point"
+gdc check --layer-strict
+```
+
+### graph
+
+```bash
+# Highlight or isolate architecture layer violations
+gdc graph --layer-violations
+gdc graph --violations-only
+
+# Export an interactive HTML viewer
+gdc graph --interactive --output graph.html
+```
+
+### extract
+
+```bash
+# Include implementation, tests, and caller/reference evidence
+gdc extract PlayerController --with-impl --with-tests --with-callers
+```
+
+### Shell wrappers
+
+For local development wrappers are available at `gdc.bat` and `gdc.sh`.

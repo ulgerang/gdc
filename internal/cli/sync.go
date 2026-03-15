@@ -61,6 +61,21 @@ Examples:
 }
 
 func init() {
+	syncCmd.Long = `Synchronize node specifications with the SQLite database.
+
+Direction modes:
+  yaml  - Sync YAML specs to the database index (default)
+  code  - Extract interfaces from source code and update YAML specs
+  both  - Run code sync and then refresh the database index
+  spec  - Reserved for future spec-to-code generation
+
+Examples:
+  $ gdc sync
+  $ gdc sync --dry-run
+  $ gdc sync --direction code --source src/
+  $ gdc sync --direction both --strategy merge
+  $ gdc sync --direction both --conflict-log .gdc/conflicts.log
+  $ gdc sync --timing --profile --profile-output .gdc/sync-profile.json`
 	syncCmd.Flags().BoolVarP(&syncDryRun, "dry-run", "n", false, "preview changes without applying")
 	syncCmd.Flags().BoolVar(&syncForce, "force", false, "force full resync")
 	syncCmd.Flags().StringVarP(&syncDirection, "direction", "d", "yaml", "sync direction (yaml, code, both, spec)")

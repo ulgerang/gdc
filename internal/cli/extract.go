@@ -58,6 +58,22 @@ Examples:
 }
 
 func init() {
+	extractCmd.Long = `Generate an optimized prompt for AI implementation of a node.
+
+This command extracts the node specification and selected supporting evidence
+to build an implementation prompt.
+
+Optional code evidence:
+  --with-impl     Include implementation code from source files
+  --with-tests    Include related test files
+  --with-callers  Include caller/reference evidence from code search fallback
+
+Examples:
+  $ gdc extract PlayerController
+  $ gdc extract PlayerController --clipboard
+  $ gdc extract PlayerController --output prompt.md
+  $ gdc extract PlayerController --with-impl
+  $ gdc extract PlayerController --with-impl --with-tests --with-callers`
 	extractCmd.Flags().StringVarP(&extractTemplate, "template", "t", "implement",
 		"prompt template (implement, review, test)")
 	extractCmd.Flags().StringVarP(&extractOutput, "output", "o", "",

@@ -57,6 +57,25 @@ Examples:
 }
 
 func init() {
+	checkCmd.Long = `Check the graph for consistency and implementation drift.
+
+Validation categories:
+  - missing_ref     - References to non-existent nodes
+  - hash_mismatch   - Contract hash mismatches
+  - cycle           - Circular dependencies
+  - orphan          - Nodes not referenced anywhere
+  - impl_missing    - file_path missing or symbol not found in code
+  - impl_mismatch   - Spec members do not match implementation
+  - layer_violation - Architecture layer violations
+  - srp_violation   - Too many dependencies (SRP)
+
+Examples:
+  $ gdc check
+  $ gdc check --verify-impl
+  $ gdc check --verify-impl --fail-on-missing
+  $ gdc check --no-orphan-info
+  $ gdc check --ci-mode --max-warnings 5
+  $ gdc check --layer-strict`
 	checkCmd.Flags().BoolVar(&checkFix, "fix", false, "automatically fix issues where possible")
 	checkCmd.Flags().StringVar(&checkCategory, "category", "", "filter by category")
 	checkCmd.Flags().StringVar(&checkSeverity, "severity", "", "filter by severity (error, warning, info)")
