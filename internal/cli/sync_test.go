@@ -454,3 +454,30 @@ func TestWriteSyncProfileReportWritesJSONWhenEnabled(t *testing.T) {
 		t.Fatalf("expected sync profile JSON content, got %q", string(data))
 	}
 }
+
+func TestCanonicalizeSpecDependenciesNormalizesGenericTargets(t *testing.T) {
+	spec := &node.Spec{
+		Node: node.NodeInfo{
+			ID:        "OrderService",
+			Namespace: "Example.Services",
+		},
+		Dependencies: []node.Dependency{
+			{Target: "ILogger<OrderService>"},
+			{Target: "Example.Repositories.IRepository<Order>"},
+		},
+	}
+
+	aliasMap := map[string]string{
+		"ILogger":                          "ILogger",
+		"Example.Repositories.IRepository": "Example.Repositories.IRepository",
+	}
+
+	canonicalizeSpecDependencies(spec, aliasMap)
+
+	if spec.Dependencies[0].Target != "ILogger" {
+		t.Fatalf("expected ILogger<OrderService> to canonicalize to ILogger, got %q", spec.Dependencies[0].Target)
+	}
+	if spec.Dependencies[1].Target != "Example.Repositories.IRepository" {
+		t.Fatalf("expected namespaced generic target to canonicalize, got %q", spec.Dependencies[1].Target)
+	}
+}

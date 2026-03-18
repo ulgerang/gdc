@@ -263,3 +263,80 @@ namespace Example
 		t.Errorf("expected at least 3 async methods, got %d", len(extracted.Methods))
 	}
 }
+
+func TestCSharpParserParsesGenericInterfaceDeclaration(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "csharpparser_test")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	csCode := `namespace Example.Repositories
+{
+    public interface IRepository<T>
+    {
+        T FindById(string id);
+        void Save(T entity);
+    }
+}
+`
+	filePath := filepath.Join(tempDir, "IRepository.cs")
+	if err := os.WriteFile(filePath, []byte(csCode), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	p := NewCSharpParser()
+	extracted, err := p.ParseFile(filePath)
+	if err != nil {
+		t.Fatalf("failed to parse file: %v", err)
+	}
+
+	if extracted.ID != "IRepository" {
+		t.Fatalf("expected ID 'IRepository', got %q", extracted.ID)
+	}
+	if extracted.Type != "interface" {
+		t.Fatalf("expected Type 'interface', got %q", extracted.Type)
+	}
+	if len(extracted.Methods) != 2 {
+		t.Fatalf("expected 2 methods, got %d", len(extracted.Methods))
+	}
+}
+
+func TestCSharpParserNormalizesGenericDependencyTargets(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "csharpparser_test")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	csCode := `namespace Example.Services
+{
+    public class OrderService
+    {
+        private readonly ILogger<OrderService> _logger;
+
+        public OrderService(ILogger<OrderService> logger)
+        {
+            _logger = logger;
+        }
+    }
+}
+`
+	filePath := filepath.Join(tempDir, "OrderService.cs")
+	if err := os.WriteFile(filePath, []byte(csCode), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	p := NewCSharpParser()
+	extracted, err := p.ParseFile(filePath)
+	if err != nil {
+		t.Fatalf("failed to parse file: %v", err)
+	}
+
+	if len(extracted.Dependencies) != 1 {
+		t.Fatalf("expected 1 dependency after dedupe, got %d (%+v)", len(extracted.Dependencies), extracted.Dependencies)
+	}
+	if extracted.Dependencies[0].Target != "ILogger" {
+		t.Fatalf("expected generic dependency to normalize to ILogger, got %q", extracted.Dependencies[0].Target)
+	}
+}

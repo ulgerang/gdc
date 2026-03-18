@@ -217,7 +217,7 @@ func (p *CSharpParser) extractBaseTypes(typeNode *sitter.Node, content []byte, e
 					continue
 				}
 				baseType := baseTypeNode.Content(content)
-				baseType = strings.TrimSpace(baseType)
+				baseType = NormalizeTypeReference(baseType)
 
 				if baseType != "" {
 					// Determine injection type based on naming convention
@@ -612,7 +612,7 @@ func (p *CSharpParser) extractFields(root *sitter.Node, content []byte, extracte
 		}
 
 		// Get field type and modifiers
-		fieldType = p.getFieldType(fieldNode, content)
+		fieldType = NormalizeTypeReference(p.getFieldType(fieldNode, content))
 		modifiers := p.getModifiers(fieldNode, content)
 
 		// Check for injected dependencies (readonly private fields with interface types)
@@ -931,10 +931,11 @@ func (p *CSharpParser) buildMethodSignature(returnType, name, params string, mod
 // extractDependenciesFromConstructor extracts dependencies from constructor parameters
 func (p *CSharpParser) extractDependenciesFromConstructor(ctor ExtractedConstructor, extracted *ExtractedNode) {
 	for _, param := range ctor.Parameters {
+		typeName := NormalizeTypeReference(param.Type)
 		// Interface types (starting with I) are likely dependencies
-		if strings.HasPrefix(param.Type, "I") && len(param.Type) > 1 {
+		if strings.HasPrefix(typeName, "I") && len(typeName) > 1 {
 			dep := ExtractedDependency{
-				Target:    param.Type,
+				Target:    typeName,
 				FieldName: param.Name,
 				Injection: "constructor",
 			}

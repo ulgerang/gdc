@@ -1013,6 +1013,10 @@ func remapExtractedDependencies(extracted *parser.ExtractedNode, duplicateCounts
 
 	for i := range extracted.Dependencies {
 		dep := &extracted.Dependencies[i]
+		normalizedTarget := parser.NormalizeTypeReference(dep.Target)
+		if normalizedTarget != "" {
+			dep.Target = normalizedTarget
+		}
 		if dep.Target == "" || duplicateCounts[dep.Target] <= 1 {
 			continue
 		}
@@ -1330,6 +1334,13 @@ func buildCanonicalDependencyAliasMap(existingNodes []*node.Spec, plans []*codeS
 		if _, exists := owners[alias]; !exists {
 			owners[alias] = canonical
 		}
+		normalized := parser.NormalizeTypeReference(alias)
+		if normalized != "" && normalized != alias {
+			counts[normalized]++
+			if _, exists := owners[normalized]; !exists {
+				owners[normalized] = canonical
+			}
+		}
 	}
 
 	for _, spec := range existingNodes {
@@ -1368,6 +1379,10 @@ func canonicalizeSpecDependencies(spec *node.Spec, aliasMap map[string]string) {
 	for i := range spec.Dependencies {
 		target := strings.TrimSpace(spec.Dependencies[i].Target)
 		if canonical, ok := aliasMap[target]; ok {
+			spec.Dependencies[i].Target = canonical
+			continue
+		}
+		if canonical, ok := aliasMap[parser.NormalizeTypeReference(target)]; ok {
 			spec.Dependencies[i].Target = canonical
 		}
 	}

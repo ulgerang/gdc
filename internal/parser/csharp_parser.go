@@ -273,7 +273,7 @@ func (p *RegexCSharpParser) ParseFile(filePath string) (*ExtractedNode, error) {
 		// Field (potential dependency)
 		if matches := csFieldPattern.FindStringSubmatch(line); len(matches) > 2 {
 			if strings.Contains(line, "private") && strings.Contains(line, "readonly") {
-				typeName := matches[1]
+				typeName := NormalizeTypeReference(matches[1])
 				if strings.HasPrefix(typeName, "I") && len(typeName) > 1 {
 					dep := ExtractedDependency{
 						Target:    typeName,
@@ -318,7 +318,7 @@ func (p *RegexCSharpParser) extractNamespace(content string) string {
 func (p *RegexCSharpParser) extractBaseTypes(baseTypes string, node *ExtractedNode) {
 	parts := strings.Split(baseTypes, ",")
 	for _, part := range parts {
-		typeName := strings.TrimSpace(part)
+		typeName := NormalizeTypeReference(part)
 		if typeName == "" {
 			continue
 		}
@@ -421,10 +421,11 @@ func (p *RegexCSharpParser) parseParameters(params string) []ExtractedParameter 
 func (p *RegexCSharpParser) extractDependenciesFromParams(params string, node *ExtractedNode) {
 	paramList := p.parseParameters(params)
 	for _, param := range paramList {
+		typeName := NormalizeTypeReference(param.Type)
 		// Interface types are likely dependencies
-		if strings.HasPrefix(param.Type, "I") && len(param.Type) > 1 {
+		if strings.HasPrefix(typeName, "I") && len(typeName) > 1 {
 			dep := ExtractedDependency{
-				Target:    param.Type,
+				Target:    typeName,
 				FieldName: param.Name,
 				Injection: "constructor",
 			}
