@@ -1,8 +1,8 @@
 # GDC (Graph-Driven Codebase) CLI Specification
 
-> **Version**: 1.0.0-draft  
-> **Last Updated**: 2026-02-03  
-> **Status**: Draft
+> **Version**: 1.0.0-dev
+> **Last Updated**: 2026-03-20
+> **Status**: Development Preview
 
 ---
 

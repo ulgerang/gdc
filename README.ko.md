@@ -15,7 +15,7 @@
 ### 빌드
 
 ```bash
-# Go 1.22+ 필요
+# Go 1.23+ 필요
 go build -o gdc ./cmd/gdc
 
 # Windows
@@ -52,10 +52,13 @@ gdc sync --direction code             # 코드 → YAML 추출
 gdc sync --direction code --source src/
 gdc sync --direction code --files src/services/user_service.go
 gdc sync --direction code --dirs src/services --symbols UserService
+gdc sync --direction both --strategy merge
+gdc sync --timing --profile --profile-output .gdc/sync-profile.json
 
 gdc check                             # 정합성 검사
 gdc check --category hash_mismatch    # 카테고리로 필터
 gdc check --severity error            # 심각도로 필터
+gdc check --verify-impl --fail-on-missing
 
 # 6. 노드 목록 및 상세 정보
 gdc list
@@ -94,6 +97,7 @@ gdc extract PlayerController --with-impl --with-tests
 | `gdc sync` | YAML ↔ DB 동기화 |
 | `gdc check` | 정합성 검사 |
 | `gdc extract <node>` | AI 구현 프롬프트 생성 |
+| `gdc diff <node>` | YAML 스펙과 현재 코드 차이 비교 |
 | `gdc stats` | 프로젝트 통계 |
 | `gdc search <pattern>` | 코드베이스에서 패턴 검색 |
 | `gdc query <symbol>` | 심볼 이름으로 노드 정보 조회 |
@@ -215,6 +219,14 @@ gdc graph --format dot --output graph.dot
 gdc graph --format json > graph.json
 ```
 
+### gdc diff
+저장된 YAML 스펙과 현재 구현 코드의 차이를 비교합니다.
+
+```bash
+# 스펙과 구현 비교
+gdc diff Agent
+```
+
 ### gdc stats
 프로젝트 통계를 표시합니다.
 
@@ -231,6 +243,8 @@ gdc stats
 - `hash_mismatch` - 계약 해시 불일치
 - `cycle` - 순환 의존성
 - `orphan` - 어디에서도 참조되지 않는 노드
+- `impl_missing` - file_path 누락 또는 코드에서 심볼을 찾지 못함
+- `impl_mismatch` - 스펙 멤버와 구현이 일치하지 않음
 - `layer_violation` - 아키텍처 레이어 위반
 - `srp_violation` - 의존성이 너무 많음 (SRP 위반)
 

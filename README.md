@@ -15,7 +15,7 @@ It models software systems as graphs (nodes & edges) to maximize the accuracy of
 ### Build
 
 ```bash
-# Requires Go 1.22+
+# Requires Go 1.23+
 go build -o gdc ./cmd/gdc
 
 # Windows
@@ -52,10 +52,13 @@ gdc sync --direction code             # Extract from code → YAML
 gdc sync --direction code --source src/
 gdc sync --direction code --files src/services/user_service.go
 gdc sync --direction code --dirs src/services --symbols UserService
+gdc sync --direction both --strategy merge
+gdc sync --timing --profile --profile-output .gdc/sync-profile.json
 
 gdc check                             # Consistency check
 gdc check --category hash_mismatch    # Filter by category
 gdc check --severity error            # Filter by severity
+gdc check --verify-impl --fail-on-missing
 
 # 6. List and show nodes
 gdc list
@@ -94,6 +97,7 @@ gdc extract PlayerController --with-impl --with-tests
 | `gdc sync` | Sync YAML ↔ DB |
 | `gdc check` | Consistency check |
 | `gdc extract <node>` | Generate AI implementation prompt |
+| `gdc diff <node>` | Compare YAML spec against current code |
 | `gdc stats` | Project statistics |
 | `gdc search <pattern>` | Search patterns in codebase |
 | `gdc query <symbol>` | Query node info by symbol name |
@@ -261,6 +265,8 @@ Validation categories:
 - `hash_mismatch` - Contract hash mismatches
 - `cycle` - Circular dependencies
 - `orphan` - Nodes not referenced anywhere
+- `impl_missing` - file_path missing or symbol not found in code
+- `impl_mismatch` - Spec members do not match implementation
 - `layer_violation` - Architecture layer violations
 - `srp_violation` - Too many dependencies (SRP)
 
@@ -427,6 +433,13 @@ gdc graph --violations-only
 
 # Export an interactive HTML viewer
 gdc graph --interactive --output graph.html
+```
+
+### diff
+
+```bash
+# Compare the stored YAML spec for a node with the current implementation
+gdc diff Agent
 ```
 
 ### extract
