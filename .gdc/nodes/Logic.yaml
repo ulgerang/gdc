@@ -23,5 +23,12 @@ interface:
         - name: Pseudocode
           type: string
           access: get; set
+dependencies:
+    - target: StateMachine
+      type: class
+      injection: field
+    - target: Algorithm
+      type: class
+      injection: field
 metadata:
-    status: ""
+    status: draft

@@ -26,5 +26,9 @@ interface:
         - name: Transitions
           type: '[]Transition'
           access: get; set
+dependencies:
+    - target: Transition
+      type: class
+      injection: field
 metadata:
-    status: ""
+    status: draft

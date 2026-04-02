@@ -1,0 +1,32 @@
+schema_version: "1.0"
+node:
+    id: Save
+    type: function
+    namespace: node
+    file_path: E:\works\gdc\internal\node\spec.go
+language_spec:
+    language: go
+    package: node
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: Save
+          signature: Save(path string, spec *Spec) error
+          description: Save writes a node specification to a YAML file
+          parameters:
+            - name: path
+              type: string
+            - name: spec
+              type: '*Spec'
+          returns:
+            type: error
+          exported: true
+dependencies:
+    - target: Spec
+      type: class
+      injection: method
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-04-02"

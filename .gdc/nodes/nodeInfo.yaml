@@ -10,6 +10,12 @@ language_spec:
 responsibility:
     summary: ""
 interface:
+    methods:
+        - name: QualifiedID
+          signature: QualifiedID() string
+          returns:
+            type: string
+          exported: true
     properties:
         - name: ID
           type: string
@@ -17,7 +23,7 @@ interface:
         - name: Type
           type: string
           access: get; set
-          description: class, interface, module, service, enum
+          description: class, interface, module, service, enum, function
         - name: Layer
           type: string
           access: get; set
@@ -29,4 +35,4 @@ interface:
           type: string
           access: get; set
 metadata:
-    status: ""
+    status: draft

@@ -650,27 +650,47 @@ func verifyNodeImplementation(spec *node.Spec, resolvedPath, lang string, p pars
 }
 
 func findExtractedNodeInFile(p parser.Parser, path, nodeID string) (*parser.ExtractedNode, error) {
+	candidateIDs := candidateSourceNodeIDs(nodeID)
 	if multi, ok := p.(parser.MultiNodeParser); ok {
 		extractedNodes, err := multi.ParseFileNodes(path)
 		if err != nil {
 			return nil, err
 		}
-		for _, extracted := range extractedNodes {
-			if extracted != nil && extracted.ID == nodeID {
-				return extracted, nil
-			}
-		}
-		return nil, nil
+		return matchExtractedNodeByID(extractedNodes, candidateIDs), nil
 	}
 
 	extracted, err := p.ParseFile(path)
 	if err != nil {
 		return nil, err
 	}
-	if extracted != nil && extracted.ID == nodeID {
-		return extracted, nil
+	if match := matchExtractedNodeByID([]*parser.ExtractedNode{extracted}, candidateIDs); match != nil {
+		return match, nil
 	}
 	return nil, nil
+}
+
+func candidateSourceNodeIDs(nodeID string) []string {
+	nodeID = strings.TrimSpace(nodeID)
+	if nodeID == "" {
+		return nil
+	}
+
+	candidates := []string{nodeID}
+	if idx := strings.LastIndex(nodeID, "."); idx >= 0 && idx < len(nodeID)-1 {
+		candidates = append(candidates, nodeID[idx+1:])
+	}
+	return dedupeStrings(candidates)
+}
+
+func matchExtractedNodeByID(extractedNodes []*parser.ExtractedNode, candidateIDs []string) *parser.ExtractedNode {
+	for _, candidateID := range candidateIDs {
+		for _, extracted := range extractedNodes {
+			if extracted != nil && extracted.ID == candidateID {
+				return extracted
+			}
+		}
+	}
+	return nil
 }
 
 func symbolExistsInSource(lang, content, nodeID, nodeType string) bool {

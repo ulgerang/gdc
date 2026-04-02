@@ -32,6 +32,11 @@ interface:
           returns:
             type: bool
           exported: true
+        - name: QualifiedID
+          signature: QualifiedID() string
+          returns:
+            type: string
+          exported: true
     properties:
         - name: SchemaVersion
           type: string
@@ -61,5 +66,30 @@ interface:
         - name: Metadata
           type: Metadata
           access: get; set
+        - name: SourcePath
+          type: string
+          access: get; set
+dependencies:
+    - target: NodeInfo
+      type: class
+      injection: field
+    - target: LanguageSpec
+      type: class
+      injection: field
+    - target: Responsibility
+      type: class
+      injection: field
+    - target: Interface
+      type: class
+      injection: field
+    - target: Dependency
+      type: class
+      injection: field
+    - target: Logic
+      type: class
+      injection: field
+    - target: Metadata
+      type: class
+      injection: field
 metadata:
     status: draft

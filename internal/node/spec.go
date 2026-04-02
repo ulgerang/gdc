@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -302,8 +303,13 @@ func (s *Spec) QualifiedID() string {
 }
 
 func (n NodeInfo) QualifiedID() string {
-	if n.Namespace == "" {
-		return n.ID
+	id := strings.TrimSpace(n.ID)
+	namespace := strings.TrimSpace(n.Namespace)
+	if namespace == "" {
+		return id
 	}
-	return n.Namespace + "." + n.ID
+	if id == namespace || strings.HasPrefix(id, namespace+".") {
+		return id
+	}
+	return namespace + "." + id
 }

@@ -23,5 +23,18 @@ interface:
         - name: Events
           type: '[]Event'
           access: get; set
+dependencies:
+    - target: Constructor
+      type: class
+      injection: field
+    - target: Method
+      type: class
+      injection: field
+    - target: Property
+      type: class
+      injection: field
+    - target: Event
+      type: class
+      injection: field
 metadata:
-    status: ""
+    status: draft

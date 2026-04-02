@@ -15,6 +15,12 @@ interface:
           type: string
           access: get; set
           description: draft, specified, implemented, tested, deprecated
+        - name: Origin
+          type: string
+          access: get; set
+        - name: ExtractedAt
+          type: string
+          access: get; set
         - name: Created
           type: string
           access: get; set
@@ -45,4 +51,4 @@ interface:
           access: get; set
           description: Optional layer override
 metadata:
-    status: ""
+    status: draft

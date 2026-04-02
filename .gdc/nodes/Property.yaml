@@ -44,4 +44,4 @@ interface:
           access: get; set
           description: 'C#: [SerializeField], [JsonIgnore], etc.'
 metadata:
-    status: ""
+    status: draft
