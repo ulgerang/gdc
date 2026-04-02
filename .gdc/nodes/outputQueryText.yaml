@@ -1,15 +1,19 @@
 schema_version: "1.0"
 node:
-    id: candidateSourceNodeIDs
+    id: outputQueryText
     type: function
     namespace: cli
-    file_path: E:\works\gdc\internal\cli\check.go
+    file_path: E:\works\gdc\internal\cli\query.go
 language_spec:
     language: go
     package: cli
 responsibility:
     summary: ""
+dependencies:
+    - target: queryMatch
+      type: class
+      injection: method
 metadata:
-    status: draft
+    status: ""
     origin: code_extracted
     extracted_at: "2026-04-02"

@@ -314,6 +314,7 @@ func outputQueryText(match *queryMatch, allNodes []*node.Spec, verbose bool) {
 	bold := color.New(color.Bold)
 	cyan := color.New(color.FgCyan)
 	spec := match.Spec
+	displayQualifiedName := match.QualifiedName != "" && match.QualifiedName != spec.Node.ID
 
 	// Header
 	fmt.Println()
@@ -326,7 +327,7 @@ func outputQueryText(match *queryMatch, allNodes []*node.Spec, verbose bool) {
 	if spec.Node.Namespace != "" {
 		fmt.Printf("Namespace: %s\n", spec.Node.Namespace)
 	}
-	if match.QualifiedName != "" {
+	if displayQualifiedName {
 		fmt.Printf("Qualified Name: %s\n", match.QualifiedName)
 	}
 
@@ -479,7 +480,7 @@ func outputQueryJSON(match *queryMatch) error {
 		Layer:          spec.Node.Layer,
 		Status:         spec.Metadata.Status,
 		Namespace:      spec.Node.Namespace,
-		QualifiedName:  match.QualifiedName,
+		QualifiedName:  queryQualifiedName(spec, match.QualifiedName),
 		SpecPath:       match.SpecPath,
 		ImplPath:       match.ImplPath,
 		Aliases:        match.Aliases,
@@ -522,7 +523,7 @@ func outputQueryYAML(match *queryMatch) error {
 		Layer:          spec.Node.Layer,
 		Status:         spec.Metadata.Status,
 		Namespace:      spec.Node.Namespace,
-		QualifiedName:  match.QualifiedName,
+		QualifiedName:  queryQualifiedName(spec, match.QualifiedName),
 		SpecPath:       match.SpecPath,
 		ImplPath:       match.ImplPath,
 		Aliases:        match.Aliases,
@@ -672,6 +673,17 @@ func qualifiedNodeName(spec *node.Spec) string {
 		return ""
 	}
 	return spec.QualifiedID()
+}
+
+func queryQualifiedName(spec *node.Spec, qualifiedName string) string {
+	if spec == nil {
+		return ""
+	}
+	qualifiedName = strings.TrimSpace(qualifiedName)
+	if qualifiedName == "" || qualifiedName == strings.TrimSpace(spec.Node.ID) {
+		return ""
+	}
+	return qualifiedName
 }
 
 func querySpecPath(spec *node.Spec, nodesDir string) string {
