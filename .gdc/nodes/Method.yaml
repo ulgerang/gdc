@@ -57,5 +57,15 @@ interface:
           type: '[]string'
           access: get; set
           description: 'C#: [SerializeField], [Inject], etc.'
+dependencies:
+    - target: Parameter
+      type: class
+      injection: field
+    - target: Returns
+      type: class
+      injection: field
+    - target: Throws
+      type: class
+      injection: field
 metadata:
-    status: ""
+    status: draft

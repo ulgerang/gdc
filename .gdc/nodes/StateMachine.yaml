@@ -17,5 +17,9 @@ interface:
         - name: States
           type: '[]State'
           access: get; set
+dependencies:
+    - target: State
+      type: class
+      injection: field
 metadata:
-    status: ""
+    status: draft

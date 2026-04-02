@@ -21,4 +21,4 @@ interface:
           type: bool
           access: get; set
 metadata:
-    status: ""
+    status: draft

@@ -28,4 +28,4 @@ interface:
           access: get; set
           description: 'C#: class-level attributes like [Serializable]'
 metadata:
-    status: ""
+    status: draft

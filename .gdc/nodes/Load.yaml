@@ -1,0 +1,30 @@
+schema_version: "1.0"
+node:
+    id: Load
+    type: function
+    namespace: node
+    file_path: E:\works\gdc\internal\node\spec.go
+language_spec:
+    language: go
+    package: node
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: Load
+          signature: Load(path string) (*Spec, error)
+          description: Load reads a node specification from a YAML file
+          parameters:
+            - name: path
+              type: string
+          returns:
+            type: (*Spec, error)
+          exported: true
+dependencies:
+    - target: Spec
+      type: class
+      injection: method
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-04-02"

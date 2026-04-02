@@ -100,3 +100,63 @@ func TestBuildDriftReportEmptyWhenSpecMatchesCode(t *testing.T) {
 		t.Fatalf("expected no drift, got %+v", report)
 	}
 }
+
+func TestFindExtractedNodeInFileMatchesTerminalSymbolForDottedIDs(t *testing.T) {
+	parser := fakeMultiNodeParser{
+		nodes: []*parser.ExtractedNode{
+			{ID: "Runtime"},
+			{ID: "Other"},
+		},
+	}
+
+	match, err := findExtractedNodeInFile(parser, "ignored.go", "tools.Runtime")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if match == nil || match.ID != "Runtime" {
+		t.Fatalf("expected Runtime match, got %+v", match)
+	}
+}
+
+func TestFindExtractedNodeInFilePrefersExactIDBeforeTerminalFallback(t *testing.T) {
+	parser := fakeMultiNodeParser{
+		nodes: []*parser.ExtractedNode{
+			{ID: "Runtime"},
+			{ID: "tools.Runtime"},
+		},
+	}
+
+	match, err := findExtractedNodeInFile(parser, "ignored.go", "tools.Runtime")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if match == nil || match.ID != "tools.Runtime" {
+		t.Fatalf("expected exact tools.Runtime match, got %+v", match)
+	}
+}
+
+type fakeMultiNodeParser struct {
+	nodes []*parser.ExtractedNode
+	err   error
+}
+
+func (f fakeMultiNodeParser) ParseFile(path string) (*parser.ExtractedNode, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	if len(f.nodes) == 0 {
+		return nil, nil
+	}
+	return f.nodes[0], nil
+}
+
+func (f fakeMultiNodeParser) ParseFileNodes(path string) ([]*parser.ExtractedNode, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	return f.nodes, nil
+}
+
+func (f fakeMultiNodeParser) Language() string {
+	return "go"
+}
