@@ -308,8 +308,18 @@ func (n NodeInfo) QualifiedID() string {
 	if namespace == "" {
 		return id
 	}
-	if id == namespace || strings.HasPrefix(id, namespace+".") {
+	if id == namespace || strings.HasPrefix(id, namespace+".") || isPathLikeQualifiedID(id, namespace) {
 		return id
 	}
 	return namespace + "." + id
+}
+
+func isPathLikeQualifiedID(id, namespace string) bool {
+	if strings.Count(id, ".") < 2 {
+		return false
+	}
+	if namespace == "" {
+		return false
+	}
+	return !strings.HasPrefix(id, namespace+".")
 }

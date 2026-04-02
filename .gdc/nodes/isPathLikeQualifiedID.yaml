@@ -1,0 +1,15 @@
+schema_version: "1.0"
+node:
+    id: isPathLikeQualifiedID
+    type: function
+    namespace: node
+    file_path: E:\works\gdc\internal\node\spec.go
+language_spec:
+    language: go
+    package: node
+responsibility:
+    summary: ""
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-04-02"

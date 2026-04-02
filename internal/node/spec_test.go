@@ -23,3 +23,14 @@ func TestNodeInfoQualifiedIDDoesNotDoublePrefixDottedIDs(t *testing.T) {
 		t.Fatalf("expected tools.Runtime, got %q", got)
 	}
 }
+
+func TestNodeInfoQualifiedIDKeepsPathLikeSyncedIDCanonical(t *testing.T) {
+	info := NodeInfo{
+		ID:        "infra.config.env_lookup_os.osEnvLookup",
+		Namespace: "config",
+	}
+
+	if got := info.QualifiedID(); got != "infra.config.env_lookup_os.osEnvLookup" {
+		t.Fatalf("expected path-like ID to remain canonical, got %q", got)
+	}
+}

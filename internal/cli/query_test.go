@@ -109,3 +109,16 @@ func TestQueryQualifiedNameKeepsDistinctQualifiedID(t *testing.T) {
 		t.Fatalf("expected qualified name to be kept, got %q", got)
 	}
 }
+
+func TestQueryQualifiedNameSuppressesPathLikeSyncedID(t *testing.T) {
+	spec := &node.Spec{
+		Node: node.NodeInfo{
+			ID:        "infra.config.env_lookup_os.osEnvLookup",
+			Namespace: "config",
+		},
+	}
+
+	if got := queryQualifiedName(spec, spec.QualifiedID()); got != "" {
+		t.Fatalf("expected path-like qualified name to be suppressed, got %q", got)
+	}
+}
