@@ -122,3 +122,10 @@ func TestQueryQualifiedNameSuppressesPathLikeSyncedID(t *testing.T) {
 		t.Fatalf("expected path-like qualified name to be suppressed, got %q", got)
 	}
 }
+
+func TestSourceExtensionsForLanguageIncludesRust(t *testing.T) {
+	extensions := sourceExtensionsForLanguage("rust")
+	if len(extensions) != 1 || extensions[0] != ".rs" {
+		t.Fatalf("expected rust extensions [.rs], got %v", extensions)
+	}
+}

@@ -1,0 +1,44 @@
+schema_version: "1.0"
+node:
+    id: RustParser
+    type: class
+    namespace: parser
+    file_path: E:\works\gdc\internal\parser\rust_parser.go
+language_spec:
+    language: go
+    package: parser
+responsibility:
+    summary: ""
+interface:
+    constructors:
+        - signature: NewRustParser() *RustParser
+          description: NewRustParser creates a new Rust parser.
+    methods:
+        - name: Language
+          signature: Language() string
+          description: Language returns "rust".
+          returns:
+            type: string
+          exported: true
+        - name: ParseFile
+          signature: ParseFile(filePath string) (*ExtractedNode, error)
+          description: ParseFile parses a Rust source file and returns the first extracted node.
+          parameters:
+            - name: filePath
+              type: string
+          returns:
+            type: (*ExtractedNode, error)
+          exported: true
+        - name: ParseFileNodes
+          signature: ParseFileNodes(filePath string) ([]*ExtractedNode, error)
+          description: ParseFileNodes parses a Rust source file and extracts all public nodes.
+          parameters:
+            - name: filePath
+              type: string
+          returns:
+            type: ([]*ExtractedNode, error)
+          exported: true
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-04-03"

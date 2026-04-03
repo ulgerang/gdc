@@ -50,5 +50,9 @@ interface:
           type: '[]string'
           access: get; set
           description: 'C#: method-level attributes'
+dependencies:
+    - target: ExtractedParameter
+      type: class
+      injection: field
 metadata:
-    status: ""
+    status: draft

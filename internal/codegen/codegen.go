@@ -15,6 +15,7 @@ const (
 	LangGo         Language = "go"
 	LangCSharp     Language = "csharp"
 	LangTypeScript Language = "typescript"
+	LangRust       Language = "rust"
 )
 
 // Generator generates language-specific code representations
@@ -31,6 +32,8 @@ func NewGenerator(lang string) (*Generator, error) {
 		return &Generator{language: LangCSharp}, nil
 	case "typescript", "ts":
 		return &Generator{language: LangTypeScript}, nil
+	case "rust", "rs":
+		return &Generator{language: LangRust}, nil
 	default:
 		return nil, fmt.Errorf("unsupported language: %s", lang)
 	}
@@ -143,6 +146,8 @@ func (g *Generator) GenerateInterface(spec *node.Spec) string {
 		return g.generateCSharpInterface(spec)
 	case LangTypeScript:
 		return g.generateTypeScriptInterface(spec)
+	case LangRust:
+		return g.generateRustInterface(spec)
 	default:
 		return g.generateCSharpInterface(spec)
 	}
@@ -306,6 +311,44 @@ func (g *Generator) generateTypeScriptInterface(spec *node.Spec) string {
 		}
 	}
 
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (g *Generator) generateRustInterface(spec *node.Spec) string {
+	var sb strings.Builder
+	info := AnalyzeSpec(spec)
+
+	if spec.Node.Type == "interface" {
+		sb.WriteString(fmt.Sprintf("pub trait %s {\n", spec.Node.ID))
+		for _, member := range info.Members {
+			if member.MemberType != "method" {
+				continue
+			}
+			if member.NeedsDescription {
+				sb.WriteString("    /// [NEEDS DESCRIPTION]\n")
+			} else if member.Description != "" {
+				sb.WriteString(fmt.Sprintf("    /// %s\n", member.Description))
+			}
+			sb.WriteString(fmt.Sprintf("    fn %s;\n", member.Signature))
+		}
+		sb.WriteString("}")
+		return sb.String()
+	}
+
+	sb.WriteString(fmt.Sprintf("pub struct %s {\n}\n\n", spec.Node.ID))
+	sb.WriteString(fmt.Sprintf("impl %s {\n", spec.Node.ID))
+	for _, member := range info.Members {
+		if member.MemberType != "constructor" && member.MemberType != "method" {
+			continue
+		}
+		if member.NeedsDescription {
+			sb.WriteString("    /// [NEEDS DESCRIPTION]\n")
+		} else if member.Description != "" {
+			sb.WriteString(fmt.Sprintf("    /// %s\n", member.Description))
+		}
+		sb.WriteString(fmt.Sprintf("    pub fn %s {\n        todo!()\n    }\n\n", member.Signature))
+	}
 	sb.WriteString("}")
 	return sb.String()
 }

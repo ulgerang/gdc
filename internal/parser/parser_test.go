@@ -19,6 +19,8 @@ func TestGetParser(t *testing.T) {
 		{"c#", false, "csharp"},
 		{"typescript", false, "typescript"},
 		{"ts", false, "typescript"},
+		{"rust", false, "rust"},
+		{"rs", false, "rust"},
 		{"python", true, ""},
 		{"java", true, ""},
 	}

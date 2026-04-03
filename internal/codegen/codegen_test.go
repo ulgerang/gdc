@@ -19,6 +19,8 @@ func TestNewGenerator(t *testing.T) {
 		{"c#", false},
 		{"typescript", false},
 		{"ts", false},
+		{"rust", false},
+		{"rs", false},
 		{"python", true},
 		{"java", true},
 	}
@@ -50,6 +52,8 @@ func TestGeneratorLanguage(t *testing.T) {
 		{"cs", "csharp"},
 		{"typescript", "typescript"},
 		{"ts", "typescript"},
+		{"rust", "rust"},
+		{"rs", "rust"},
 	}
 
 	for _, tt := range tests {

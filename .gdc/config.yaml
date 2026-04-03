@@ -12,7 +12,7 @@ version: "1.0"
 project:
   name: "GDC"                       # 프로젝트 이름
   language: "go"                    # 주 개발 언어
-                                    # 지원: csharp | typescript | go | python | java
+                                    # 지원: csharp | typescript | go | rust | python | java
   source_dir: "internal"            # 소스 코드 루트 경로
   description: "Graph-Driven Codebase CLI Tool"   # 프로젝트 설명 (선택)
 

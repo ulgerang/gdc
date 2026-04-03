@@ -48,4 +48,4 @@ interface:
             type: (*FunctionCode, error)
           exported: true
 metadata:
-    status: ""
+    status: draft

@@ -26,5 +26,9 @@ interface:
         - name: Detail
           type: string
           access: get; set
+dependencies:
+    - target: Range
+      type: class
+      injection: field
 metadata:
-    status: ""
+    status: draft

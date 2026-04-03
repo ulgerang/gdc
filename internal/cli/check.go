@@ -715,6 +715,13 @@ func symbolExistsInSource(lang, content, nodeID, nodeType string) bool {
 		} else {
 			patterns = append(patterns, fmt.Sprintf(`\b(?:class|interface|type|enum)\s+%s\b`, regexp.QuoteMeta(nodeID)))
 		}
+	case "rust", "rs":
+		if nodeType == "function" {
+			patterns = append(patterns, fmt.Sprintf(`\bpub\s+(?:async\s+)?fn\s+%s\b`, regexp.QuoteMeta(nodeID)))
+			patterns = append(patterns, fmt.Sprintf(`\bfn\s+%s\b`, regexp.QuoteMeta(nodeID)))
+		} else {
+			patterns = append(patterns, fmt.Sprintf(`\bpub\s+(?:struct|trait|enum)\s+%s\b`, regexp.QuoteMeta(nodeID)))
+		}
 	default:
 		patterns = append(patterns, fmt.Sprintf(`\b%s\b`, regexp.QuoteMeta(nodeID)))
 	}

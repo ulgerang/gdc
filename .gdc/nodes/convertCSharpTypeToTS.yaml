@@ -1,0 +1,15 @@
+schema_version: "1.0"
+node:
+    id: convertCSharpTypeToTS
+    type: function
+    namespace: codegen
+    file_path: E:\works\gdc\internal\codegen\codegen.go
+language_spec:
+    language: go
+    package: codegen
+responsibility:
+    summary: ""
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-04-03"

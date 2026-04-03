@@ -1,0 +1,62 @@
+schema_version: "1.0"
+node:
+    id: syncProfileReport
+    type: class
+    namespace: cli
+    file_path: E:\works\gdc\internal\cli\sync.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Direction
+          type: string
+          access: get; set
+        - name: Strategy
+          type: string
+          access: get; set
+        - name: StartedAt
+          type: time.Time
+          access: get; set
+        - name: FinishedAt
+          type: time.Time
+          access: get; set
+        - name: NodesScanned
+          type: int
+          access: get; set
+        - name: SourceFiles
+          type: int
+          access: get; set
+        - name: Extracted
+          type: int
+          access: get; set
+        - name: Created
+          type: int
+          access: get; set
+        - name: Updated
+          type: int
+          access: get; set
+        - name: Deleted
+          type: int
+          access: get; set
+        - name: Skipped
+          type: int
+          access: get; set
+        - name: Conflicts
+          type: int
+          access: get; set
+        - name: Phases
+          type: map[string]time.Duration
+          access: get; set
+        - name: PhaseMillis
+          type: map[string]int64
+          access: get; set
+        - name: DurationMilli
+          type: int64
+          access: get; set
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-04-03"

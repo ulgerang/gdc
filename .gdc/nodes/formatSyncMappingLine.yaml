@@ -1,0 +1,19 @@
+schema_version: "1.0"
+node:
+    id: formatSyncMappingLine
+    type: function
+    namespace: cli
+    file_path: E:\works\gdc\internal\cli\sync.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+dependencies:
+    - target: codeSyncPlan
+      type: class
+      injection: method
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-04-03"

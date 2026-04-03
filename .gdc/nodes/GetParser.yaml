@@ -1,0 +1,30 @@
+schema_version: "1.0"
+node:
+    id: GetParser
+    type: function
+    namespace: parser
+    file_path: E:\works\gdc\internal\parser\parser.go
+language_spec:
+    language: go
+    package: parser
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: GetParser
+          signature: GetParser(language string) (Parser, error)
+          description: GetParser returns the appropriate parser for the given language
+          parameters:
+            - name: language
+              type: string
+          returns:
+            type: (Parser, error)
+          exported: true
+dependencies:
+    - target: Parser
+      type: interface
+      injection: method
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-04-03"

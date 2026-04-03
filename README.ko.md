@@ -34,6 +34,7 @@ make build
 # 1. 프로젝트 초기화
 gdc init
 gdc init --language typescript
+gdc init --language rust
 gdc init --language go --storage distributed
 
 # 2. 노드 생성
@@ -276,6 +277,7 @@ GDC 는 소스 코드에서 노드 정보를 추출하기 위한 다중 언어 �
 | Go | ✅ 기본 | - |
 | C# | ✅ 기본 | ✅ (빌드 태그) |
 | TypeScript | ✅ 기본 | ✅ (빌드 태그) |
+| Rust | ✅ 기본 | - |
 
 ### 파서 기능
 
@@ -321,6 +323,7 @@ internal/
 ├── parser/                      # 소스 코드 파서
 │   ├── csharp_parser.go         # C# Regex 파서
 │   ├── csharp_parser_treesitter.go  # C# Tree-sitter 파서
+│   ├── rust_parser.go           # Rust Regex 파서
 │   ├── typescript_parser.go     # TypeScript Regex 파서
 │   └── typescript_parser_treesitter.go  # TypeScript Tree-sitter 파서
 ├── search/                      # 검색 인프라
@@ -358,7 +361,7 @@ make test
 
 # 단계별 검증 테스트
 make test-p1    # P1: 기본 기능 검증
-make test-p3    # P3: 파서 강화 (C#/TypeScript)
+make test-p3    # P3: 파서 강화 (C#/TypeScript/Rust)
 make test-p4    # P4: 검색/조회/추적 명령어
 
 # 정리

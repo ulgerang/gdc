@@ -20,4 +20,4 @@ interface:
             type: ([]*ExtractedNode, error)
           exported: true
 metadata:
-    status: ""
+    status: draft

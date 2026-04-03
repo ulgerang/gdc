@@ -32,4 +32,4 @@ interface:
           access: get; set
           description: '"constructor", "field", "property"'
 metadata:
-    status: ""
+    status: draft

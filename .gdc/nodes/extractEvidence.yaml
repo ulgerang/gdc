@@ -1,0 +1,32 @@
+schema_version: "1.0"
+node:
+    id: extractEvidence
+    type: class
+    namespace: cli
+    file_path: E:\works\gdc\internal\cli\extract.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Implementation
+          type: '*extractctx.CodeLoadResult'
+          access: get; set
+        - name: Tests
+          type: '[]*extractctx.TestFileContent'
+          access: get; set
+        - name: Callers
+          type: '[]*extractctx.CallerInfo'
+          access: get; set
+        - name: References
+          type: '[]*extractctx.ReferenceInfo'
+          access: get; set
+        - name: Warnings
+          type: '[]string'
+          access: get; set
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-04-03"

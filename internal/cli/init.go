@@ -29,13 +29,14 @@ This command creates:
 Example:
   $ gdc init
   $ gdc init --language typescript
+  $ gdc init --language rust
   $ gdc init --language go --storage distributed`,
 	RunE: runInit,
 }
 
 func init() {
 	initCmd.Flags().StringVarP(&initLanguage, "language", "l", "csharp",
-		"primary language (csharp, typescript, go, python, java)")
+		"primary language (csharp, typescript, go, rust, python, java)")
 	initCmd.Flags().StringVarP(&initStorage, "storage", "s", "centralized",
 		"storage mode (centralized, distributed)")
 }

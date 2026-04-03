@@ -494,6 +494,8 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 		extensions = []string{".cs"}
 	case "typescript", "ts":
 		extensions = []string{".ts", ".tsx"}
+	case "rust", "rs":
+		extensions = []string{".rs"}
 	default:
 		return fmt.Errorf("unsupported language: %s", lang)
 	}

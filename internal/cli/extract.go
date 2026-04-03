@@ -772,6 +772,8 @@ func loadLanguageTemplate(cfg *config.Config, language string) string {
 		templateName = "implement.csharp.md.j2"
 	case "typescript", "ts":
 		templateName = "implement.typescript.md.j2"
+	case "rust", "rs":
+		templateName = "implement.rust.md.j2"
 	default:
 		return ""
 	}
@@ -808,6 +810,8 @@ func generateInterfaceCodeForLanguage(spec *node.Spec, language string) string {
 		return generateCSharpInterfaceCode(spec)
 	case "typescript", "ts":
 		return generateTypeScriptInterfaceCode(spec)
+	case "rust", "rs":
+		return generateRustInterfaceCode(spec)
 	default:
 		return generateInterfaceCode(spec)
 	}
@@ -951,6 +955,45 @@ func generateTypeScriptInterfaceCode(spec *node.Spec) string {
 	}
 
 	sb.WriteString("}}")
+	return sb.String()
+}
+
+func generateRustInterfaceCode(spec *node.Spec) string {
+	var sb strings.Builder
+
+	if spec.Node.Type == "interface" {
+		sb.WriteString(fmt.Sprintf("pub trait %s {\n", spec.Node.ID))
+		for _, method := range spec.Interface.Methods {
+			if method.Description != "" {
+				sb.WriteString(fmt.Sprintf("    /// %s\n", method.Description))
+			} else {
+				sb.WriteString("    /// [NEEDS DESCRIPTION]\n")
+			}
+			sb.WriteString(fmt.Sprintf("    fn %s;\n", method.Signature))
+		}
+		sb.WriteString("}")
+		return sb.String()
+	}
+
+	sb.WriteString(fmt.Sprintf("pub struct %s {\n}\n\n", spec.Node.ID))
+	sb.WriteString(fmt.Sprintf("impl %s {\n", spec.Node.ID))
+	for _, ctor := range spec.Interface.Constructors {
+		if ctor.Description != "" {
+			sb.WriteString(fmt.Sprintf("    /// %s\n", ctor.Description))
+		} else {
+			sb.WriteString("    /// [NEEDS DESCRIPTION]\n")
+		}
+		sb.WriteString(fmt.Sprintf("    pub fn %s {\n        todo!()\n    }\n\n", ctor.Signature))
+	}
+	for _, method := range spec.Interface.Methods {
+		if method.Description != "" {
+			sb.WriteString(fmt.Sprintf("    /// %s\n", method.Description))
+		} else {
+			sb.WriteString("    /// [NEEDS DESCRIPTION]\n")
+		}
+		sb.WriteString(fmt.Sprintf("    pub fn %s {\n        todo!()\n    }\n\n", method.Signature))
+	}
+	sb.WriteString("}")
 	return sb.String()
 }
 

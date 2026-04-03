@@ -73,7 +73,7 @@ version: "1.0"
 
 project:
   name: "MyProject"
-  language: "csharp"          # csharp | typescript | go | python
+  language: "csharp"          # csharp | typescript | go | rust | python
   source_root: "./src"        # 소스 코드 루트 경로
 
 storage:

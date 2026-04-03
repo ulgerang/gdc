@@ -70,7 +70,7 @@ gdc init [옵션]
 
 | 옵션 | 축약형 | 설명 | 기본값 |
 |------|--------|------|--------|
-| `--language` | `-l` | 주 프로그래밍 언어 (`csharp`, `typescript`, `go`, `python`, `java`) | `csharp` |
+| `--language` | `-l` | 주 프로그래밍 언어 (`csharp`, `typescript`, `go`, `rust`, `python`, `java`) | `csharp` |
 | `--storage` | `-s` | 저장 모드 (`centralized`, `distributed`) | `centralized` |
 
 예시:
@@ -78,6 +78,7 @@ gdc init [옵션]
 ```bash
 gdc init
 gdc init --language typescript
+gdc init --language rust
 gdc init --language go --storage distributed
 ```
 

@@ -233,3 +233,23 @@ func TestResolveLayerViolationSeverityHonorsConfigAndStrict(t *testing.T) {
 		t.Fatalf("expected strict mode to force error severity, got %q", got)
 	}
 }
+
+func TestSymbolExistsInSourceSupportsRust(t *testing.T) {
+	content := `pub struct UserService;
+
+impl UserService {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+pub fn bootstrap() {}
+`
+
+	if !symbolExistsInSource("rust", content, "UserService", "class") {
+		t.Fatal("expected rust struct symbol to be detected")
+	}
+	if !symbolExistsInSource("rust", content, "bootstrap", "function") {
+		t.Fatal("expected rust function symbol to be detected")
+	}
+}

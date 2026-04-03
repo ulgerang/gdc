@@ -49,6 +49,9 @@ interface:
           type: '[]string'
           access: get; set
           description: 'C#: class-level attributes'
+        - name: Description
+          type: string
+          access: get; set
         - name: Constructors
           type: '[]ExtractedConstructor'
           access: get; set
@@ -67,5 +70,21 @@ interface:
         - name: FilePath
           type: string
           access: get; set
+dependencies:
+    - target: ExtractedConstructor
+      type: class
+      injection: field
+    - target: ExtractedMethod
+      type: class
+      injection: field
+    - target: ExtractedProperty
+      type: class
+      injection: field
+    - target: ExtractedEvent
+      type: class
+      injection: field
+    - target: ExtractedDependency
+      type: class
+      injection: field
 metadata:
-    status: ""
+    status: draft

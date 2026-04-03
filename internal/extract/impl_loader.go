@@ -127,6 +127,7 @@ func (l *FileSystemCodeLoader) loadByConvention(ctx context.Context, spec *NodeS
 
 // generateSearchPatterns generates possible file paths based on node ID and type.
 func generateSearchPatterns(nodeID, nodeType string) []string {
+	snakeID := toSnakeCase(nodeID)
 	patterns := []string{
 		// Go patterns
 		fmt.Sprintf("%s.go", strings.ToLower(nodeID)),
@@ -142,11 +143,33 @@ func generateSearchPatterns(nodeID, nodeType string) []string {
 		fmt.Sprintf("%s.js", nodeID),
 		filepath.Join("src", fmt.Sprintf("%s.ts", nodeID)),
 
+		// Rust patterns
+		fmt.Sprintf("%s.rs", nodeID),
+		fmt.Sprintf("%s.rs", snakeID),
+		filepath.Join("src", fmt.Sprintf("%s.rs", snakeID)),
+		filepath.Join("src", "lib.rs"),
+		filepath.Join("src", "main.rs"),
+
 		// Common directories
 		filepath.Join("cmd", strings.ToLower(nodeID), "main.go"),
 	}
 
 	return patterns
+}
+
+func toSnakeCase(value string) string {
+	if value == "" {
+		return value
+	}
+
+	var out strings.Builder
+	for i, r := range value {
+		if i > 0 && r >= 'A' && r <= 'Z' {
+			out.WriteByte('_')
+		}
+		out.WriteRune(r)
+	}
+	return strings.ToLower(out.String())
 }
 
 // detectLanguage detects language from file paths.

@@ -44,4 +44,4 @@ interface:
             type: ([]Symbol, error)
           exported: true
 metadata:
-    status: ""
+    status: draft

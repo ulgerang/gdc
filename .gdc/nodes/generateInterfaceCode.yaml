@@ -1,0 +1,15 @@
+schema_version: "1.0"
+node:
+    id: generateInterfaceCode
+    type: function
+    namespace: cli
+    file_path: E:\works\gdc\internal\cli\extract.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-04-03"

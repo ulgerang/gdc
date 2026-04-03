@@ -132,6 +132,13 @@ func (m *NamingConventionTestMatcher) generateTestPatterns(spec *NodeSpec) []str
 			fmt.Sprintf("Test%s.java", spec.ID),
 		)
 
+	case "rust":
+		patterns = append(patterns,
+			fmt.Sprintf("%s.rs", strings.ToLower(spec.ID)),
+			fmt.Sprintf("%s.rs", spec.ID),
+			fmt.Sprintf("*%s*.rs", strings.ToLower(spec.ID)),
+		)
+
 	default:
 		// Generic patterns
 		patterns = append(patterns,
@@ -241,6 +248,11 @@ func (m *NamingConventionTestMatcher) detectFramework(path string) string {
 		if strings.Contains(contentStr, "unittest") {
 			return "unittest"
 		}
+	}
+
+	// Rust
+	if strings.Contains(lowerPath, ".rs") && strings.Contains(contentStr, "#[test]") {
+		return "cargo test"
 	}
 
 	return "unknown"

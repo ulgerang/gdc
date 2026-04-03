@@ -51,4 +51,4 @@ interface:
             type: (*TestCoverage, error)
           exported: true
 metadata:
-    status: ""
+    status: draft

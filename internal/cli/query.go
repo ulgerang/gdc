@@ -120,10 +120,10 @@ type queryMatch struct {
 }
 
 type querySuggestion struct {
-	CanonicalID string
-	MatchedBy   string
+	CanonicalID  string
+	MatchedBy    string
 	MatchedValue string
-	score       int
+	score        int
 }
 
 type queryAlias struct {
@@ -180,10 +180,10 @@ func findSimilarNodes(symbol string, nodes []*node.Spec, projectRoot, nodesDir s
 			}
 
 			suggestion := querySuggestion{
-				CanonicalID: spec.QualifiedID(),
-				MatchedBy:   alias.label,
+				CanonicalID:  spec.QualifiedID(),
+				MatchedBy:    alias.label,
 				MatchedValue: alias.value,
-				score:       score,
+				score:        score,
 			}
 			if existing, ok := bestByID[spec.Node.ID]; !ok || suggestion.score > existing.score {
 				bestByID[spec.Node.ID] = suggestion
@@ -769,6 +769,8 @@ func sourceExtensionsForLanguage(language string) []string {
 		return []string{".cs"}
 	case "typescript", "ts":
 		return []string{".ts", ".tsx"}
+	case "rust", "rs":
+		return []string{".rs"}
 	default:
 		return nil
 	}

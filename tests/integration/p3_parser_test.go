@@ -155,6 +155,8 @@ func TestP3ParserOrchestrator(t *testing.T) {
 		{"c#", "csharp"},
 		{"typescript", "typescript"},
 		{"ts", "typescript"},
+		{"rust", "rust"},
+		{"rs", "rust"},
 	}
 
 	for _, tt := range tests {
@@ -168,6 +170,47 @@ func TestP3ParserOrchestrator(t *testing.T) {
 					tt.language, p.Language(), tt.expected)
 			}
 		})
+	}
+}
+
+func TestP3RustFixtureParsing(t *testing.T) {
+	fixturePath := filepath.Join("..", "..", "fixtures", "p1", "sample.rs")
+	if _, err := os.Stat(fixturePath); os.IsNotExist(err) {
+		t.Skipf("Rust fixture not found at %s", fixturePath)
+	}
+
+	p := parser.NewRustParser()
+	extracted, err := p.ParseFile(fixturePath)
+	if err != nil {
+		t.Fatalf("Failed to parse Rust fixture: %v", err)
+	}
+	if extracted.ID == "" {
+		t.Fatal("Expected to extract at least one public type from Rust fixture")
+	}
+
+	nodes, err := p.ParseFileNodes(fixturePath)
+	if err != nil {
+		t.Fatalf("Failed to parse Rust fixture nodes: %v", err)
+	}
+	if len(nodes) < 2 {
+		t.Fatalf("Expected at least 2 extracted Rust nodes, got %d", len(nodes))
+	}
+
+	var userService *parser.ExtractedNode
+	for _, node := range nodes {
+		if node.ID == "UserService" {
+			userService = node
+			break
+		}
+	}
+	if userService == nil {
+		t.Fatal("Expected UserService to be extracted from Rust fixture")
+	}
+	if len(userService.Constructors) < 1 {
+		t.Fatalf("Expected constructor-style extraction for UserService, got %d", len(userService.Constructors))
+	}
+	if len(userService.Methods) < 1 {
+		t.Fatalf("Expected public methods for UserService, got %d", len(userService.Methods))
 	}
 }
 

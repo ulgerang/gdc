@@ -7,6 +7,7 @@
 ```bash
 # 프로젝트 디렉토리에서 실행
 gdc init --language csharp
+gdc init --language rust
 
 # 생성되는 구조:
 # .gdc/
