@@ -16,10 +16,13 @@ It models software systems as graphs (nodes & edges) to maximize the accuracy of
 
 ```bash
 # Requires Go 1.23+
-go build -o gdc ./cmd/gdc
+go build -o gdc .
 
 # Windows
-go build -o gdc.exe ./cmd/gdc
+go build -o gdc.exe .
+
+# Explicit entrypoint
+go build -o gdc ./cmd/gdc
 
 # Using Makefile
 make build
@@ -308,7 +311,7 @@ GDC includes multi-language parsers to extract node information from source code
 
 ```bash
 # Build with Tree-sitter based parser (more accurate parsing)
-go build -tags treesitter -o gdc ./cmd/gdc
+go build -tags treesitter -o gdc .
 ```
 
 ## 📁 Project Structure
@@ -323,7 +326,7 @@ go build -tags treesitter -o gdc ./cmd/gdc
 └── templates/                   # Prompt templates
     └── implement.md.j2
 
-cmd/gdc/                         # CLI entrypoint
+cmd/gdc/                         # Alternate CLI entrypoint
 internal/
 ├── cli/                         # CLI command definitions
 │   ├── root.go                  # Root command and global flags

@@ -118,6 +118,40 @@ type Worker struct{}
 	}
 }
 
+func TestCheckImplementationConsistencyReportsCanonicalSourceNode(t *testing.T) {
+	projectRoot := t.TempDir()
+	sourcePath := filepath.Join(projectRoot, "agent.go")
+	if err := os.WriteFile(sourcePath, []byte(`package agent
+`), 0o644); err != nil {
+		t.Fatalf("failed to write source file: %v", err)
+	}
+
+	nodes := []*node.Spec{
+		{
+			Node: node.NodeInfo{
+				ID:        "tools.Agent",
+				Namespace: "tools",
+				Type:      "class",
+				FilePath:  "agent.go",
+			},
+		},
+	}
+	cfg := &config.Config{
+		ProjectRoot: projectRoot,
+		Project: config.Project{
+			Language: "go",
+		},
+	}
+
+	issues := checkImplementationConsistency(nodes, cfg, false)
+	if len(issues) != 1 {
+		t.Fatalf("expected 1 implementation issue, got %d", len(issues))
+	}
+	if issues[0].SourceNode != "tools.Agent" {
+		t.Fatalf("expected canonical source node tools.Agent, got %s", issues[0].SourceNode)
+	}
+}
+
 func TestEvaluateCheckExitPolicy_DefaultFailsOnErrorsOnly(t *testing.T) {
 	prevExitOnWarning := checkExitOnWarning
 	prevMaxErrors := checkMaxErrors

@@ -12,11 +12,12 @@ import (
 
 var (
 	// Global flags
-	cfgFile string
-	verbose bool
-	quiet   bool
-	jsonOut bool
-	noColor bool
+	cfgFile     string
+	verbose     bool
+	quiet       bool
+	jsonOut     bool
+	noColor     bool
+	showVersion bool
 
 	// Version info
 	Version   = "1.0.0-dev"
@@ -46,6 +47,13 @@ Quick Start:
 			color.NoColor = true
 		}
 	},
+	Run: func(cmd *cobra.Command, args []string) {
+		if showVersion {
+			fmt.Printf("gdc version %s (built %s)\n", Version, BuildDate)
+			return
+		}
+		_ = cmd.Help()
+	},
 }
 
 // Execute runs the root command
@@ -60,6 +68,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "minimal output")
 	rootCmd.PersistentFlags().BoolVar(&jsonOut, "json", false, "output in JSON format")
 	rootCmd.PersistentFlags().BoolVar(&noColor, "no-color", false, "disable colored output")
+	rootCmd.PersistentFlags().BoolVar(&showVersion, "version", false, "print version information")
 
 	// Add subcommands
 	rootCmd.AddCommand(versionCmd)

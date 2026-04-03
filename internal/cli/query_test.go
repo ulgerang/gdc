@@ -83,3 +83,42 @@ type GhostService struct{}
 		t.Fatalf("expected src/service.go hint, got %s", hints[0])
 	}
 }
+
+func TestQueryQualifiedNameSuppressesRedundantDottedID(t *testing.T) {
+	spec := &node.Spec{
+		Node: node.NodeInfo{
+			ID:        "tools.Runtime",
+			Namespace: "tools",
+		},
+	}
+
+	if got := queryQualifiedName(spec, spec.QualifiedID()); got != "" {
+		t.Fatalf("expected redundant qualified name to be suppressed, got %q", got)
+	}
+}
+
+func TestQueryQualifiedNameKeepsDistinctQualifiedID(t *testing.T) {
+	spec := &node.Spec{
+		Node: node.NodeInfo{
+			ID:        "Runtime",
+			Namespace: "tools",
+		},
+	}
+
+	if got := queryQualifiedName(spec, spec.QualifiedID()); got != "tools.Runtime" {
+		t.Fatalf("expected qualified name to be kept, got %q", got)
+	}
+}
+
+func TestQueryQualifiedNameSuppressesPathLikeSyncedID(t *testing.T) {
+	spec := &node.Spec{
+		Node: node.NodeInfo{
+			ID:        "infra.config.env_lookup_os.osEnvLookup",
+			Namespace: "config",
+		},
+	}
+
+	if got := queryQualifiedName(spec, spec.QualifiedID()); got != "" {
+		t.Fatalf("expected path-like qualified name to be suppressed, got %q", got)
+	}
+}

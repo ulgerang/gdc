@@ -3,7 +3,7 @@ node:
     id: init
     type: function
     namespace: cli
-    file_path: E:\works\gdc\internal\cli\check.go
+    file_path: E:\works\gdc\internal\cli\root.go
 language_spec:
     language: go
     package: cli
@@ -12,4 +12,4 @@ responsibility:
 metadata:
     status: ""
     origin: code_extracted
-    extracted_at: "2026-04-02"
+    extracted_at: "2026-04-03"

@@ -5,7 +5,7 @@ all: build
 
 # Build the gdc binary
 build:
-	go build -o gdc ./cmd/gdc
+	go build -o gdc .
 
 # Run all tests
 test:
@@ -30,7 +30,7 @@ test-p1: build
 	@echo "  ✓ Baseline script exists (scripts/benchmark_baseline.sh)"
 	@echo ""
 	@echo "3. Checking gdc binary..."
-	@test -f gdc || (echo "  ✗ gdc binary missing, building..." && go build -o gdc ./cmd/gdc)
+	@test -f gdc || (echo "  ✗ gdc binary missing, building..." && go build -o gdc .)
 	@echo "  ✓ gdc binary exists"
 	@echo ""
 	@echo "========================================"

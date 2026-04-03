@@ -1,0 +1,15 @@
+schema_version: "1.0"
+node:
+    id: '...main'
+    type: function
+    namespace: main
+    file_path: E:\works\gdc\main.go
+language_spec:
+    language: go
+    package: main
+responsibility:
+    summary: ""
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-04-03"

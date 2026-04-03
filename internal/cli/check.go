@@ -468,7 +468,7 @@ func checkSRPViolations(nodes []*node.Spec, threshold int) []Issue {
 			issues = append(issues, Issue{
 				Severity:   "warning",
 				Category:   "srp_violation",
-				SourceNode: n.Node.ID,
+				SourceNode: n.QualifiedID(),
 				Message:    fmt.Sprintf("Node has %d dependencies (threshold: %d)", depCount, nodeThreshold),
 				Suggestion: "Consider splitting responsibilities into smaller classes",
 			})
@@ -568,7 +568,7 @@ func checkImplementationConsistency(nodes []*node.Spec, cfg *config.Config, fail
 			issues = append(issues, Issue{
 				Severity:   "error",
 				Category:   "impl_missing",
-				SourceNode: spec.Node.ID,
+				SourceNode: spec.QualifiedID(),
 				Message:    result.err.Error(),
 				Suggestion: "Update node.file_path or fix the source file, then rerun gdc check --verify-impl",
 			})
@@ -591,7 +591,7 @@ func checkImplementationConsistency(nodes []*node.Spec, cfg *config.Config, fail
 		issues = append(issues, Issue{
 			Severity:   severity,
 			Category:   "impl_mismatch",
-			SourceNode: spec.Node.ID,
+			SourceNode: spec.QualifiedID(),
 			Message:    fmt.Sprintf("%d/%d interface members matched (missing: %s)", matched, total, strings.Join(missing, ", ")),
 			Suggestion: "Update the implementation or refresh the YAML spec so the public contract matches the code",
 		})

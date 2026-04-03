@@ -1,0 +1,44 @@
+schema_version: "1.0"
+node:
+    id: queryMatch
+    type: class
+    namespace: cli
+    file_path: E:\works\gdc\internal\cli\query.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Spec
+          type: '*node.Spec'
+          access: get; set
+        - name: CanonicalID
+          type: string
+          access: get; set
+        - name: QualifiedName
+          type: string
+          access: get; set
+        - name: SpecPath
+          type: string
+          access: get; set
+        - name: ImplPath
+          type: string
+          access: get; set
+        - name: MatchedBy
+          type: string
+          access: get; set
+        - name: MatchedValue
+          type: string
+          access: get; set
+        - name: Aliases
+          type: '[]string'
+          access: get; set
+        - name: ReferenceCount
+          type: int
+          access: get; set
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-04-02"
