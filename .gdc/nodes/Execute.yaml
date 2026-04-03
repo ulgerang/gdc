@@ -1,0 +1,23 @@
+schema_version: "1.0"
+node:
+    id: Execute
+    type: function
+    namespace: cli
+    file_path: E:\works\gdc\internal\cli\root.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: Execute
+          signature: Execute() error
+          description: Execute runs the root command
+          returns:
+            type: error
+          exported: true
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-04-03"

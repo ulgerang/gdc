@@ -16,10 +16,13 @@
 
 ```bash
 # Go 1.23+ 필요
-go build -o gdc ./cmd/gdc
+go build -o gdc .
 
 # Windows
-go build -o gdc.exe ./cmd/gdc
+go build -o gdc.exe .
+
+# 명시적 엔트리포인트
+go build -o gdc ./cmd/gdc
 
 # Makefile 사용
 make build
@@ -286,7 +289,7 @@ GDC 는 소스 코드에서 노드 정보를 추출하기 위한 다중 언어 �
 
 ```bash
 # Tree-sitter 기반 파서로 빌드 (더 정확한 파싱)
-go build -tags treesitter -o gdc ./cmd/gdc
+go build -tags treesitter -o gdc .
 ```
 
 ## 📁 프로젝트 구조
@@ -301,7 +304,7 @@ go build -tags treesitter -o gdc ./cmd/gdc
 └── templates/                   # 프롬프트 템플릿
     └── implement.md.j2
 
-cmd/gdc/                         # CLI 진입점
+cmd/gdc/                         # 대체 CLI 진입점
 internal/
 ├── cli/                         # CLI 명령어 정의
 │   ├── root.go                  # 루트 명령어 및 글로벌 플래그

@@ -1,15 +1,15 @@
 schema_version: "1.0"
 node:
-    id: qualifiedNodeName
+    id: buildSpecLookup
     type: function
     namespace: cli
-    file_path: E:\works\gdc\internal\cli\query.go
+    file_path: E:\works\gdc\internal\cli\root.go
 language_spec:
     language: go
     package: cli
 responsibility:
     summary: ""
 metadata:
-    status: draft
+    status: ""
     origin: code_extracted
     extracted_at: "2026-04-03"
