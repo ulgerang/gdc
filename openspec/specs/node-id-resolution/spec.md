@@ -11,6 +11,11 @@ When a node spec already stores a `node.id` that includes the namespace prefix u
 - **THEN** the canonical ID is `tools.Runtime`
 - **THEN** GDC does not emit `tools.tools.Runtime`
 
+#### Scenario: Path-like synced ID remains canonical
+- **WHEN** a node spec has `namespace: config` and `node.id: infra.config.env_lookup_os.osEnvLookup`
+- **THEN** the canonical ID is `infra.config.env_lookup_os.osEnvLookup`
+- **THEN** `query`, `show`, and `check` do not emit `config.infra.config.env_lookup_os.osEnvLookup`
+
 ### Requirement: Implementation lookup SHALL resolve dotted synced IDs to source symbols
 When a synced node stores a dotted `node.id`, GDC SHALL still locate the implementation symbol in source files for diff and implementation verification commands.
 
