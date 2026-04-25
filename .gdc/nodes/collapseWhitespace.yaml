@@ -3,13 +3,13 @@ node:
     id: collapseWhitespace
     type: function
     namespace: parser
-    file_path: E:\works\gdc\internal\parser\rust_parser.go
+    file_path: D:\git\26\gdc\internal\parser\rust_parser.go
 language_spec:
     language: go
     package: parser
 responsibility:
     summary: ""
 metadata:
-    status: ""
+    status: implemented
     origin: code_extracted
-    extracted_at: "2026-04-03"
+    extracted_at: "2026-04-25"

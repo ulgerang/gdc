@@ -3,7 +3,7 @@ node:
     id: NodeRecord
     type: class
     namespace: db
-    file_path: E:\works\gdc\internal\db\database.go
+    file_path: D:\git\26\gdc\internal\db\database.go
 language_spec:
     language: go
     package: db

@@ -13,7 +13,6 @@ node:
   type: "class"
   layer: "application"
   namespace: "Game.Controllers"
-  file_path: "src/Controllers/PlayerController.cs"
 
 # ─────────────────────────────────────────────────────────────────────────────────
 # 책임 정의

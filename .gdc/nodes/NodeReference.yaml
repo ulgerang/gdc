@@ -3,7 +3,7 @@ node:
     id: NodeReference
     type: class
     namespace: search
-    file_path: E:\works\gdc\internal\search\interface.go
+    file_path: D:\git\26\gdc\internal\search\interface.go
 language_spec:
     language: go
     package: search

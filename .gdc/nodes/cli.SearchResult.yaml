@@ -3,7 +3,7 @@ node:
     id: cli.SearchResult
     type: class
     namespace: cli
-    file_path: E:\works\gdc\internal\cli\search.go
+    file_path: D:\git\26\gdc\internal\cli\search.go
 language_spec:
     language: go
     package: cli

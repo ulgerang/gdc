@@ -3,7 +3,7 @@ node:
     id: PromptFormatter
     type: class
     namespace: extract
-    file_path: E:\works\gdc\internal\extract\output_formatter.go
+    file_path: D:\git\26\gdc\internal\extract\output_formatter.go
 language_spec:
     language: go
     package: extract

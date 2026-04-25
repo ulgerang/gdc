@@ -3,7 +3,7 @@ node:
     id: IndexChecker
     type: class
     namespace: search
-    file_path: E:\works\gdc\internal\search\index_check.go
+    file_path: D:\git\26\gdc\internal\search\index_check.go
 language_spec:
     language: go
     package: search

@@ -3,7 +3,7 @@ node:
     id: parser.typescript_parser_treesitter.TypeScriptParser
     type: class
     namespace: parser
-    file_path: E:\works\gdc\internal\parser\typescript_parser_treesitter.go
+    file_path: D:\git\26\gdc\internal\parser\typescript_parser_treesitter.go
 language_spec:
     language: go
     package: parser

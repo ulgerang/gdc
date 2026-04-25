@@ -428,7 +428,7 @@ func parseRustParameters(params string) []ExtractedParameter {
 
 	for _, part := range parts {
 		part = collapseWhitespace(strings.TrimSpace(part))
-		if part == "" || strings.Contains(part, "self") {
+		if part == "" || isRustReceiverParameter(part) {
 			continue
 		}
 
@@ -461,6 +461,23 @@ func rustDependenciesFromParameters(params []ExtractedParameter, injection strin
 		}
 	}
 	return deps
+}
+
+func isRustReceiverParameter(param string) bool {
+	param = collapseWhitespace(strings.TrimSpace(param))
+	param = strings.TrimPrefix(param, "&")
+	param = strings.TrimSpace(param)
+	if strings.HasPrefix(param, "'") {
+		fields := strings.Fields(param)
+		if len(fields) > 1 {
+			param = strings.Join(fields[1:], " ")
+		}
+	}
+	param = strings.TrimSpace(param)
+	param = strings.TrimPrefix(param, "mut ")
+	param = strings.TrimSpace(param)
+
+	return param == "self" || strings.HasPrefix(param, "self:")
 }
 
 func extractRustDependencyTypes(typeRef string) []string {

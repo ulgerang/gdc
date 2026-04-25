@@ -3,7 +3,7 @@ node:
     id: printMultipleMatches
     type: function
     namespace: cli
-    file_path: E:\works\gdc\internal\cli\query.go
+    file_path: D:\git\26\gdc\internal\cli\query.go
 language_spec:
     language: go
     package: cli

@@ -3,7 +3,7 @@ node:
     id: createDefaultTemplate
     type: function
     namespace: cli
-    file_path: E:\works\gdc\internal\cli\init.go
+    file_path: D:\git\26\gdc\internal\cli\init.go
 language_spec:
     language: go
     package: cli

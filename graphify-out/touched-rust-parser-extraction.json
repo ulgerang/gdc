@@ -1,0 +1,839 @@
+{
+  "nodes": [
+    {
+      "id": "rust_parser",
+      "label": "rust_parser.go",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L1"
+    },
+    {
+      "id": "rust_parser_rustparser",
+      "label": "RustParser",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L19"
+    },
+    {
+      "id": "rust_parser_newrustparser",
+      "label": "NewRustParser()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L22"
+    },
+    {
+      "id": "rust_parser_rustparser_language",
+      "label": ".Language()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L27"
+    },
+    {
+      "id": "rust_parser_rustparser_parsefile",
+      "label": ".ParseFile()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L32"
+    },
+    {
+      "id": "rust_parser_rustparser_parsefilenodes",
+      "label": ".ParseFileNodes()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L47"
+    },
+    {
+      "id": "rust_parser_rustparser_parserusttraitblock",
+      "label": ".parseRustTraitBlock()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L179"
+    },
+    {
+      "id": "rust_parser_rustparser_parseruststructblock",
+      "label": ".parseRustStructBlock()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L210"
+    },
+    {
+      "id": "rust_parser_rustparser_parserustimplblock",
+      "label": ".parseRustImplBlock()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L247"
+    },
+    {
+      "id": "rust_parser_parserustdocline",
+      "label": "parseRustDocLine()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L302"
+    },
+    {
+      "id": "rust_parser_capturerustblock",
+      "label": "captureRustBlock()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L310"
+    },
+    {
+      "id": "rust_parser_collectrustsignature",
+      "label": "collectRustSignature()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L335"
+    },
+    {
+      "id": "rust_parser_parserustmethodsignature",
+      "label": "parseRustMethodSignature()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L375"
+    },
+    {
+      "id": "rust_parser_buildrustsignature",
+      "label": "buildRustSignature()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L417"
+    },
+    {
+      "id": "rust_parser_parserustparameters",
+      "label": "parseRustParameters()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L425"
+    },
+    {
+      "id": "rust_parser_rustdependenciesfromparameters",
+      "label": "rustDependenciesFromParameters()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L451"
+    },
+    {
+      "id": "rust_parser_isrustreceiverparameter",
+      "label": "isRustReceiverParameter()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L466"
+    },
+    {
+      "id": "rust_parser_extractrustdependencytypes",
+      "label": "extractRustDependencyTypes()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L483"
+    },
+    {
+      "id": "rust_parser_splitrusttypeidentifiers",
+      "label": "splitRustTypeIdentifiers()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L499"
+    },
+    {
+      "id": "rust_parser_shouldskiprustdependency",
+      "label": "shouldSkipRustDependency()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L532"
+    },
+    {
+      "id": "rust_parser_isrustconstructor",
+      "label": "isRustConstructor()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L549"
+    },
+    {
+      "id": "rust_parser_findmatchingparen",
+      "label": "findMatchingParen()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L556"
+    },
+    {
+      "id": "rust_parser_splitrustcommalist",
+      "label": "splitRustCommaList()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L572"
+    },
+    {
+      "id": "rust_parser_striprustlinecomment",
+      "label": "stripRustLineComment()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L623"
+    },
+    {
+      "id": "rust_parser_collapsewhitespace",
+      "label": "collapseWhitespace()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L630"
+    },
+    {
+      "id": "rust_parser_test",
+      "label": "rust_parser_test.go",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser_test.go",
+      "source_location": "L1"
+    },
+    {
+      "id": "rust_parser_test_testrustparserlanguage",
+      "label": "TestRustParserLanguage()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser_test.go",
+      "source_location": "L9"
+    },
+    {
+      "id": "rust_parser_test_testrustparserparsefilenodesextractstraitandstruct",
+      "label": "TestRustParserParseFileNodesExtractsTraitAndStruct()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser_test.go",
+      "source_location": "L16"
+    },
+    {
+      "id": "rust_parser_test_testrustparserparsefilereturnsfirstextractednode",
+      "label": "TestRustParserParseFileReturnsFirstExtractedNode()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser_test.go",
+      "source_location": "L99"
+    },
+    {
+      "id": "rust_parser_test_testrustparserdoesnotdropparameterscontainingselfinname",
+      "label": "TestRustParserDoesNotDropParametersContainingSelfInName()",
+      "file_type": "code",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser_test.go",
+      "source_location": "L123"
+    }
+  ],
+  "edges": [
+    {
+      "source": "rust_parser",
+      "target": "os",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "regexp",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "strings",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_rustparser",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_newrustparser",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser_rustparser",
+      "target": "rust_parser_rustparser_language",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser_rustparser",
+      "target": "rust_parser_rustparser_parsefile",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L32",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser_rustparser",
+      "target": "rust_parser_rustparser_parsefilenodes",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser_rustparser",
+      "target": "rust_parser_rustparser_parserusttraitblock",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L179",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser_rustparser",
+      "target": "rust_parser_rustparser_parseruststructblock",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L210",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser_rustparser",
+      "target": "rust_parser_rustparser_parserustimplblock",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L247",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_parserustdocline",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L302",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_capturerustblock",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L310",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_collectrustsignature",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L335",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_parserustmethodsignature",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L375",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_buildrustsignature",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L417",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_parserustparameters",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L425",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_rustdependenciesfromparameters",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L451",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_isrustreceiverparameter",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L466",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_extractrustdependencytypes",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L483",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_splitrusttypeidentifiers",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L499",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_shouldskiprustdependency",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L532",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_isrustconstructor",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L549",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_findmatchingparen",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L556",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_splitrustcommalist",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L572",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_striprustlinecomment",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L623",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser",
+      "target": "rust_parser_collapsewhitespace",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L630",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser_rustparser_parsefile",
+      "target": "rust_parser_rustparser_parsefilenodes",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L33",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parsefilenodes",
+      "target": "rust_parser_striprustlinecomment",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L59",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parsefilenodes",
+      "target": "rust_parser_parserustdocline",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L64",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parsefilenodes",
+      "target": "rust_parser_capturerustblock",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L73",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parsefilenodes",
+      "target": "rust_parser_rustparser_parserusttraitblock",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L81",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parsefilenodes",
+      "target": "rust_parser_rustparser_parseruststructblock",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L99",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parsefilenodes",
+      "target": "rust_parser_collectrustsignature",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L127",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parsefilenodes",
+      "target": "rust_parser_parserustmethodsignature",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L128",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parsefilenodes",
+      "target": "rust_parser_rustparser_parserustimplblock",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L167",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parserusttraitblock",
+      "target": "rust_parser_parserustdocline",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L182",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parserusttraitblock",
+      "target": "rust_parser_striprustlinecomment",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L190",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parserusttraitblock",
+      "target": "rust_parser_collectrustsignature",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L199",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parserusttraitblock",
+      "target": "rust_parser_parserustmethodsignature",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L200",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parseruststructblock",
+      "target": "rust_parser_striprustlinecomment",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L212",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parseruststructblock",
+      "target": "rust_parser_extractrustdependencytypes",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L236",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parserustimplblock",
+      "target": "rust_parser_parserustdocline",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L258",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parserustimplblock",
+      "target": "rust_parser_striprustlinecomment",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L266",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parserustimplblock",
+      "target": "rust_parser_collectrustsignature",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L280",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parserustimplblock",
+      "target": "rust_parser_parserustmethodsignature",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L281",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parserustimplblock",
+      "target": "rust_parser_isrustconstructor",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L284",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustparser_parserustimplblock",
+      "target": "rust_parser_rustdependenciesfromparameters",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L290",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_collectrustsignature",
+      "target": "rust_parser_striprustlinecomment",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L341",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_collectrustsignature",
+      "target": "rust_parser_collapsewhitespace",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L368",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_parserustmethodsignature",
+      "target": "rust_parser_collapsewhitespace",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L376",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_parserustmethodsignature",
+      "target": "rust_parser_findmatchingparen",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L391",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_parserustmethodsignature",
+      "target": "rust_parser_parserustparameters",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L403",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_parserustmethodsignature",
+      "target": "rust_parser_buildrustsignature",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L406",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_buildrustsignature",
+      "target": "rust_parser_collapsewhitespace",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L418",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_parserustparameters",
+      "target": "rust_parser_splitrustcommalist",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L426",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_parserustparameters",
+      "target": "rust_parser_collapsewhitespace",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L430",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_parserustparameters",
+      "target": "rust_parser_isrustreceiverparameter",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L431",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_rustdependenciesfromparameters",
+      "target": "rust_parser_extractrustdependencytypes",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L454",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_isrustreceiverparameter",
+      "target": "rust_parser_collapsewhitespace",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L467",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_extractrustdependencytypes",
+      "target": "rust_parser_splitrusttypeidentifiers",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L484",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_extractrustdependencytypes",
+      "target": "rust_parser_shouldskiprustdependency",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go",
+      "source_location": "L489",
+      "weight": 0.8
+    },
+    {
+      "source": "rust_parser_test",
+      "target": "os",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser_test.go",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser_test",
+      "target": "filepath",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser_test.go",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser_test",
+      "target": "testing",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser_test.go",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser_test",
+      "target": "rust_parser_test_testrustparserlanguage",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser_test.go",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser_test",
+      "target": "rust_parser_test_testrustparserparsefilenodesextractstraitandstruct",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser_test.go",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser_test",
+      "target": "rust_parser_test_testrustparserparsefilereturnsfirstextractednode",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser_test.go",
+      "source_location": "L99",
+      "weight": 1.0
+    },
+    {
+      "source": "rust_parser_test",
+      "target": "rust_parser_test_testrustparserdoesnotdropparameterscontainingselfinname",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser_test.go",
+      "source_location": "L123",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

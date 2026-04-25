@@ -3,7 +3,7 @@ node:
     id: exitWithError
     type: function
     namespace: cli
-    file_path: E:\works\gdc\internal\cli\root.go
+    file_path: D:\git\26\gdc\internal\cli\root.go
 language_spec:
     language: go
     package: cli

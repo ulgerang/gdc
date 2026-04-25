@@ -3,7 +3,7 @@ node:
     id: normalizeSyncPath
     type: function
     namespace: cli
-    file_path: E:\works\gdc\internal\cli\sync.go
+    file_path: D:\git\26\gdc\internal\cli\sync.go
 language_spec:
     language: go
     package: cli

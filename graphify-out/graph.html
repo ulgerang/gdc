@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>graphify - D:\git\26\gdc\graphify-out\graph.html</title>
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f0f1a; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; display: flex; height: 100vh; overflow: hidden; }
+  #graph { flex: 1; }
+  #sidebar { width: 280px; background: #1a1a2e; border-left: 1px solid #2a2a4e; display: flex; flex-direction: column; overflow: hidden; }
+  #search-wrap { padding: 12px; border-bottom: 1px solid #2a2a4e; }
+  #search { width: 100%; background: #0f0f1a; border: 1px solid #3a3a5e; color: #e0e0e0; padding: 7px 10px; border-radius: 6px; font-size: 13px; outline: none; }
+  #search:focus { border-color: #4E79A7; }
+  #search-results { max-height: 140px; overflow-y: auto; padding: 4px 12px; border-bottom: 1px solid #2a2a4e; display: none; }
+  .search-item { padding: 4px 6px; cursor: pointer; border-radius: 4px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .search-item:hover { background: #2a2a4e; }
+  #info-panel { padding: 14px; border-bottom: 1px solid #2a2a4e; min-height: 140px; }
+  #info-panel h3 { font-size: 13px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+  #info-content { font-size: 13px; color: #ccc; line-height: 1.6; }
+  #info-content .field { margin-bottom: 5px; }
+  #info-content .field b { color: #e0e0e0; }
+  #info-content .empty { color: #555; font-style: italic; }
+  .neighbor-link { display: block; padding: 2px 6px; margin: 2px 0; border-radius: 3px; cursor: pointer; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid #333; }
+  .neighbor-link:hover { background: #2a2a4e; }
+  #neighbors-list { max-height: 160px; overflow-y: auto; margin-top: 4px; }
+  #legend-wrap { flex: 1; overflow-y: auto; padding: 12px; }
+  #legend-wrap h3 { font-size: 13px; color: #aaa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .legend-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; border-radius: 4px; font-size: 12px; }
+  .legend-item:hover { background: #2a2a4e; padding-left: 4px; }
+  .legend-item.dimmed { opacity: 0.35; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .legend-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .legend-count { color: #666; font-size: 11px; }
+  #stats { padding: 10px 14px; border-top: 1px solid #2a2a4e; font-size: 11px; color: #555; }
+</style>
+</head>
+<body>
+<div id="graph"></div>
+<div id="sidebar">
+  <div id="search-wrap">
+    <input id="search" type="text" placeholder="Search nodes..." autocomplete="off">
+    <div id="search-results"></div>
+  </div>
+  <div id="info-panel">
+    <h3>Node Info</h3>
+    <div id="info-content"><span class="empty">Click a node to inspect it</span></div>
+  </div>
+  <div id="legend-wrap">
+    <h3>Communities</h3>
+    <div id="legend"></div>
+  </div>
+  <div id="stats">30 nodes &middot; 63 edges &middot; 6 communities</div>
+</div>
+<script>
+const RAW_NODES = [{"id": "rust_parser", "label": "rust_parser.go", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 40.0, "font": {"size": 12, "color": "#ffffff"}, "title": "rust_parser.go", "community": 1, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 18}, {"id": "rust_parser_rustparser", "label": "RustParser", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 21.7, "font": {"size": 12, "color": "#ffffff"}, "title": "RustParser", "community": 0, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 7}, {"id": "rust_parser_newrustparser", "label": "NewRustParser()", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 11.7, "font": {"size": 0, "color": "#ffffff"}, "title": "NewRustParser()", "community": 1, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 1}, {"id": "rust_parser_rustparser_language", "label": ".Language()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 11.7, "font": {"size": 0, "color": "#ffffff"}, "title": ".Language()", "community": 0, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 1}, {"id": "rust_parser_rustparser_parsefile", "label": ".ParseFile()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 13.3, "font": {"size": 0, "color": "#ffffff"}, "title": ".ParseFile()", "community": 0, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 2}, {"id": "rust_parser_rustparser_parsefilenodes", "label": ".ParseFileNodes()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 26.7, "font": {"size": 12, "color": "#ffffff"}, "title": ".ParseFileNodes()", "community": 0, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 10}, {"id": "rust_parser_rustparser_parserusttraitblock", "label": ".parseRustTraitBlock()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 20.0, "font": {"size": 12, "color": "#ffffff"}, "title": ".parseRustTraitBlock()", "community": 0, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 6}, {"id": "rust_parser_rustparser_parseruststructblock", "label": ".parseRustStructBlock()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 16.7, "font": {"size": 12, "color": "#ffffff"}, "title": ".parseRustStructBlock()", "community": 0, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 4}, {"id": "rust_parser_rustparser_parserustimplblock", "label": ".parseRustImplBlock()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 23.3, "font": {"size": 12, "color": "#ffffff"}, "title": ".parseRustImplBlock()", "community": 0, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 8}, {"id": "rust_parser_parserustdocline", "label": "parseRustDocLine()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 16.7, "font": {"size": 12, "color": "#ffffff"}, "title": "parseRustDocLine()", "community": 0, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 4}, {"id": "rust_parser_capturerustblock", "label": "captureRustBlock()", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 13.3, "font": {"size": 0, "color": "#ffffff"}, "title": "captureRustBlock()", "community": 1, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 2}, {"id": "rust_parser_collectrustsignature", "label": "collectRustSignature()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 20.0, "font": {"size": 12, "color": "#ffffff"}, "title": "collectRustSignature()", "community": 0, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 6}, {"id": "rust_parser_parserustmethodsignature", "label": "parseRustMethodSignature()", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 23.3, "font": {"size": 12, "color": "#ffffff"}, "title": "parseRustMethodSignature()", "community": 5, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 8}, {"id": "rust_parser_buildrustsignature", "label": "buildRustSignature()", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 15.0, "font": {"size": 12, "color": "#ffffff"}, "title": "buildRustSignature()", "community": 5, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 3}, {"id": "rust_parser_parserustparameters", "label": "parseRustParameters()", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 18.3, "font": {"size": 12, "color": "#ffffff"}, "title": "parseRustParameters()", "community": 4, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 5}, {"id": "rust_parser_rustdependenciesfromparameters", "label": "rustDependenciesFromParameters()", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 15.0, "font": {"size": 12, "color": "#ffffff"}, "title": "rustDependenciesFromParameters()", "community": 3, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 3}, {"id": "rust_parser_isrustreceiverparameter", "label": "isRustReceiverParameter()", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 15.0, "font": {"size": 12, "color": "#ffffff"}, "title": "isRustReceiverParameter()", "community": 4, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 3}, {"id": "rust_parser_extractrustdependencytypes", "label": "extractRustDependencyTypes()", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 18.3, "font": {"size": 12, "color": "#ffffff"}, "title": "extractRustDependencyTypes()", "community": 3, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 5}, {"id": "rust_parser_splitrusttypeidentifiers", "label": "splitRustTypeIdentifiers()", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 13.3, "font": {"size": 0, "color": "#ffffff"}, "title": "splitRustTypeIdentifiers()", "community": 3, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 2}, {"id": "rust_parser_shouldskiprustdependency", "label": "shouldSkipRustDependency()", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 13.3, "font": {"size": 0, "color": "#ffffff"}, "title": "shouldSkipRustDependency()", "community": 3, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 2}, {"id": "rust_parser_isrustconstructor", "label": "isRustConstructor()", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 13.3, "font": {"size": 0, "color": "#ffffff"}, "title": "isRustConstructor()", "community": 1, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 2}, {"id": "rust_parser_findmatchingparen", "label": "findMatchingParen()", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 13.3, "font": {"size": 0, "color": "#ffffff"}, "title": "findMatchingParen()", "community": 1, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 2}, {"id": "rust_parser_splitrustcommalist", "label": "splitRustCommaList()", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 13.3, "font": {"size": 0, "color": "#ffffff"}, "title": "splitRustCommaList()", "community": 4, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 2}, {"id": "rust_parser_striprustlinecomment", "label": "stripRustLineComment()", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 20.0, "font": {"size": 12, "color": "#ffffff"}, "title": "stripRustLineComment()", "community": 0, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 6}, {"id": "rust_parser_collapsewhitespace", "label": "collapseWhitespace()", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 20.0, "font": {"size": 12, "color": "#ffffff"}, "title": "collapseWhitespace()", "community": 5, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser.go", "file_type": "code", "degree": 6}, {"id": "rust_parser_test", "label": "rust_parser_test.go", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 16.7, "font": {"size": 12, "color": "#ffffff"}, "title": "rust_parser_test.go", "community": 2, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser_test.go", "file_type": "code", "degree": 4}, {"id": "rust_parser_test_testrustparserlanguage", "label": "TestRustParserLanguage()", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 11.7, "font": {"size": 0, "color": "#ffffff"}, "title": "TestRustParserLanguage()", "community": 2, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser_test.go", "file_type": "code", "degree": 1}, {"id": "rust_parser_test_testrustparserparsefilenodesextractstraitandstruct", "label": "TestRustParserParseFileNodesExtractsTraitAndStruct()", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 11.7, "font": {"size": 0, "color": "#ffffff"}, "title": "TestRustParserParseFileNodesExtractsTraitAndStruct()", "community": 2, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser_test.go", "file_type": "code", "degree": 1}, {"id": "rust_parser_test_testrustparserparsefilereturnsfirstextractednode", "label": "TestRustParserParseFileReturnsFirstExtractedNode()", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 11.7, "font": {"size": 0, "color": "#ffffff"}, "title": "TestRustParserParseFileReturnsFirstExtractedNode()", "community": 2, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser_test.go", "file_type": "code", "degree": 1}, {"id": "rust_parser_test_testrustparserdoesnotdropparameterscontainingselfinname", "label": "TestRustParserDoesNotDropParametersContainingSelfInName()", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 11.7, "font": {"size": 0, "color": "#ffffff"}, "title": "TestRustParserDoesNotDropParametersContainingSelfInName()", "community": 2, "community_name": "Rust parser receiver parameter parsing", "source_file": "D:\\git\\26\\gdc\\internal\\parser\\rust_parser_test.go", "file_type": "code", "degree": 1}];
+const RAW_EDGES = [{"from": "rust_parser", "to": "rust_parser_rustparser", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser", "to": "rust_parser_newrustparser", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser", "to": "rust_parser_parserustdocline", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser", "to": "rust_parser_capturerustblock", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser", "to": "rust_parser_collectrustsignature", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser", "to": "rust_parser_parserustmethodsignature", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser", "to": "rust_parser_buildrustsignature", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser", "to": "rust_parser_parserustparameters", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser", "to": "rust_parser_rustdependenciesfromparameters", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser", "to": "rust_parser_isrustreceiverparameter", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser", "to": "rust_parser_extractrustdependencytypes", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser", "to": "rust_parser_splitrusttypeidentifiers", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser", "to": "rust_parser_shouldskiprustdependency", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser", "to": "rust_parser_isrustconstructor", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser", "to": "rust_parser_findmatchingparen", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser", "to": "rust_parser_splitrustcommalist", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser", "to": "rust_parser_striprustlinecomment", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser", "to": "rust_parser_collapsewhitespace", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser_rustparser", "to": "rust_parser_rustparser_language", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser_rustparser", "to": "rust_parser_rustparser_parsefile", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser_rustparser", "to": "rust_parser_rustparser_parsefilenodes", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser_rustparser", "to": "rust_parser_rustparser_parserusttraitblock", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser_rustparser", "to": "rust_parser_rustparser_parseruststructblock", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser_rustparser", "to": "rust_parser_rustparser_parserustimplblock", "label": "method", "title": "method [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser_rustparser_parsefile", "to": "rust_parser_rustparser_parsefilenodes", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parsefilenodes", "to": "rust_parser_striprustlinecomment", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parsefilenodes", "to": "rust_parser_parserustdocline", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parsefilenodes", "to": "rust_parser_capturerustblock", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parsefilenodes", "to": "rust_parser_rustparser_parserusttraitblock", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parsefilenodes", "to": "rust_parser_rustparser_parseruststructblock", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parsefilenodes", "to": "rust_parser_collectrustsignature", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parsefilenodes", "to": "rust_parser_parserustmethodsignature", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parsefilenodes", "to": "rust_parser_rustparser_parserustimplblock", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parserusttraitblock", "to": "rust_parser_parserustdocline", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parserusttraitblock", "to": "rust_parser_striprustlinecomment", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parserusttraitblock", "to": "rust_parser_collectrustsignature", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parserusttraitblock", "to": "rust_parser_parserustmethodsignature", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parseruststructblock", "to": "rust_parser_striprustlinecomment", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parseruststructblock", "to": "rust_parser_extractrustdependencytypes", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parserustimplblock", "to": "rust_parser_parserustdocline", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parserustimplblock", "to": "rust_parser_striprustlinecomment", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parserustimplblock", "to": "rust_parser_collectrustsignature", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parserustimplblock", "to": "rust_parser_parserustmethodsignature", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parserustimplblock", "to": "rust_parser_isrustconstructor", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustparser_parserustimplblock", "to": "rust_parser_rustdependenciesfromparameters", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_collectrustsignature", "to": "rust_parser_striprustlinecomment", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_collectrustsignature", "to": "rust_parser_collapsewhitespace", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_parserustmethodsignature", "to": "rust_parser_collapsewhitespace", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_parserustmethodsignature", "to": "rust_parser_findmatchingparen", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_parserustmethodsignature", "to": "rust_parser_parserustparameters", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_parserustmethodsignature", "to": "rust_parser_buildrustsignature", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_buildrustsignature", "to": "rust_parser_collapsewhitespace", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_parserustparameters", "to": "rust_parser_splitrustcommalist", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_parserustparameters", "to": "rust_parser_collapsewhitespace", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_parserustparameters", "to": "rust_parser_isrustreceiverparameter", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_rustdependenciesfromparameters", "to": "rust_parser_extractrustdependencytypes", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_isrustreceiverparameter", "to": "rust_parser_collapsewhitespace", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_extractrustdependencytypes", "to": "rust_parser_splitrusttypeidentifiers", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_extractrustdependencytypes", "to": "rust_parser_shouldskiprustdependency", "label": "calls", "title": "calls [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "rust_parser_test", "to": "rust_parser_test_testrustparserlanguage", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser_test", "to": "rust_parser_test_testrustparserparsefilenodesextractstraitandstruct", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser_test", "to": "rust_parser_test_testrustparserparsefilereturnsfirstextractednode", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "rust_parser_test", "to": "rust_parser_test_testrustparserdoesnotdropparameterscontainingselfinname", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}];
+const LEGEND = [{"cid": 0, "color": "#4E79A7", "label": "Rust parser receiver parameter parsing", "count": 10}, {"cid": 1, "color": "#F28E2B", "label": "Rust parser receiver parameter parsing", "count": 5}, {"cid": 2, "color": "#E15759", "label": "Rust parser receiver parameter parsing", "count": 5}, {"cid": 3, "color": "#76B7B2", "label": "Rust parser receiver parameter parsing", "count": 4}, {"cid": 4, "color": "#59A14F", "label": "Rust parser receiver parameter parsing", "count": 3}, {"cid": 5, "color": "#EDC948", "label": "Rust parser receiver parameter parsing", "count": 3}];
+
+// Build vis datasets
+const nodesDS = new vis.DataSet(RAW_NODES.map(n => ({
+  id: n.id, label: n.label, color: n.color, size: n.size,
+  font: n.font, title: n.title,
+  _community: n.community, _community_name: n.community_name,
+  _source_file: n.source_file, _file_type: n.file_type, _degree: n.degree,
+})));
+
+const edgesDS = new vis.DataSet(RAW_EDGES.map((e, i) => ({
+  id: i, from: e.from, to: e.to,
+  label: '',
+  title: e.title,
+  dashes: e.dashes,
+  width: e.width,
+  color: e.color,
+  arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+})));
+
+const container = document.getElementById('graph');
+const network = new vis.Network(container, { nodes: nodesDS, edges: edgesDS }, {
+  physics: {
+    enabled: true,
+    solver: 'forceAtlas2Based',
+    forceAtlas2Based: {
+      gravitationalConstant: -60,
+      centralGravity: 0.005,
+      springLength: 120,
+      springConstant: 0.08,
+      damping: 0.4,
+      avoidOverlap: 0.8,
+    },
+    stabilization: { iterations: 200, fit: true },
+  },
+  interaction: {
+    hover: true,
+    tooltipDelay: 100,
+    hideEdgesOnDrag: true,
+    navigationButtons: false,
+    keyboard: false,
+  },
+  nodes: { shape: 'dot', borderWidth: 1.5 },
+  edges: { smooth: { type: 'continuous', roundness: 0.2 }, selectionWidth: 3 },
+});
+
+network.once('stabilizationIterationsDone', () => {
+  network.setOptions({ physics: { enabled: false } });
+});
+
+function showInfo(nodeId) {
+  const n = nodesDS.get(nodeId);
+  if (!n) return;
+  const neighborIds = network.getConnectedNodes(nodeId);
+  const neighborItems = neighborIds.map(nid => {
+    const nb = nodesDS.get(nid);
+    const color = nb ? nb.color.background : '#555';
+    return `<span class="neighbor-link" style="border-left-color:${color}" onclick="focusNode('${nid}')">${nb ? nb.label : nid}</span>`;
+  }).join('');
+  document.getElementById('info-content').innerHTML = `
+    <div class="field"><b>${n.label}</b></div>
+    <div class="field">Type: ${n._file_type || 'unknown'}</div>
+    <div class="field">Community: ${n._community_name}</div>
+    <div class="field">Source: ${n._source_file || '-'}</div>
+    <div class="field">Degree: ${n._degree}</div>
+    ${neighborIds.length ? `<div class="field" style="margin-top:8px;color:#aaa;font-size:11px">Neighbors (${neighborIds.length})</div><div id="neighbors-list">${neighborItems}</div>` : ''}
+  `;
+}
+
+function focusNode(nodeId) {
+  network.focus(nodeId, { scale: 1.4, animation: true });
+  network.selectNodes([nodeId]);
+  showInfo(nodeId);
+}
+
+network.on('click', params => {
+  if (params.nodes.length > 0) showInfo(params.nodes[0]);
+  else document.getElementById('info-content').innerHTML = '<span class="empty">Click a node to inspect it</span>';
+});
+
+const searchInput = document.getElementById('search');
+const searchResults = document.getElementById('search-results');
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.toLowerCase().trim();
+  searchResults.innerHTML = '';
+  if (!q) { searchResults.style.display = 'none'; return; }
+  const matches = RAW_NODES.filter(n => n.label.toLowerCase().includes(q)).slice(0, 20);
+  if (!matches.length) { searchResults.style.display = 'none'; return; }
+  searchResults.style.display = 'block';
+  matches.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'search-item';
+    el.textContent = n.label;
+    el.style.borderLeft = `3px solid ${n.color.background}`;
+    el.style.paddingLeft = '8px';
+    el.onclick = () => {
+      network.focus(n.id, { scale: 1.5, animation: true });
+      network.selectNodes([n.id]);
+      showInfo(n.id);
+      searchResults.style.display = 'none';
+      searchInput.value = '';
+    };
+    searchResults.appendChild(el);
+  });
+});
+document.addEventListener('click', e => {
+  if (!searchResults.contains(e.target) && e.target !== searchInput)
+    searchResults.style.display = 'none';
+});
+
+const hiddenCommunities = new Set();
+const legendEl = document.getElementById('legend');
+LEGEND.forEach(c => {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  item.innerHTML = `<div class="legend-dot" style="background:${c.color}"></div>
+    <span class="legend-label">${c.label}</span>
+    <span class="legend-count">${c.count}</span>`;
+  item.onclick = () => {
+    if (hiddenCommunities.has(c.cid)) {
+      hiddenCommunities.delete(c.cid);
+      item.classList.remove('dimmed');
+    } else {
+      hiddenCommunities.add(c.cid);
+      item.classList.add('dimmed');
+    }
+    const updates = RAW_NODES
+      .filter(n => n.community === c.cid)
+      .map(n => ({ id: n.id, hidden: hiddenCommunities.has(c.cid) }));
+    nodesDS.update(updates);
+  };
+  legendEl.appendChild(item);
+});
+</script>
+<script>
+// Render hyperedges as shaded regions
+const hyperedges = [];
+function drawHyperedges() {
+    const canvas = network.canvas.frame.canvas;
+    const ctx = canvas.getContext('2d');
+    hyperedges.forEach(h => {
+        const positions = h.nodes
+            .map(nid => network.getPositions([nid])[nid])
+            .filter(p => p !== undefined);
+        if (positions.length < 2) return;
+        // Draw convex hull as filled polygon
+        ctx.save();
+        ctx.globalAlpha = 0.12;
+        ctx.fillStyle = '#6366f1';
+        ctx.strokeStyle = '#6366f1';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        const scale = network.getScale();
+        const offset = network.getViewPosition();
+        const toCanvas = (p) => ({
+            x: (p.x - offset.x) * scale + canvas.width / 2,
+            y: (p.y - offset.y) * scale + canvas.height / 2
+        });
+        const pts = positions.map(toCanvas);
+        // Expand hull slightly
+        const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+        const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+        const expanded = pts.map(p => ({
+            x: cx + (p.x - cx) * 1.15,
+            y: cy + (p.y - cy) * 1.15
+        }));
+        ctx.moveTo(expanded[0].x, expanded[0].y);
+        expanded.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 0.4;
+        ctx.stroke();
+        // Label
+        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = '#4f46e5';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(h.label, cx, cy - 5);
+        ctx.restore();
+    });
+}
+network.on('afterDrawing', drawHyperedges);
+</script>
+</body>
+</html>

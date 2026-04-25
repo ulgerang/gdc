@@ -3,7 +3,7 @@ node:
     id: '...main'
     type: function
     namespace: main
-    file_path: E:\works\gdc\main.go
+    file_path: D:\git\26\gdc\main.go
 language_spec:
     language: go
     package: main

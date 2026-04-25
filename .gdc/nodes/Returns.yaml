@@ -3,7 +3,7 @@ node:
     id: Returns
     type: class
     namespace: node
-    file_path: E:\works\gdc\internal\node\spec.go
+    file_path: D:\git\26\gdc\internal\node\spec.go
 language_spec:
     language: go
     package: node

@@ -3,7 +3,7 @@ node:
     id: NamingConventionTestMatcher
     type: class
     namespace: extract
-    file_path: E:\works\gdc\internal\extract\test_matcher.go
+    file_path: D:\git\26\gdc\internal\extract\test_matcher.go
 language_spec:
     language: go
     package: extract
