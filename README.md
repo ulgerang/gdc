@@ -10,6 +10,41 @@ It models software systems as graphs (nodes & edges) to maximize the accuracy of
 - **Graph-First Design**: Express systems with classes (nodes) and dependencies (edges)
 - **Opt-in Evidence**: Code evidence (implementation/tests/callers) is introduced gradually as opt-in
 
+## Design-First Operating Model
+
+GDC is intended to be used before code is written, not only after code exists.
+Write `.gdc/nodes/*.yaml` first to describe the structure a coder or AI agent
+should implement:
+
+- `node`: the component identity, type, layer, namespace, and optional future
+  implementation path.
+- `responsibility`: what the component owns, its boundaries, and invariants.
+- `interface`: the public contract to implement exactly.
+- `dependencies`: the other nodes this component may use, including injection
+  style and usage notes.
+- `logic`: optional state machines, algorithms, data flow, or pseudocode.
+- `metadata.status`: the lifecycle state, such as `draft`, `specified`,
+  `implemented`, `tested`, or `deprecated`.
+
+The normal loop is:
+
+```text
+OpenSpec or BDD acceptance
+  -> GDC YAML node specs
+  -> gdc sync
+  -> gdc query/show/trace to collect dependency context
+  -> gdc extract <node> to create a focused coder/agent packet
+  -> implementation and tests
+  -> gdc sync --direction code or gdc sync --direction both
+  -> gdc diff/check to detect structural drift
+```
+
+In this model OpenSpec or BDD decides what should be built and why. GDC decides
+where it belongs, which contracts it may depend on, and what minimal context the
+coder receives. Code evidence is useful, but it is opt-in: start from the YAML
+contract, then add `--with-impl`, `--with-tests`, or `--with-callers` only when
+the implementation task needs that extra context.
+
 ## 🚀 Quick Start
 
 ### Build
@@ -46,9 +81,9 @@ gdc node create GameService --type service --layer application
 gdc node delete OldController
 gdc node rename PlayerController CharacterController
 
-# 4. Write YAML specs (edit .gdc/nodes/*.yaml)
+# 4. Write YAML specs before implementation (edit .gdc/nodes/*.yaml)
 
-# 5. Sync and verify
+# 5. Sync the design graph and verify it
 gdc sync                              # Sync YAML to DB
 gdc sync --dry-run                    # Preview changes
 gdc sync --force                      # Force full resync
@@ -74,12 +109,12 @@ gdc show PlayerController --deps --refs
 gdc show IInputManager --full
 gdc show IInputManager --interface-only
 
-# 7. Generate AI prompt
+# 7. Generate a focused implementation packet for a coder or AI agent
 gdc extract PlayerController --clipboard
 gdc extract PlayerController --output prompt.md
 gdc extract PlayerController --template implement
 
-# 8. Include code evidence in prompt (opt-in)
+# 8. Include code evidence only when needed (opt-in)
 gdc extract PlayerController --with-impl
 gdc extract PlayerController --with-impl --with-tests
 ```

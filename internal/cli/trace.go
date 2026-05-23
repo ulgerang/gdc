@@ -86,7 +86,7 @@ func runTrace(cmd *cobra.Command, args []string) error {
 
 	if traceTo != "" {
 		// Find specific path
-		path := findPath(startNode, traceTo, nodeMap)
+		path := findPath(startNode, traceTo, nodeMap, lookup)
 		if path == nil {
 			printWarning("No path found from %s to %s", startNode, traceTo)
 		} else {
@@ -99,21 +99,25 @@ func runTrace(cmd *cobra.Command, args []string) error {
 			printReverseTree(startNode, nodeMap, allNodes, 0, traceDepth, make(map[string]bool))
 		case "both":
 			fmt.Println(color.CyanString("Dependencies (→):"))
-			printDependencyTree(startNode, nodeMap, 0, traceDepth, make(map[string]bool))
+			printDependencyTree(startNode, nodeMap, lookup, 0, traceDepth, make(map[string]bool))
 			fmt.Println()
 			fmt.Println(color.CyanString("Referenced by (←):"))
 			printReverseTree(startNode, nodeMap, allNodes, 0, traceDepth, make(map[string]bool))
 		default:
-			printDependencyTree(startNode, nodeMap, 0, traceDepth, make(map[string]bool))
+			printDependencyTree(startNode, nodeMap, lookup, 0, traceDepth, make(map[string]bool))
 		}
 	}
 
 	return nil
 }
 
-func printDependencyTree(nodeName string, nodeMap map[string]*node.Spec, depth int, maxDepth int, visited map[string]bool) {
+func printDependencyTree(nodeName string, nodeMap map[string]*node.Spec, lookup map[string]*node.Spec, depth int, maxDepth int, visited map[string]bool) {
 	if maxDepth > 0 && depth > maxDepth {
 		return
+	}
+
+	if _, canonical, ok := resolveNodeSpec(nodeName, lookup); ok {
+		nodeName = canonical
 	}
 
 	if visited[nodeName] {
@@ -150,18 +154,20 @@ func printDependencyTree(nodeName string, nodeMap map[string]*node.Spec, depth i
 			optional = color.YellowString(" [opt]")
 		}
 
-		depSpec, exists := nodeMap[dep.Target]
+		depSpec, canonicalTarget, exists := resolveNodeSpec(dep.Target, lookup)
+		displayTarget := dep.Target
 		nodeType := ""
 		if exists {
+			displayTarget = canonicalTarget
 			nodeType = fmt.Sprintf(" (%s)", depSpec.Node.Type)
 		} else {
 			nodeType = color.RedString(" (missing)")
 		}
 
-		fmt.Printf("%s%s %s%s%s\n", indent, connector, dep.Target, nodeType, optional)
+		fmt.Printf("%s%s %s%s%s\n", indent, connector, displayTarget, nodeType, optional)
 
 		if exists && len(depSpec.Dependencies) > 0 {
-			printDependencyTree(dep.Target, nodeMap, depth+1, maxDepth, visited)
+			printDependencyTree(canonicalTarget, nodeMap, lookup, depth+1, maxDepth, visited)
 		}
 	}
 }
@@ -205,7 +211,9 @@ func printReverseTree(nodeName string, nodeMap map[string]*node.Spec, allNodes [
 	}
 }
 
-func findPath(from, to string, nodeMap map[string]*node.Spec) []string {
+func findPath(from, to string, nodeMap map[string]*node.Spec, lookup map[string]*node.Spec) []string {
+	from = resolveNodeAlias(from, lookup)
+	to = resolveNodeAlias(to, lookup)
 	if from == to {
 		return []string{from}
 	}
@@ -230,13 +238,17 @@ func findPath(from, to string, nodeMap map[string]*node.Spec) []string {
 		}
 
 		for _, dep := range spec.Dependencies {
-			if dep.Target == to {
+			_, canonicalTarget, exists := resolveNodeSpec(dep.Target, lookup)
+			if !exists {
+				continue
+			}
+			if canonicalTarget == to {
 				return append(path, to)
 			}
-			if !visited[dep.Target] {
+			if !visited[canonicalTarget] {
 				newPath := make([]string, len(path)+1)
 				copy(newPath, path)
-				newPath[len(path)] = dep.Target
+				newPath[len(path)] = canonicalTarget
 				queue = append(queue, newPath)
 			}
 		}

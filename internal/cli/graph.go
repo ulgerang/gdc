@@ -116,7 +116,7 @@ func runGraph(cmd *cobra.Command, args []string) error {
 }
 
 func buildGraphView(nodes []*node.Spec, layers []config.LayerRule, highlightViolations bool, violationsOnly bool) graphView {
-	nodeMap := buildSpecLookup(nodes)
+	lookup := buildSpecLookup(nodes)
 	violations := make(map[string]bool)
 	if highlightViolations {
 		violations = detectLayerViolationEdges(nodes, layers)
@@ -126,22 +126,27 @@ func buildGraphView(nodes []*node.Spec, layers []config.LayerRule, highlightViol
 	involved := make(map[string]bool)
 	for _, n := range nodes {
 		for _, dep := range n.Dependencies {
-			key := graphEdgeKey(n.QualifiedID(), dep.Target)
+			_, canonicalTarget, targetExists := resolveNodeSpec(dep.Target, lookup)
+			edgeTarget := dep.Target
+			if targetExists {
+				edgeTarget = canonicalTarget
+			}
+			key := graphEdgeKey(n.QualifiedID(), edgeTarget)
 			violation := violations[key]
 			if violationsOnly && !violation {
 				continue
 			}
 			edges = append(edges, graphEdge{
 				From:      n.QualifiedID(),
-				To:        dep.Target,
+				To:        edgeTarget,
 				Type:      dep.Type,
 				Optional:  dep.Optional,
 				Violation: violation,
 			})
 			if violationsOnly {
 				involved[n.QualifiedID()] = true
-				if _, ok := nodeMap[dep.Target]; ok {
-					involved[dep.Target] = true
+				if targetExists {
+					involved[edgeTarget] = true
 				}
 			}
 		}
@@ -173,14 +178,14 @@ func detectLayerViolationEdges(nodes []*node.Spec, layers []config.LayerRule) ma
 		}
 	}
 
-	nodeMap := buildSpecLookup(nodes)
+	lookup := buildSpecLookup(nodes)
 	for _, n := range nodes {
 		srcLayer := strings.TrimSpace(n.Node.Layer)
 		if srcLayer == "" {
 			continue
 		}
 		for _, dep := range n.Dependencies {
-			target, ok := nodeMap[dep.Target]
+			target, canonicalTarget, ok := resolveNodeSpec(dep.Target, lookup)
 			if !ok || target == nil {
 				continue
 			}
@@ -189,7 +194,7 @@ func detectLayerViolationEdges(nodes []*node.Spec, layers []config.LayerRule) ma
 				continue
 			}
 			if allowedDeps, ok := allowed[srcLayer]; ok && !allowedDeps[dstLayer] {
-				violations[graphEdgeKey(n.QualifiedID(), dep.Target)] = true
+				violations[graphEdgeKey(n.QualifiedID(), canonicalTarget)] = true
 			}
 		}
 	}

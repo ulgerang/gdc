@@ -41,6 +41,28 @@ func TestBuildGraphViewViolationsOnlyFiltersNodesAndEdges(t *testing.T) {
 	}
 }
 
+func TestBuildGraphViewResolvesShortDependencyTargetsToCanonicalNodes(t *testing.T) {
+	nodes := []*node.Spec{
+		{
+			Node: node.NodeInfo{ID: "PlayerController", Type: "class", Namespace: "Game.Controllers"},
+			Dependencies: []node.Dependency{
+				{Target: "IInputManager", Type: "interface"},
+			},
+		},
+		{
+			Node: node.NodeInfo{ID: "IInputManager", Type: "interface", Namespace: "Game.Input"},
+		},
+	}
+
+	view := buildGraphView(nodes, nil, false, false)
+	if len(view.Edges) != 1 {
+		t.Fatalf("expected 1 edge, got %d", len(view.Edges))
+	}
+	if view.Edges[0].To != "Game.Input.IInputManager" {
+		t.Fatalf("expected edge target to resolve to canonical node, got %q", view.Edges[0].To)
+	}
+}
+
 func TestGenerateDOTHighlightsLayerViolations(t *testing.T) {
 	view := graphView{
 		Nodes: []*node.Spec{

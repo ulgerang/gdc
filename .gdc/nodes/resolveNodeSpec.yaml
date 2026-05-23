@@ -1,6 +1,6 @@
 schema_version: "1.0"
 node:
-    id: resolveNodeAlias
+    id: resolveNodeSpec
     type: function
     namespace: cli
     file_path: D:\git\26\gdc\internal\cli\root.go

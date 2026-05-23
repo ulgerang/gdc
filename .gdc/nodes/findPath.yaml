@@ -1,9 +1,9 @@
 schema_version: "1.0"
 node:
-    id: resolveNodeAlias
+    id: findPath
     type: function
     namespace: cli
-    file_path: D:\git\26\gdc\internal\cli\root.go
+    file_path: D:\git\26\gdc\internal\cli\trace.go
 language_spec:
     language: go
     package: cli

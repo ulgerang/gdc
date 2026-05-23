@@ -1,0 +1,27 @@
+schema_version: "1.0"
+node:
+    id: graphView
+    type: class
+    namespace: cli
+    file_path: D:\git\26\gdc\internal\cli\graph.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Nodes
+          type: '[]*node.Spec'
+          access: get; set
+        - name: Edges
+          type: '[]graphEdge'
+          access: get; set
+dependencies:
+    - target: graphEdge
+      type: class
+      injection: field
+metadata:
+    status: implemented
+    origin: code_extracted
+    extracted_at: "2026-05-23"

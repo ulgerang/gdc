@@ -1,14 +1,18 @@
 schema_version: "1.0"
 node:
-    id: resolveNodeAlias
+    id: buildGraphView
     type: function
     namespace: cli
-    file_path: D:\git\26\gdc\internal\cli\root.go
+    file_path: D:\git\26\gdc\internal\cli\graph.go
 language_spec:
     language: go
     package: cli
 responsibility:
     summary: ""
+dependencies:
+    - target: graphView
+      type: class
+      injection: method
 metadata:
     status: implemented
     origin: code_extracted

@@ -4,6 +4,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/gdc-tools/gdc/internal/node"
@@ -160,8 +161,17 @@ func buildSpecLookup(nodes []*node.Spec) map[string]*node.Spec {
 }
 
 func resolveNodeAlias(id string, lookup map[string]*node.Spec) string {
+	id = strings.TrimSpace(id)
 	if spec, ok := lookup[id]; ok && spec != nil {
 		return spec.QualifiedID()
 	}
 	return id
+}
+
+func resolveNodeSpec(id string, lookup map[string]*node.Spec) (*node.Spec, string, bool) {
+	canonical := resolveNodeAlias(id, lookup)
+	if spec, ok := lookup[canonical]; ok && spec != nil {
+		return spec, spec.QualifiedID(), true
+	}
+	return nil, canonical, false
 }
