@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -30,6 +31,7 @@ var (
 	checkMaxErrors     int
 	checkMaxWarnings   int
 	checkMaxInfo       int
+	checkFormat        string
 )
 
 var checkCmd = &cobra.Command{
@@ -89,18 +91,20 @@ Examples:
 	checkCmd.Flags().IntVar(&checkMaxErrors, "max-errors", -1, "fail when error count exceeds this threshold (-1 uses default policy)")
 	checkCmd.Flags().IntVar(&checkMaxWarnings, "max-warnings", -1, "fail when warning count exceeds this threshold")
 	checkCmd.Flags().IntVar(&checkMaxInfo, "max-info", -1, "fail when info count exceeds this threshold")
+	checkCmd.Flags().StringVar(&checkFormat, "format", "text", "output format (text, json)")
 }
 
 type Issue struct {
-	Severity   string
-	Category   string
-	SourceNode string
-	TargetNode string
-	Message    string
-	Suggestion string
+	Severity   string `json:"severity"`
+	Category   string `json:"category"`
+	SourceNode string `json:"source_node,omitempty"`
+	TargetNode string `json:"target_node,omitempty"`
+	Message    string `json:"message"`
+	Suggestion string `json:"suggestion,omitempty"`
 }
 
 func runCheck(cmd *cobra.Command, args []string) error {
+	checkFormat = resolveFormat(checkFormat)
 	cfg, err := config.Load("")
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
@@ -108,7 +112,7 @@ func runCheck(cmd *cobra.Command, args []string) error {
 
 	nodesDir := cfg.NodesDir()
 
-	if !quiet {
+	if !quiet && checkFormat != "json" {
 		fmt.Println("Running validation checks...")
 		fmt.Println()
 	}
@@ -145,6 +149,10 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	warnings := countBySeverity(issues, "warning")
 	infos := countBySeverity(issues, "info")
 
+	if checkFormat == "json" {
+		return outputCheckJSON(issues, errors, warnings, infos)
+	}
+
 	if len(issues) == 0 {
 		if checkCIMode {
 			fmt.Println(formatCISummary(errors, warnings, infos, nil, false))
@@ -176,6 +184,49 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	}
 
 	if exitCode != 0 {
+		os.Exit(exitCode)
+	}
+
+	return nil
+}
+
+func outputCheckJSON(issues []Issue, errors, warnings, infos int) error {
+	breaches, exitCode := evaluateCheckExitPolicy(errors, warnings, infos)
+	result := "PASS"
+	if exitCode != 0 {
+		result = "FAIL"
+	}
+
+	type checkSummary struct {
+		Errors   int `json:"errors"`
+		Warnings int `json:"warnings"`
+		Info     int `json:"info"`
+		Total    int `json:"total"`
+	}
+
+	type checkOutput struct {
+		Issues []Issue      `json:"issues"`
+		Summary checkSummary `json:"summary"`
+		Result  string       `json:"result"`
+	}
+
+	output := checkOutput{
+		Issues: issues,
+		Summary: checkSummary{
+			Errors:   errors,
+			Warnings: warnings,
+			Info:     infos,
+			Total:    errors + warnings + infos,
+		},
+		Result: result,
+	}
+
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	_ = enc.Encode(output)
+
+	if exitCode != 0 {
+		_ = breaches
 		os.Exit(exitCode)
 	}
 

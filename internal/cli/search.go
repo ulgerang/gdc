@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -20,15 +21,16 @@ var (
 	searchMaxResults    int
 	searchRegex         bool
 	searchContext       int
+	searchFormat        string
 )
 
 // SearchResult represents a single search match
 type SearchResult struct {
-	File          string
-	Line          int
-	Content       string
-	ContextBefore []string // lines before the match (for --context)
-	ContextAfter  []string // lines after the match (for --context)
+	File          string   `json:"file"`
+	Line          int      `json:"line"`
+	Content       string   `json:"content"`
+	ContextBefore []string `json:"context_before,omitempty"`
+	ContextAfter  []string `json:"context_after,omitempty"`
 }
 
 var searchCmd = &cobra.Command{
@@ -53,9 +55,11 @@ func init() {
 	searchCmd.Flags().IntVarP(&searchMaxResults, "max-results", "m", 100, "maximum number of results")
 	searchCmd.Flags().BoolVarP(&searchRegex, "regex", "r", false, "treat pattern as regular expression")
 	searchCmd.Flags().IntVar(&searchContext, "context", 0, "number of context lines to show")
+	searchCmd.Flags().StringVar(&searchFormat, "format", "text", "output format (text, json)")
 }
 
 func runSearch(cmd *cobra.Command, args []string) error {
+	searchFormat = resolveFormat(searchFormat)
 	pattern := args[0]
 
 	// Determine search root
@@ -217,6 +221,10 @@ func runSearch(cmd *cobra.Command, args []string) error {
 			printInfo("Tip: Initialize a GDC project with 'gdc init' for better search scope")
 		}
 		return nil
+	}
+
+	if searchFormat == "json" {
+		return outputSearchJSON(pattern, results)
 	}
 
 	outputSearchResults(pattern, results, hasProject)
@@ -463,4 +471,22 @@ func highlightMatch(content, pattern string, caseSensitive bool, highlightFunc f
 	after := content[idx+len(pattern):]
 
 	return before + highlightFunc(actualMatch) + after
+}
+
+func outputSearchJSON(pattern string, results []SearchResult) error {
+	type searchOutput struct {
+		Pattern      string         `json:"pattern"`
+		TotalMatches int            `json:"total_matches"`
+		Results      []SearchResult `json:"results"`
+	}
+
+	out := searchOutput{
+		Pattern:      pattern,
+		TotalMatches: len(results),
+		Results:      results,
+	}
+
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	return enc.Encode(out)
 }

@@ -46,6 +46,7 @@ func init() {
 }
 
 func runQuery(cmd *cobra.Command, args []string) error {
+	queryFormat = resolveFormat(queryFormat)
 	symbol := args[0]
 
 	cfg, err := config.Load("")
@@ -771,6 +772,8 @@ func sourceExtensionsForLanguage(language string) []string {
 		return []string{".ts", ".tsx"}
 	case "rust", "rs":
 		return []string{".rs"}
+	case "gdscript", "gd":
+		return []string{".gd"}
 	default:
 		return nil
 	}

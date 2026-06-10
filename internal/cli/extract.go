@@ -26,6 +26,7 @@ var (
 	extractWithImpl    bool
 	extractWithTests   bool
 	extractWithCallers bool
+	extractFormat      string
 )
 
 var extractCmd = &cobra.Command{
@@ -92,9 +93,11 @@ Examples:
 		"include related test files in output (opt-in)")
 	extractCmd.Flags().BoolVar(&extractWithCallers, "with-callers", false,
 		"include caller references in output (opt-in)")
+	extractCmd.Flags().StringVar(&extractFormat, "format", "text", "output format (text, json)")
 }
 
 func runExtract(cmd *cobra.Command, args []string) error {
+	extractFormat = resolveFormat(extractFormat)
 	nodeName := args[0]
 
 	cfg, err := config.Load("")
@@ -124,6 +127,10 @@ func runExtract(cmd *cobra.Command, args []string) error {
 	evidence, err := collectExtractEvidence(context.Background(), spec, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to collect extract evidence: %w", err)
+	}
+
+	if extractFormat == "json" {
+		return outputExtractJSON(spec, deps, evidence, cfg)
 	}
 
 	// Generate prompt
@@ -1002,4 +1009,291 @@ func toCamelCase(s string) string {
 		return s
 	}
 	return strings.ToLower(s[:1]) + s[1:]
+}
+
+type extractNodeJSON struct {
+	ID         string `json:"id"`
+	Type       string `json:"type"`
+	Layer      string `json:"layer,omitempty"`
+	Namespace  string `json:"namespace,omitempty"`
+	FilePath   string `json:"file_path,omitempty"`
+	Status     string `json:"status"`
+}
+
+type extractResponsibilityJSON struct {
+	Summary    string   `json:"summary"`
+	Details    string   `json:"details,omitempty"`
+	Invariants []string `json:"invariants,omitempty"`
+	Boundaries string   `json:"boundaries,omitempty"`
+}
+
+type extractConstructorJSON struct {
+	Signature   string     `json:"signature"`
+	Description string     `json:"description,omitempty"`
+	Parameters  []extractParamJSON `json:"parameters,omitempty"`
+}
+
+type extractMethodJSON struct {
+	Name        string     `json:"name"`
+	Signature   string     `json:"signature"`
+	Description string     `json:"description,omitempty"`
+	Parameters  []extractParamJSON `json:"parameters,omitempty"`
+	Returns     extractReturnJSON  `json:"returns,omitempty"`
+}
+
+type extractParamJSON struct {
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Description string `json:"description,omitempty"`
+}
+
+type extractReturnJSON struct {
+	Type        string `json:"type,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+type extractPropertyJSON struct {
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Access      string `json:"access,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+type extractEventJSON struct {
+	Name        string `json:"name"`
+	Signature   string `json:"signature"`
+	Description string `json:"description,omitempty"`
+}
+
+type extractInterfaceJSON struct {
+	Constructors []extractConstructorJSON `json:"constructors,omitempty"`
+	Methods      []extractMethodJSON      `json:"methods,omitempty"`
+	Properties   []extractPropertyJSON    `json:"properties,omitempty"`
+	Events       []extractEventJSON       `json:"events,omitempty"`
+}
+
+type extractDepSpecJSON struct {
+	ID            string   `json:"id"`
+	Type          string   `json:"type,omitempty"`
+	Layer         string   `json:"layer,omitempty"`
+	Status        string   `json:"status,omitempty"`
+	Methods       []string `json:"methods,omitempty"`
+}
+
+type extractDependencyJSON struct {
+	Target   string             `json:"target"`
+	Type     string             `json:"type,omitempty"`
+	Injection string            `json:"injection,omitempty"`
+	Optional bool               `json:"optional"`
+	Usage    string             `json:"usage,omitempty"`
+	Spec     *extractDepSpecJSON `json:"spec,omitempty"`
+}
+
+type extractSourceFileJSON struct {
+	Path     string `json:"path"`
+	Content  string `json:"content"`
+	Language string `json:"language,omitempty"`
+	Lines    int    `json:"lines,omitempty"`
+}
+
+type extractTestJSON struct {
+	Name      string `json:"name"`
+	Path      string `json:"path"`
+	Framework string `json:"framework,omitempty"`
+	Content   string `json:"content"`
+	Lines     int    `json:"lines,omitempty"`
+}
+
+type extractCallerJSON struct {
+	File        string   `json:"file"`
+	Line        int      `json:"line"`
+	Function    string   `json:"function"`
+	Package     string   `json:"package,omitempty"`
+	CallSnippet string   `json:"call_snippet,omitempty"`
+	ContextLines []string `json:"context_lines,omitempty"`
+}
+
+type extractReferenceJSON struct {
+	File    string `json:"file"`
+	Line    int    `json:"line"`
+	Type    string `json:"type"`
+	Snippet string `json:"snippet"`
+}
+
+type extractResultJSON struct {
+	Node         extractNodeJSON         `json:"node"`
+	Responsibility extractResponsibilityJSON `json:"responsibility"`
+	Interface    extractInterfaceJSON    `json:"interface"`
+	Dependencies []extractDependencyJSON `json:"dependencies,omitempty"`
+	Implementation *extractSourceFileJSON `json:"implementation,omitempty"`
+	AdditionalFiles []extractSourceFileJSON `json:"additional_files,omitempty"`
+	Tests        []extractTestJSON       `json:"tests,omitempty"`
+	Callers      []extractCallerJSON     `json:"callers,omitempty"`
+	References   []extractReferenceJSON  `json:"references,omitempty"`
+	Warnings     []string                `json:"warnings,omitempty"`
+}
+
+func outputExtractJSON(spec *node.Spec, deps []DependencyInfo, evidence extractEvidence, cfg *config.Config) error {
+	result := extractResultJSON{
+		Node: extractNodeJSON{
+			ID:        spec.Node.ID,
+			Type:      spec.Node.Type,
+			Layer:     spec.Node.Layer,
+			Namespace: spec.Node.Namespace,
+			FilePath:  spec.Node.FilePath,
+			Status:    spec.Metadata.Status,
+		},
+		Responsibility: extractResponsibilityJSON{
+			Summary:    spec.Responsibility.Summary,
+			Details:    spec.Responsibility.Details,
+			Invariants: spec.Responsibility.Invariants,
+			Boundaries: spec.Responsibility.Boundaries,
+		},
+		Interface: extractInterfaceJSON{
+			Constructors: buildConstructorsJSON(spec.Interface.Constructors),
+			Methods:      buildMethodsJSON(spec.Interface.Methods),
+			Properties:   buildPropertiesJSON(spec.Interface.Properties),
+			Events:       buildEventsJSON(spec.Interface.Events),
+		},
+		Dependencies: buildDependenciesJSON(deps),
+		Warnings:     evidence.Warnings,
+	}
+
+	if evidence.Implementation != nil {
+		if evidence.Implementation.PrimaryFile != nil {
+			result.Implementation = &extractSourceFileJSON{
+				Path:     evidence.Implementation.PrimaryFile.Path,
+				Content:  evidence.Implementation.PrimaryFile.Content,
+				Language: evidence.Implementation.PrimaryFile.Language,
+				Lines:    evidence.Implementation.PrimaryFile.Lines,
+			}
+		}
+		for _, f := range evidence.Implementation.AdditionalFiles {
+			result.AdditionalFiles = append(result.AdditionalFiles, extractSourceFileJSON{
+				Path:     f.Path,
+				Content:  f.Content,
+				Language: f.Language,
+				Lines:    f.Lines,
+			})
+		}
+	}
+
+	for _, tc := range evidence.Tests {
+		result.Tests = append(result.Tests, extractTestJSON{
+			Name:      tc.Name,
+			Path:      tc.Path,
+			Framework: tc.Framework,
+			Content:   tc.Content,
+			Lines:     tc.Lines,
+		})
+	}
+
+	for _, c := range evidence.Callers {
+		result.Callers = append(result.Callers, extractCallerJSON{
+			File:         c.File,
+			Line:         c.Line,
+			Function:     c.Function,
+			Package:      c.Package,
+			CallSnippet:  c.CallSnippet,
+			ContextLines: c.ContextLines,
+		})
+	}
+
+	for _, r := range evidence.References {
+		result.References = append(result.References, extractReferenceJSON{
+			File:    r.File,
+			Line:    r.Line,
+			Type:    r.Type,
+			Snippet: r.Snippet,
+		})
+	}
+
+	return outputJSONValue(result)
+}
+
+func buildConstructorsJSON(ctors []node.Constructor) []extractConstructorJSON {
+	result := make([]extractConstructorJSON, 0, len(ctors))
+	for _, c := range ctors {
+		params := make([]extractParamJSON, 0, len(c.Parameters))
+		for _, p := range c.Parameters {
+			params = append(params, extractParamJSON{Name: p.Name, Type: p.Type, Description: p.Description})
+		}
+		result = append(result, extractConstructorJSON{
+			Signature:   c.Signature,
+			Description: c.Description,
+			Parameters:  params,
+		})
+	}
+	return result
+}
+
+func buildMethodsJSON(methods []node.Method) []extractMethodJSON {
+	result := make([]extractMethodJSON, 0, len(methods))
+	for _, m := range methods {
+		params := make([]extractParamJSON, 0, len(m.Parameters))
+		for _, p := range m.Parameters {
+			params = append(params, extractParamJSON{Name: p.Name, Type: p.Type, Description: p.Description})
+		}
+		result = append(result, extractMethodJSON{
+			Name:        m.Name,
+			Signature:   m.Signature,
+			Description: m.Description,
+			Parameters:  params,
+			Returns:     extractReturnJSON{Type: m.Returns.Type, Description: m.Returns.Description},
+		})
+	}
+	return result
+}
+
+func buildPropertiesJSON(props []node.Property) []extractPropertyJSON {
+	result := make([]extractPropertyJSON, 0, len(props))
+	for _, p := range props {
+		result = append(result, extractPropertyJSON{
+			Name:        p.Name,
+			Type:        p.Type,
+			Access:      p.Access,
+			Description: p.Description,
+		})
+	}
+	return result
+}
+
+func buildEventsJSON(events []node.Event) []extractEventJSON {
+	result := make([]extractEventJSON, 0, len(events))
+	for _, e := range events {
+		result = append(result, extractEventJSON{
+			Name:        e.Name,
+			Signature:   e.Signature,
+			Description: e.Description,
+		})
+	}
+	return result
+}
+
+func buildDependenciesJSON(deps []DependencyInfo) []extractDependencyJSON {
+	result := make([]extractDependencyJSON, 0, len(deps))
+	for _, d := range deps {
+		item := extractDependencyJSON{
+			Target:    d.Target,
+			Type:      d.Type,
+			Injection: d.Injection,
+			Optional:  d.Optional,
+			Usage:     d.Usage,
+		}
+		if d.Spec != nil {
+			methods := make([]string, 0, len(d.Spec.Interface.Methods))
+			for _, m := range d.Spec.Interface.Methods {
+				methods = append(methods, m.Signature)
+			}
+			item.Spec = &extractDepSpecJSON{
+				ID:      d.Spec.Node.ID,
+				Type:    d.Spec.Node.Type,
+				Layer:   d.Spec.Node.Layer,
+				Status:  d.Spec.Metadata.Status,
+				Methods: methods,
+			}
+		}
+		result = append(result, item)
+	}
+	return result
 }

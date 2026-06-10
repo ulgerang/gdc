@@ -62,6 +62,7 @@ func init() {
 }
 
 func runGraph(cmd *cobra.Command, args []string) error {
+	graphFormat = resolveFormat(graphFormat)
 	cfg, err := config.Load("")
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)

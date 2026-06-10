@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -11,6 +13,8 @@ import (
 	"github.com/gdc-tools/gdc/internal/parser"
 	"github.com/spf13/cobra"
 )
+
+var diffFormat string
 
 var diffCmd = &cobra.Command{
 	Use:   "diff <node>",
@@ -27,7 +31,12 @@ Examples:
 	RunE: runDiff,
 }
 
+func init() {
+	diffCmd.Flags().StringVar(&diffFormat, "format", "text", "output format (text, json)")
+}
+
 func runDiff(cmd *cobra.Command, args []string) error {
+	diffFormat = resolveFormat(diffFormat)
 	nodeName := args[0]
 
 	cfg, err := config.Load("")
@@ -60,6 +69,11 @@ func runDiff(cmd *cobra.Command, args []string) error {
 	}
 
 	report := buildDriftReport(spec, extracted)
+
+	if diffFormat == "json" {
+		return outputDiffJSON(spec, report)
+	}
+
 	if report.isEmpty() {
 		printSuccess("No drift detected for %s", spec.Node.ID)
 		return nil
@@ -70,31 +84,54 @@ func runDiff(cmd *cobra.Command, args []string) error {
 }
 
 type driftReport struct {
-	MissingMethods      []string
-	ExtraMethods        []string
-	MethodMismatches    []signatureDrift
-	MissingProperties   []string
-	ExtraProperties     []string
-	PropertyMismatches  []typeDrift
-	MissingEvents       []string
-	ExtraEvents         []string
-	EventMismatches     []signatureDrift
-	MissingConstructors []string
-	ExtraConstructors   []string
-	MissingDeps         []string
-	ExtraDeps           []string
+	MissingMethods      []string        `json:"missing_methods,omitempty"`
+	ExtraMethods        []string        `json:"extra_methods,omitempty"`
+	MethodMismatches    []signatureDrift `json:"method_mismatches,omitempty"`
+	MissingProperties   []string        `json:"missing_properties,omitempty"`
+	ExtraProperties     []string        `json:"extra_properties,omitempty"`
+	PropertyMismatches  []typeDrift     `json:"property_mismatches,omitempty"`
+	MissingEvents       []string        `json:"missing_events,omitempty"`
+	ExtraEvents         []string        `json:"extra_events,omitempty"`
+	EventMismatches     []signatureDrift `json:"event_mismatches,omitempty"`
+	MissingConstructors []string        `json:"missing_constructors,omitempty"`
+	ExtraConstructors   []string        `json:"extra_constructors,omitempty"`
+	MissingDeps         []string        `json:"missing_deps,omitempty"`
+	ExtraDeps           []string        `json:"extra_deps,omitempty"`
 }
 
 type signatureDrift struct {
-	Name          string
-	SpecSignature string
-	CodeSignature string
+	Name          string `json:"name"`
+	SpecSignature string `json:"spec_signature"`
+	CodeSignature string `json:"code_signature"`
 }
 
 type typeDrift struct {
-	Name     string
-	SpecType string
-	CodeType string
+	Name     string `json:"name"`
+	SpecType string `json:"spec_type"`
+	CodeType string `json:"code_type"`
+}
+
+func outputDiffJSON(spec *node.Spec, report driftReport) error {
+	type diffOutput struct {
+		Node     string      `json:"node"`
+		FilePath string      `json:"file_path"`
+		HasDrift bool        `json:"has_drift"`
+		Drift    *driftReport `json:"drift"`
+	}
+
+	output := diffOutput{
+		Node:     spec.Node.ID,
+		FilePath: spec.Node.FilePath,
+		HasDrift: !report.isEmpty(),
+		Drift:    nil,
+	}
+	if output.HasDrift {
+		output.Drift = &report
+	}
+
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	return enc.Encode(output)
 }
 
 func (r driftReport) isEmpty() bool {

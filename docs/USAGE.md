@@ -19,6 +19,9 @@
   - [gdc search](#gdc-search)
   - [gdc query](#gdc-query)
   - [gdc stats](#gdc-stats)
+  - [gdc deps](#gdc-deps)
+  - [gdc refs](#gdc-refs)
+  - [gdc context](#gdc-context)
   - [gdc version](#gdc-version)
   - [gdc completion](#gdc-completion)
 
@@ -33,7 +36,7 @@
 | `--config` | `-c` | 설정 파일 경로 | `.gdc/config.yaml` |
 | `--verbose` | `-v` | 상세 출력 모드 | `false` |
 | `--quiet` | `-q` | 최소 출력 모드 | `false` |
-| `--json` | - | JSON 형식 출력 | `false` |
+| `--json` | - | JSON 형식 출력 (모든 --format 지원 명령어에 적용) | `false` |
 | `--no-color` | - | 컬러 출력 비활성화 | `false` |
 
 ---
@@ -56,6 +59,9 @@
 - `stats`
 - `sync`
 - `trace`
+- `deps`
+- `refs`
+- `context`
 - `version`
 
 ### gdc init
@@ -145,6 +151,7 @@ gdc show <node> [옵션]
 | `--refs` | `-r` | 이 노드를 참조하는 노드 표시 |
 | `--full` | `-F` | 전체 명세 표시 |
 | `--interface-only` | `-i` | 인터페이스만 표시 |
+| `--format` | - | 출력 형식 (`text`, `json`) | `text` |
 
 예시:
 
@@ -152,6 +159,7 @@ gdc show <node> [옵션]
 gdc show PlayerController
 gdc show PlayerController --deps --refs
 gdc show IInputManager --full
+gdc show PlayerController --format json
 ```
 
 ### gdc sync
@@ -232,6 +240,7 @@ gdc check [옵션]
 | `--no-orphan-info` | orphan info 출력 생략 |
 | `--orphan-filter` | 특정 패턴 orphan info 필터 |
 | `--layer-strict` | layer violation을 에러로 처리 |
+| `--format` | 출력 형식 (`text`, `json`) (기본값: `text`) |
 
 예시:
 
@@ -243,6 +252,7 @@ gdc check --verify-impl
 gdc check --verify-impl --fail-on-missing
 gdc check --ci-mode --max-warnings 5
 gdc check --layer-strict
+gdc check --format json
 ```
 
 ### gdc extract
@@ -265,6 +275,7 @@ gdc extract <node> [옵션]
 | `--with-impl` | - | 구현 코드 포함 | `false` |
 | `--with-tests` | - | 관련 테스트 포함 | `false` |
 | `--with-callers` | - | 호출자/참조 정보 포함 | `false` |
+| `--format` | - | 출력 형식 (`text`, `json`) | `text` |
 
 예시:
 
@@ -274,6 +285,7 @@ gdc extract PlayerController --clipboard
 gdc extract PlayerController --output prompt.md
 gdc extract PlayerController --with-impl
 gdc extract PlayerController --with-impl --with-tests --with-callers
+gdc extract PlayerController --format json
 ```
 
 ### gdc trace
@@ -292,6 +304,7 @@ gdc trace <node> [옵션]
 | `--direction` | - | 추적 방향 (`down`, `up`, `both`) | `down` |
 | `--reverse` | `-r` | 역의존성 추적 (`--direction up` 별칭) | `false` |
 | `--to` | - | 특정 노드까지의 경로 찾기 | - |
+| `--format` | - | 출력 형식 (`text`, `json`) | `text` |
 
 예시:
 
@@ -301,6 +314,7 @@ gdc trace PlayerController --depth 2
 gdc trace PlayerController --reverse
 gdc trace PlayerController --direction both
 gdc trace PlayerController --to DatabaseService
+gdc trace PlayerController --format json
 ```
 
 ### gdc graph
@@ -344,6 +358,7 @@ gdc diff <node>
 ```bash
 gdc diff Agent
 gdc diff Agent --config .gdc/config.yaml
+gdc diff Agent --format json
 ```
 
 ### gdc search
@@ -363,6 +378,7 @@ gdc search <pattern> [옵션]
 | `--case-sensitive` | - | 대소문자 구분 | `false` |
 | `--context` | - | 문맥 라인 수 | `0` |
 | `--max-results` | `-m` | 최대 결과 수 | `100` |
+| `--format` | - | 출력 형식 (`text`, `json`) | `text` |
 
 예시:
 
@@ -373,6 +389,7 @@ gdc search "func.*Handler" --regex
 gdc search "UserService" --case-sensitive
 gdc search "error" --max-results 50
 gdc search "class" --context 2
+gdc search "PlayerController" --format json
 ```
 
 ### gdc query
@@ -412,6 +429,76 @@ gdc query UserService --verbose
 
 ```bash
 gdc stats
+gdc stats --format json
+```
+
+### gdc deps
+
+노드의 직접 및 전이적 의존성을 나열합니다. 항상 JSON으로 출력됩니다.
+
+```bash
+gdc deps <node-id> [옵션]
+```
+
+옵션:
+
+| 옵션 | 축약형 | 설명 | 기본값 |
+|------|--------|------|--------|
+| `--depth` | `-d` | 의존성 깊이 (1 = 직접 의존성만) | `1` |
+| `--transitive` | - | 모든 전이적 의존성 평탄화 (중복 제거) | `false` |
+
+예시:
+
+```bash
+gdc deps PlayerController
+gdc deps PlayerController --depth 2
+gdc deps PlayerController --transitive
+```
+
+### gdc refs
+
+특정 노드를 참조(의존)하는 모든 노드를 나열합니다. 항상 JSON으로 출력됩니다.
+
+```bash
+gdc refs <node-id> [옵션]
+```
+
+옵션:
+
+| 옵션 | 축약형 | 설명 | 기본값 |
+|------|--------|------|--------|
+| `--depth` | `-d` | 참조 깊이 (1 = 직접 참조만) | `1` |
+
+예시:
+
+```bash
+gdc refs IInputManager
+gdc refs IInputManager --depth 2
+```
+
+### gdc context
+
+노드의 전체 추출 컨텍스트를 JSON으로 반환합니다 — 명세, 의존성, 선택적 증거 포함.
+
+```bash
+gdc context <node-id> [옵션]
+```
+
+옵션:
+
+| 옵션 | 축약형 | 설명 | 기본값 |
+|------|--------|------|--------|
+| `--depth` | `-d` | 의존성 깊이 | `1` |
+| `--with-impl` | - | 구현 코드 증거 포함 | `false` |
+| `--with-tests` | - | 테스트 파일 증거 포함 | `false` |
+| `--with-callers` | - | 호출자/참조 증거 포함 | `false` |
+
+예시:
+
+```bash
+gdc context PlayerController
+gdc context PlayerController --depth 2
+gdc context PlayerController --with-impl --with-tests --with-callers
 ```
 
 ### gdc version

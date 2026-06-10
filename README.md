@@ -98,6 +98,7 @@ gdc check                             # Consistency check
 gdc check --category hash_mismatch    # Filter by category
 gdc check --severity error            # Filter by severity
 gdc check --verify-impl --fail-on-missing
+gdc check --format json               # JSON output
 
 # 6. List and show nodes
 gdc list
@@ -108,11 +109,13 @@ gdc show PlayerController
 gdc show PlayerController --deps --refs
 gdc show IInputManager --full
 gdc show IInputManager --interface-only
+gdc show PlayerController --format json
 
 # 7. Generate a focused implementation packet for a coder or AI agent
 gdc extract PlayerController --clipboard
 gdc extract PlayerController --output prompt.md
 gdc extract PlayerController --template implement
+gdc extract PlayerController --format json
 
 # 8. Include code evidence only when needed (opt-in)
 gdc extract PlayerController --with-impl
@@ -140,6 +143,9 @@ gdc extract PlayerController --with-impl --with-tests
 | `gdc stats` | Project statistics |
 | `gdc search <pattern>` | Search patterns in codebase |
 | `gdc query <symbol>` | Query node info by symbol name |
+| `gdc deps <node>` | List dependencies (JSON) |
+| `gdc refs <node>` | List referencing nodes (JSON) |
+| `gdc context <node>` | Full extraction context (JSON) |
 
 ## 🔧 Global Flags
 
@@ -174,6 +180,9 @@ gdc search "import" --max-results 20
 
 # Include context lines (grep-like)
 gdc search "error" --context 2
+
+# JSON output
+gdc search "PlayerController" --format json
 ```
 
 ### gdc trace --reverse
@@ -191,6 +200,9 @@ gdc trace PlayerController --direction both
 
 # Find path to specific node
 gdc trace PlayerController --to DatabaseService
+
+# JSON output
+gdc trace PlayerController --format json
 ```
 
 ### gdc query
@@ -294,6 +306,35 @@ Display project statistics.
 ```bash
 # Show statistics
 gdc stats
+
+# JSON output
+gdc stats --format json
+```
+
+### gdc deps
+List direct and transitive dependencies of a node (always JSON output).
+
+```bash
+gdc deps PlayerController
+gdc deps PlayerController --depth 2
+gdc deps PlayerController --transitive
+```
+
+### gdc refs
+List all nodes that reference (depend on) a given node (always JSON output).
+
+```bash
+gdc refs IInputManager
+gdc refs IInputManager --depth 2
+```
+
+### gdc context
+Return full extraction context for a node — spec, dependencies, and optional evidence (always JSON output).
+
+```bash
+gdc context PlayerController
+gdc context PlayerController --depth 2
+gdc context PlayerController --with-impl --with-tests --with-callers
 ```
 
 ### gdc check
@@ -367,6 +408,10 @@ cmd/gdc/                         # Alternate CLI entrypoint
 internal/
 ├── cli/                         # CLI command definitions
 │   ├── root.go                  # Root command and global flags
+│   ├── output.go                # Shared JSON output helpers
+│   ├── deps.go                  # deps command (dependency listing)
+│   ├── refs.go                  # refs command (reverse dependency listing)
+│   ├── context.go               # context command (full extraction context)
 │   ├── extract.go               # extract command (AI prompt generation)
 │   ├── search.go                # search command (pattern search)
 │   ├── query.go                 # query command (symbol query)
@@ -481,6 +526,7 @@ gdc graph --interactive --output graph.html
 ```bash
 # Compare the stored YAML spec for a node with the current implementation
 gdc diff Agent
+gdc diff Agent --format json
 ```
 
 ### extract

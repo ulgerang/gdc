@@ -86,6 +86,9 @@ func init() {
 	rootCmd.AddCommand(statsCmd)
 	rootCmd.AddCommand(searchCmd)
 	rootCmd.AddCommand(queryCmd)
+	rootCmd.AddCommand(depsCmd)
+	rootCmd.AddCommand(refsCmd)
+	rootCmd.AddCommand(contextCmd)
 }
 
 // versionCmd shows version information

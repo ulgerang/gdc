@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/fatih/color"
@@ -15,6 +17,7 @@ var (
 	showRefs      bool
 	showFull      bool
 	showInterface bool
+	showFormat    string
 )
 
 var showCmd = &cobra.Command{
@@ -35,9 +38,11 @@ func init() {
 	showCmd.Flags().BoolVarP(&showRefs, "refs", "r", false, "show references (nodes that depend on this)")
 	showCmd.Flags().BoolVarP(&showFull, "full", "F", false, "show full specification")
 	showCmd.Flags().BoolVarP(&showInterface, "interface-only", "i", false, "show interface only")
+	showCmd.Flags().StringVar(&showFormat, "format", "text", "output format (text, json)")
 }
 
 func runShow(cmd *cobra.Command, args []string) error {
+	showFormat = resolveFormat(showFormat)
 	nodeName := args[0]
 
 	cfg, err := config.Load("")
@@ -60,6 +65,11 @@ func runShow(cmd *cobra.Command, args []string) error {
 	if showInterface {
 		printInterfaceOnly(spec, cfg.Project.Language)
 		return nil
+	}
+
+	// JSON output
+	if showFormat == "json" {
+		return outputShowJSON(spec, allNodes)
 	}
 
 	// Print header
@@ -289,4 +299,213 @@ func printInterfaceOnly(spec *node.Spec, language string) {
 	}
 
 	fmt.Println("}")
+}
+
+type showNodeJSON struct {
+	Node          showNodeInfoJSON      `json:"node"`
+	Responsibility showResponsibilityJSON `json:"responsibility"`
+	Interface     showInterfaceJSON     `json:"interface"`
+	Dependencies  []showDependencyJSON  `json:"dependencies"`
+	Implementations []string            `json:"implementations,omitempty"`
+	Metadata      showMetadataJSON      `json:"metadata"`
+	References    []string              `json:"references,omitempty"`
+}
+
+type showNodeInfoJSON struct {
+	ID        string `json:"id"`
+	Type      string `json:"type"`
+	Layer     string `json:"layer"`
+	Namespace string `json:"namespace,omitempty"`
+	FilePath  string `json:"file_path,omitempty"`
+}
+
+type showResponsibilityJSON struct {
+	Summary    string   `json:"summary"`
+	Details    string   `json:"details,omitempty"`
+	Invariants []string `json:"invariants,omitempty"`
+	Boundaries string   `json:"boundaries,omitempty"`
+}
+
+type showInterfaceJSON struct {
+	Constructors []showConstructorJSON `json:"constructors,omitempty"`
+	Methods      []showMethodJSON      `json:"methods,omitempty"`
+	Properties   []showPropertyJSON    `json:"properties,omitempty"`
+	Events       []showEventJSON       `json:"events,omitempty"`
+}
+
+type showConstructorJSON struct {
+	Signature   string               `json:"signature"`
+	Description string               `json:"description,omitempty"`
+	Parameters  []showParameterJSON  `json:"parameters,omitempty"`
+}
+
+type showMethodJSON struct {
+	Name        string              `json:"name"`
+	Signature   string              `json:"signature"`
+	Description string              `json:"description,omitempty"`
+	Parameters  []showParameterJSON `json:"parameters,omitempty"`
+	Returns     *showReturnsJSON    `json:"returns,omitempty"`
+	Async       bool                `json:"async"`
+	Access      string              `json:"access,omitempty"`
+}
+
+type showParameterJSON struct {
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Description string `json:"description,omitempty"`
+}
+
+type showReturnsJSON struct {
+	Type        string `json:"type"`
+	Description string `json:"description,omitempty"`
+}
+
+type showPropertyJSON struct {
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Access      string `json:"access,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+type showEventJSON struct {
+	Name        string `json:"name"`
+	Signature   string `json:"signature"`
+	Description string `json:"description,omitempty"`
+}
+
+type showDependencyJSON struct {
+	Target    string `json:"target"`
+	Type      string `json:"type,omitempty"`
+	Injection string `json:"injection,omitempty"`
+	Optional  bool   `json:"optional"`
+}
+
+type showMetadataJSON struct {
+	Status   string   `json:"status"`
+	Created  string   `json:"created,omitempty"`
+	Updated  string   `json:"updated,omitempty"`
+	Author   string   `json:"author,omitempty"`
+	Tags     []string `json:"tags,omitempty"`
+	SpecHash string   `json:"spec_hash,omitempty"`
+	ImplHash string   `json:"impl_hash,omitempty"`
+}
+
+func outputShowJSON(spec *node.Spec, allNodes []*node.Spec) error {
+	out := buildShowNodeJSON(spec, allNodes)
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	return enc.Encode(out)
+}
+
+func buildShowNodeJSON(spec *node.Spec, allNodes []*node.Spec) showNodeJSON {
+	out := showNodeJSON{
+		Node: showNodeInfoJSON{
+			ID:        spec.Node.ID,
+			Type:      spec.Node.Type,
+			Layer:     spec.Node.Layer,
+			Namespace: spec.Node.Namespace,
+			FilePath:  spec.Node.FilePath,
+		},
+		Responsibility: showResponsibilityJSON{
+			Summary:    spec.Responsibility.Summary,
+			Details:    spec.Responsibility.Details,
+			Invariants: spec.Responsibility.Invariants,
+			Boundaries: spec.Responsibility.Boundaries,
+		},
+		Implementations: spec.Implementations,
+		Metadata: showMetadataJSON{
+			Status:   spec.Metadata.Status,
+			Created:  spec.Metadata.Created,
+			Updated:  spec.Metadata.Updated,
+			Author:   spec.Metadata.Author,
+			Tags:     spec.Metadata.Tags,
+			SpecHash: spec.Metadata.SpecHash,
+			ImplHash: spec.Metadata.ImplHash,
+		},
+	}
+
+	out.Interface = buildShowInterfaceJSON(spec)
+	out.Dependencies = buildShowDependenciesJSON(spec)
+	out.References = findReferences(spec.QualifiedID(), allNodes)
+
+	return out
+}
+
+func buildShowInterfaceJSON(spec *node.Spec) showInterfaceJSON {
+	iface := showInterfaceJSON{}
+
+	for _, ctor := range spec.Interface.Constructors {
+		params := make([]showParameterJSON, len(ctor.Parameters))
+		for i, p := range ctor.Parameters {
+			params[i] = showParameterJSON{
+				Name:        p.Name,
+				Type:        p.Type,
+				Description: p.Description,
+			}
+		}
+		iface.Constructors = append(iface.Constructors, showConstructorJSON{
+			Signature:   ctor.Signature,
+			Description: ctor.Description,
+			Parameters:  params,
+		})
+	}
+
+	for _, m := range spec.Interface.Methods {
+		params := make([]showParameterJSON, len(m.Parameters))
+		for i, p := range m.Parameters {
+			params[i] = showParameterJSON{
+				Name:        p.Name,
+				Type:        p.Type,
+				Description: p.Description,
+			}
+		}
+		var ret *showReturnsJSON
+		if m.Returns.Type != "" || m.Returns.Description != "" {
+			ret = &showReturnsJSON{
+				Type:        m.Returns.Type,
+				Description: m.Returns.Description,
+			}
+		}
+		iface.Methods = append(iface.Methods, showMethodJSON{
+			Name:        m.Name,
+			Signature:   m.Signature,
+			Description: m.Description,
+			Parameters:  params,
+			Returns:     ret,
+			Async:       m.Async,
+			Access:      m.Access,
+		})
+	}
+
+	for _, p := range spec.Interface.Properties {
+		iface.Properties = append(iface.Properties, showPropertyJSON{
+			Name:        p.Name,
+			Type:        p.Type,
+			Access:      p.Access,
+			Description: p.Description,
+		})
+	}
+
+	for _, e := range spec.Interface.Events {
+		iface.Events = append(iface.Events, showEventJSON{
+			Name:        e.Name,
+			Signature:   e.Signature,
+			Description: e.Description,
+		})
+	}
+
+	return iface
+}
+
+func buildShowDependenciesJSON(spec *node.Spec) []showDependencyJSON {
+	deps := make([]showDependencyJSON, len(spec.Dependencies))
+	for i, d := range spec.Dependencies {
+		deps[i] = showDependencyJSON{
+			Target:    d.Target,
+			Type:      d.Type,
+			Injection: d.Injection,
+			Optional:  d.Optional,
+		}
+	}
+	return deps
 }

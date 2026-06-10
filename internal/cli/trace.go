@@ -16,6 +16,7 @@ var (
 	traceDirection string
 	traceTo        string
 	traceReverse   bool
+	traceFormat    string
 )
 
 var traceCmd = &cobra.Command{
@@ -38,9 +39,11 @@ func init() {
 	traceCmd.Flags().StringVar(&traceDirection, "direction", "down", "direction (down, up, both)")
 	traceCmd.Flags().StringVar(&traceTo, "to", "", "find path to specific node")
 	traceCmd.Flags().BoolVarP(&traceReverse, "reverse", "r", false, "show reverse dependencies (alias for --direction up)")
+	traceCmd.Flags().StringVar(&traceFormat, "format", "text", "output format (text, json)")
 }
 
 func runTrace(cmd *cobra.Command, args []string) error {
+	traceFormat = resolveFormat(traceFormat)
 	startNode := args[0]
 
 	cfg, err := config.Load("")
@@ -87,11 +90,16 @@ func runTrace(cmd *cobra.Command, args []string) error {
 	if traceTo != "" {
 		// Find specific path
 		path := findPath(startNode, traceTo, nodeMap, lookup)
+		if traceFormat == "json" {
+			return outputTracePathJSON(startNode, traceTo, path)
+		}
 		if path == nil {
 			printWarning("No path found from %s to %s", startNode, traceTo)
 		} else {
 			printPath(path)
 		}
+	} else if traceFormat == "json" {
+		return outputTraceTreeJSON(startNode, nodeMap, allNodes, lookup)
 	} else {
 		// Show dependency tree
 		switch traceDirection {
@@ -266,4 +274,155 @@ func printPath(path []string) {
 			fmt.Printf("  └─→ %s\n", color.GreenString(node))
 		}
 	}
+}
+
+type traceNodeJSON struct {
+	ID       string           `json:"id"`
+	Type     string           `json:"type,omitempty"`
+	Layer    string           `json:"layer,omitempty"`
+	DepType  string           `json:"dep_type,omitempty"`
+	Optional bool             `json:"optional,omitempty"`
+	Children []*traceNodeJSON `json:"children"`
+}
+
+type traceTreeResult struct {
+	Root       string         `json:"root"`
+	Direction  string         `json:"direction"`
+	DepthLimit int            `json:"depth_limit"`
+	Tree       *traceNodeJSON `json:"tree,omitempty"`
+	Dependencies *traceNodeJSON `json:"dependencies,omitempty"`
+	ReferencedBy *traceNodeJSON `json:"referenced_by,omitempty"`
+}
+
+type tracePathResult struct {
+	From  string   `json:"from"`
+	To    string   `json:"to"`
+	Found bool     `json:"found"`
+	Path  []string `json:"path,omitempty"`
+}
+
+func outputTracePathJSON(from, to string, path []string) error {
+	result := tracePathResult{
+		From:  from,
+		To:    to,
+		Found: path != nil,
+		Path:  path,
+	}
+	return outputJSONValue(result)
+}
+
+func outputTraceTreeJSON(startNode string, nodeMap map[string]*node.Spec, allNodes []*node.Spec, lookup map[string]*node.Spec) error {
+	result := traceTreeResult{
+		Root:       startNode,
+		Direction:  traceDirection,
+		DepthLimit: traceDepth,
+	}
+
+	switch traceDirection {
+	case "up":
+		result.Tree = buildReverseTreeJSON(startNode, nodeMap, allNodes, 0, traceDepth, make(map[string]bool))
+	case "both":
+		result.Dependencies = buildDependencyTreeJSON(startNode, nodeMap, lookup, 0, traceDepth, make(map[string]bool))
+		result.ReferencedBy = buildReverseTreeJSON(startNode, nodeMap, allNodes, 0, traceDepth, make(map[string]bool))
+	default:
+		result.Tree = buildDependencyTreeJSON(startNode, nodeMap, lookup, 0, traceDepth, make(map[string]bool))
+	}
+
+	return outputJSONValue(result)
+}
+
+func buildDependencyTreeJSON(nodeName string, nodeMap map[string]*node.Spec, lookup map[string]*node.Spec, depth int, maxDepth int, visited map[string]bool) *traceNodeJSON {
+	if maxDepth > 0 && depth > maxDepth {
+		return nil
+	}
+
+	if _, canonical, ok := resolveNodeSpec(nodeName, lookup); ok {
+		nodeName = canonical
+	}
+
+	if visited[nodeName] {
+		return &traceNodeJSON{ID: nodeName, Children: []*traceNodeJSON{}}
+	}
+
+	visited[nodeName] = true
+	defer func() { visited[nodeName] = false }()
+
+	spec, ok := nodeMap[nodeName]
+	if !ok {
+		return &traceNodeJSON{ID: nodeName, Children: []*traceNodeJSON{}}
+	}
+
+	result := &traceNodeJSON{
+		ID:       nodeName,
+		Type:     spec.Node.Type,
+		Layer:    spec.Node.Layer,
+		Children: make([]*traceNodeJSON, 0),
+	}
+
+	for _, dep := range spec.Dependencies {
+		depSpec, canonicalTarget, exists := resolveNodeSpec(dep.Target, lookup)
+		child := &traceNodeJSON{
+			ID:       dep.Target,
+			DepType:  dep.Type,
+			Optional: dep.Optional,
+			Children: make([]*traceNodeJSON, 0),
+		}
+		if exists {
+			child.ID = canonicalTarget
+			child.Type = depSpec.Node.Type
+			child.Layer = depSpec.Node.Layer
+			if exists && len(depSpec.Dependencies) > 0 {
+				if sub := buildDependencyTreeJSON(canonicalTarget, nodeMap, lookup, depth+1, maxDepth, visited); sub != nil {
+					child.Children = sub.Children
+				}
+			}
+		}
+		result.Children = append(result.Children, child)
+	}
+
+	return result
+}
+
+func buildReverseTreeJSON(nodeName string, nodeMap map[string]*node.Spec, allNodes []*node.Spec, depth int, maxDepth int, visited map[string]bool) *traceNodeJSON {
+	if maxDepth > 0 && depth > maxDepth {
+		return nil
+	}
+
+	if visited[nodeName] {
+		return &traceNodeJSON{ID: nodeName, Children: []*traceNodeJSON{}}
+	}
+
+	visited[nodeName] = true
+	defer func() { visited[nodeName] = false }()
+
+	spec, ok := nodeMap[nodeName]
+	if !ok {
+		return &traceNodeJSON{ID: nodeName, Children: []*traceNodeJSON{}}
+	}
+
+	result := &traceNodeJSON{
+		ID:       nodeName,
+		Type:     spec.Node.Type,
+		Layer:    spec.Node.Layer,
+		Children: make([]*traceNodeJSON, 0),
+	}
+
+	refs := findReferences(nodeName, allNodes)
+	for _, ref := range refs {
+		refSpec := nodeMap[ref]
+		child := &traceNodeJSON{
+			ID:       ref,
+			Children: make([]*traceNodeJSON, 0),
+		}
+		if refSpec != nil {
+			child.Type = refSpec.Node.Type
+			child.Layer = refSpec.Node.Layer
+		}
+		if sub := buildReverseTreeJSON(ref, nodeMap, allNodes, depth+1, maxDepth, visited); sub != nil {
+			child.Children = sub.Children
+		}
+		result.Children = append(result.Children, child)
+	}
+
+	return result
 }
