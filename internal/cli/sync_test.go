@@ -220,12 +220,34 @@ func TestCollectExplicitSourceScopeFiles_IncludesFilesOutsideSourceDir(t *testin
 	syncFiles = []string{"internal/app/boundary_contracts.go"}
 	syncDirs = nil
 
-	files := collectExplicitSourceScopeFiles(cfg, filepath.Join(projectRoot, "pkg"), []string{".go"})
+	files, err := collectExplicitSourceScopeFiles(cfg, filepath.Join(projectRoot, "pkg"), []string{".go"})
+	if err != nil {
+		t.Fatalf("collect explicit source scope: %v", err)
+	}
 	if len(files) != 1 {
 		t.Fatalf("expected 1 explicit scoped file, got %d (%v)", len(files), files)
 	}
 	if !sameSyncPath(files[0], internalFile) {
 		t.Fatalf("expected %s, got %s", internalFile, files[0])
+	}
+}
+
+func TestCollectExplicitSourceScopeFilesReportsTraversalFailure(t *testing.T) {
+	projectRoot := t.TempDir()
+	cfg := &config.Config{ProjectRoot: projectRoot}
+
+	prevFiles := syncFiles
+	prevDirs := syncDirs
+	t.Cleanup(func() {
+		syncFiles = prevFiles
+		syncDirs = prevDirs
+	})
+	syncFiles = nil
+	syncDirs = []string{"missing-external-source"}
+
+	_, err := collectExplicitSourceScopeFiles(cfg, filepath.Join(projectRoot, "pkg"), []string{".go"})
+	if err == nil || !strings.Contains(err.Error(), "missing-external-source") {
+		t.Fatalf("expected explicit directory traversal error, got %v", err)
 	}
 }
 

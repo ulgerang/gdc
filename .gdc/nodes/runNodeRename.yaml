@@ -1,9 +1,9 @@
 schema_version: "1.0"
 node:
-    id: findSourceHints
+    id: runNodeRename
     type: function
     namespace: cli
-    file_path: D:\git\26\gdc\internal\cli\query.go
+    file_path: D:\git\26\gdc\internal\cli\node.go
 language_spec:
     language: go
     package: cli

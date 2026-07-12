@@ -11,6 +11,9 @@ responsibility:
     summary: ""
 interface:
     properties:
+        - name: QualifiedID
+          type: string
+          access: get; set
         - name: ID
           type: string
           access: get; set
@@ -51,4 +54,4 @@ interface:
           type: time.Time
           access: get; set
 metadata:
-    status: ""
+    status: implemented

@@ -78,8 +78,9 @@ gdc node create IInputManager --type interface
 gdc node create GameService --type service --layer application
 
 # 3. Manage nodes
-gdc node delete OldController
-gdc node rename PlayerController CharacterController
+gdc node delete OldController                 # Refuses referenced nodes
+gdc node delete OldController --force         # Also removes dependency references
+gdc node rename PlayerController CharacterController  # Updates references and DB
 
 # 4. Write YAML specs before implementation (edit .gdc/nodes/*.yaml)
 
@@ -146,6 +147,11 @@ gdc extract PlayerController --with-impl --with-tests
 | `gdc deps <node>` | List dependencies (JSON) |
 | `gdc refs <node>` | List referencing nodes (JSON) |
 | `gdc context <node>` | Full extraction context (JSON) |
+
+Node lifecycle commands preserve graph integrity. `node delete` reports reverse
+references and refuses the operation unless `--force` is supplied; forced deletion
+removes those dependency edges. `node rename` updates dependency targets across YAML
+specifications. Both commands refresh `.gdc/graph.db` after the YAML mutation.
 
 ## 🔧 Global Flags
 
@@ -538,4 +544,7 @@ gdc extract PlayerController --with-impl --with-tests --with-callers
 
 ### Shell wrappers
 
-For local development wrappers are available at `gdc.bat` and `gdc.sh`.
+For local development, `gdc.bat` and `gdc.sh` run the checked-out `cmd/gdc`
+source by default, even when a local executable exists. Set `GDC_USE_PREBUILT=1`
+only when you intentionally want the wrapper to use `gdc.exe`, `gdc`, or
+`gdc-linux-amd64`.

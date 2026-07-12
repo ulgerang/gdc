@@ -43,8 +43,9 @@ gdc node create IInputManager --type interface
 gdc node create GameService --type service --layer application
 
 # 3. 노드 관리
-gdc node delete OldController
-gdc node rename PlayerController CharacterController
+gdc node delete OldController                 # 참조가 있으면 삭제 거부
+gdc node delete OldController --force         # 의존 참조도 함께 제거
+gdc node rename PlayerController CharacterController  # 참조와 DB 갱신
 
 # 4. YAML 스펙 작성 (.gdc/nodes/*.yaml 편집)
 
@@ -105,6 +106,11 @@ gdc extract PlayerController --with-impl --with-tests
 | `gdc stats` | 프로젝트 통계 |
 | `gdc search <pattern>` | 코드베이스에서 패턴 검색 |
 | `gdc query <symbol>` | 심볼 이름으로 노드 정보 조회 |
+
+노드 생명주기 명령은 그래프 무결성을 보존합니다. `node delete`는 역참조가
+있으면 이를 표시하고 `--force` 없이는 삭제를 거부합니다. 강제 삭제는 해당
+의존 엣지도 제거합니다. `node rename`은 모든 YAML 의존 대상을 갱신하며 두
+명령 모두 YAML 변경 후 `.gdc/graph.db`를 갱신합니다.
 
 ## 🔧 글로벌 플래그
 
@@ -348,6 +354,10 @@ tests/
 - [🗄️ DB Schema](docs/schemas/database-schema.sql) - 데이터베이스 스키마
 
 ## 🛠 개발
+
+개발용 `gdc.bat`과 `gdc.sh`는 로컬 실행 파일이 있어도 현재 체크아웃의
+`cmd/gdc` 소스를 기본 실행합니다. 의도적으로 사전 빌드 실행 파일을 사용할
+때만 `GDC_USE_PREBUILT=1`을 설정합니다.
 
 ```bash
 # 의존성 설치

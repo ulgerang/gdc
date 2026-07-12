@@ -766,7 +766,8 @@ gdc node delete OldController --force
 **동작:**
 1. 해당 노드를 참조하는 엣지가 있는지 확인
 2. `--force` 없이는 참조가 있으면 삭제 거부
-3. YAML 파일 삭제 및 DB에서 제거
+3. `--force` 사용 시 참조 노드의 해당 의존 엣지 제거
+4. YAML 파일 삭제 및 파생 DB 인덱스 갱신
 
 ---
 
@@ -785,7 +786,10 @@ gdc node rename PlayerController CharacterController
 1. YAML 파일 이름 변경
 2. 파일 내 `node.id` 수정
 3. 모든 의존 엣지의 참조 업데이트
-4. DB 동기화
+4. 파생 DB 인덱스 동기화
+
+파일 변경은 전체 대상 명세를 먼저 검증·직렬화한 뒤 적용합니다. DB 갱신 실패 시
+YAML 명세가 원본으로 유지되며 오류 메시지는 `gdc sync` 재시도 방법을 제공합니다.
 
 ---
 
@@ -1505,16 +1509,16 @@ if edge.contract_hash != target_node.spec_hash:
 - [x] 노드 CRUD (`node create/delete/rename`)
 - [x] YAML-DB 동기화 (`sync`)
 - [x] 기본 조회 (`list`, `show`)
-- [ ] 기본 검증 (`check`)
+- [x] 기본 검증 (`check`)
 
 ### Phase 2: Graph Intelligence
-- [ ] 의존성 추적 (`trace`)
-- [ ] 그래프 내보내기 (`graph`)
-- [ ] 순환 참조 감지
-- [ ] 레이어 위반 감지
+- [x] 의존성 추적 (`trace`)
+- [x] 그래프 내보내기 (`graph`)
+- [x] 순환 참조 감지
+- [x] 레이어 위반 감지
 
 ### Phase 3: AI Integration
-- [ ] 프롬프트 추출 (`extract`)
+- [x] 프롬프트 추출 (`extract`)
 - [ ] 다양한 프롬프트 템플릿
 - [ ] LLM 설계 검증 (`validate-design`)
 

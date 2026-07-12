@@ -531,7 +531,11 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 	}
 	scanDuration := time.Since(phaseStarted)
 
-	sourceFiles = append(sourceFiles, collectExplicitSourceScopeFiles(cfg, sourceDir, extensions)...)
+	explicitFiles, err := collectExplicitSourceScopeFiles(cfg, sourceDir, extensions)
+	if err != nil {
+		return fmt.Errorf("failed to scan explicit source scope: %w", err)
+	}
+	sourceFiles = append(sourceFiles, explicitFiles...)
 	sourceFiles = dedupeStrings(sourceFiles)
 
 	if len(sourceFiles) == 0 {
@@ -719,33 +723,39 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 	return nil
 }
 
-func collectExplicitSourceScopeFiles(cfg *config.Config, sourceDir string, extensions []string) []string {
+func collectExplicitSourceScopeFiles(cfg *config.Config, sourceDir string, extensions []string) ([]string, error) {
 	files := make([]string, 0)
 	seen := make(map[string]bool)
-	addFile := func(path string) {
+	addFile := func(path string) error {
 		normalized := normalizeComparablePath(path)
 		if normalized == "" || seen[normalized] {
-			return
+			return nil
 		}
 		if !hasAllowedSourceExtension(path, extensions) {
-			return
+			return nil
 		}
 		if strings.HasSuffix(path, "_test.go") || strings.HasSuffix(path, ".test.ts") || strings.HasSuffix(path, ".spec.ts") {
-			return
+			return nil
 		}
 		info, err := os.Stat(path)
-		if err != nil || info.IsDir() {
-			return
+		if err != nil {
+			return fmt.Errorf("inspect %s: %w", path, err)
+		}
+		if info.IsDir() {
+			return nil
 		}
 		seen[normalized] = true
 		files = append(files, path)
+		return nil
 	}
 
 	sourceDir = normalizeComparablePath(sourceDir)
 	for _, requested := range syncFiles {
 		resolved := cfg.ResolvePath(requested)
 		if normalized := normalizeComparablePath(resolved); normalized != "" && normalized != sourceDir && !pathWithinScope(normalized, sourceDir) {
-			addFile(resolved)
+			if err := addFile(resolved); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -755,19 +765,21 @@ func collectExplicitSourceScopeFiles(cfg *config.Config, sourceDir string, exten
 		if normalized == "" || normalized == sourceDir || pathWithinScope(normalized, sourceDir) {
 			continue
 		}
-		_ = filepath.Walk(resolved, func(path string, info os.FileInfo, err error) error {
+		err := filepath.Walk(resolved, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-				return nil
+				return err
 			}
 			if info.IsDir() {
 				return nil
 			}
-			addFile(path)
-			return nil
+			return addFile(path)
 		})
+		if err != nil {
+			return nil, fmt.Errorf("walk %s: %w", resolved, err)
+		}
 	}
 
-	return files
+	return files, nil
 }
 
 func hasAllowedSourceExtension(path string, extensions []string) bool {

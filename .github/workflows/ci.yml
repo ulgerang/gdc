@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.x"
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install OpenSpec
+        run: npm install --global @fission-ai/openspec@1.2.0
+
+      - name: Check formatting
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            mapfile -t go_files < <(git diff --name-only --diff-filter=ACM "$BASE_SHA" "$GITHUB_SHA" -- '*.go')
+          else
+            mapfile -t go_files < <(git ls-files '*.go')
+          fi
+          if [ "${#go_files[@]}" -eq 0 ]; then
+            exit 0
+          fi
+          unformatted="$(gofmt -l "${go_files[@]}")"
+          if [ -n "$unformatted" ]; then
+            printf 'Unformatted Go files:\n%s\n' "$unformatted"
+            exit 1
+          fi
+
+      - name: Build documented entrypoints
+        run: |
+          go build -o /tmp/gdc-root .
+          go build -o /tmp/gdc ./cmd/gdc
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Race test
+        run: go test -race ./...
+
+      - name: Validate OpenSpec
+        run: openspec validate --all --strict
+
+      - name: Self-hosted graph consistency
+        run: /tmp/gdc check --no-orphan-info --exit-on-warning

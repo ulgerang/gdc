@@ -34,4 +34,4 @@ interface:
           type: string
           access: get; set
 metadata:
-    status: ""
+    status: implemented

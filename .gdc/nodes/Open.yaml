@@ -1,0 +1,30 @@
+schema_version: "1.0"
+node:
+    id: Open
+    type: function
+    namespace: db
+    file_path: D:\git\26\gdc\internal\db\database.go
+language_spec:
+    language: go
+    package: db
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: Open
+          signature: Open(path string) (*Database, error)
+          description: Open opens or creates a SQLite database
+          parameters:
+            - name: path
+              type: string
+          returns:
+            type: (*Database, error)
+          exported: true
+dependencies:
+    - target: Database
+      type: class
+      injection: method
+metadata:
+    status: implemented
+    origin: code_extracted
+    extracted_at: "2026-07-13"

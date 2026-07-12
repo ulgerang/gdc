@@ -3,6 +3,7 @@ package cli
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/gdc-tools/gdc/internal/config"
@@ -75,12 +76,30 @@ type GhostService struct{}
 		},
 	}
 
-	hints := findSourceHints(cfg, "GhostService")
+	hints, err := findSourceHints(cfg, "GhostService")
+	if err != nil {
+		t.Fatalf("find source hints: %v", err)
+	}
 	if len(hints) != 1 {
 		t.Fatalf("expected one source hint, got %d (%v)", len(hints), hints)
 	}
 	if hints[0] != "src/service.go" {
 		t.Fatalf("expected src/service.go hint, got %s", hints[0])
+	}
+}
+
+func TestFindSourceHintsReportsTraversalFailure(t *testing.T) {
+	projectRoot := t.TempDir()
+	cfg := &config.Config{
+		ProjectRoot: projectRoot,
+		Project: config.Project{
+			Language:  "go",
+			SourceDir: "missing-source",
+		},
+	}
+
+	if _, err := findSourceHints(cfg, "GhostService"); err == nil || !strings.Contains(err.Error(), "missing-source") {
+		t.Fatalf("expected missing source traversal error, got %v", err)
 	}
 }
 

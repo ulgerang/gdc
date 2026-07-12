@@ -93,3 +93,4 @@ dependencies:
       injection: field
 metadata:
     status: draft
+    srp_threshold: 7

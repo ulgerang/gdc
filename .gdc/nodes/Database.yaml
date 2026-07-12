@@ -30,10 +30,10 @@ interface:
             type: ([]*NodeRecord, error)
           exported: true
         - name: GetNode
-          signature: GetNode(id string) (*NodeRecord, error)
+          signature: GetNode(qualifiedID string) (*NodeRecord, error)
           description: GetNode returns a single node by ID
           parameters:
-            - name: id
+            - name: qualifiedID
               type: string
           returns:
             type: (*NodeRecord, error)
@@ -48,10 +48,10 @@ interface:
             type: error
           exported: true
         - name: DeleteNode
-          signature: DeleteNode(id string) error
+          signature: DeleteNode(qualifiedID string) error
           description: DeleteNode removes a node from the database
           parameters:
-            - name: id
+            - name: qualifiedID
               type: string
           returns:
             type: error
@@ -160,5 +160,9 @@ interface:
           returns:
             type: (map[string]int, error)
           exported: true
+dependencies:
+    - target: InterfaceMember
+      type: class
+      injection: method
 metadata:
-    status: draft
+    status: implemented

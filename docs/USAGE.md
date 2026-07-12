@@ -96,6 +96,7 @@ gdc init --language go --storage distributed
 
 - `gdc node create <name>`
 - `gdc node delete <name>`
+- `gdc node delete <name> --force`
 - `gdc node rename <old-name> <new-name>`
 
 대표 예시:
@@ -105,8 +106,14 @@ gdc node create PlayerController
 gdc node create IInputManager --type interface
 gdc node create GameService --type service --layer application
 gdc node delete OldController
+gdc node delete OldController --force
 gdc node rename PlayerController CharacterController
 ```
+
+`node delete`는 다른 노드가 대상을 참조하면 참조 노드 목록을 표시하고 삭제를
+거부합니다. `--force`를 사용하면 해당 의존 참조도 함께 제거합니다. `node rename`은
+모든 YAML 의존 대상과 파생 DB 인덱스를 갱신합니다. 두 명령에서 DB 갱신만 실패한
+경우 YAML이 원본이며, 안내에 따라 `gdc sync`로 인덱스를 복구할 수 있습니다.
 
 ### gdc list
 

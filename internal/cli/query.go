@@ -79,7 +79,10 @@ func runQuery(cmd *cobra.Command, args []string) error {
 	if len(matches) == 0 {
 		// No match found - suggest similar names and probe source for missing graph nodes
 		suggestions := findSimilarNodes(symbol, allNodes, cfg.ProjectRoot, nodesDir)
-		sourceHints := findSourceHints(cfg, symbol)
+		sourceHints, hintErr := findSourceHints(cfg, symbol)
+		if hintErr != nil {
+			return fmt.Errorf("failed to scan source hints: %w", hintErr)
+		}
 		printQueryNotFound(symbol, suggestions, sourceHints)
 		return fmt.Errorf("node '%s' not found", symbol)
 	}
@@ -697,10 +700,10 @@ func querySpecPath(spec *node.Spec, nodesDir string) string {
 	return filepath.Join(nodesDir, spec.QualifiedID()+".yaml")
 }
 
-func findSourceHints(cfg *config.Config, symbol string) []string {
+func findSourceHints(cfg *config.Config, symbol string) ([]string, error) {
 	symbol = strings.TrimSpace(symbol)
 	if symbol == "" {
-		return nil
+		return nil, nil
 	}
 
 	if strings.ContainsAny(symbol, `/\`) {
@@ -708,9 +711,9 @@ func findSourceHints(cfg *config.Config, symbol string) []string {
 		if _, err := os.Stat(resolved); err == nil {
 			rel, relErr := filepath.Rel(cfg.ProjectRoot, resolved)
 			if relErr != nil {
-				return []string{resolved}
+				return []string{resolved}, nil
 			}
-			return []string{filepath.ToSlash(rel)}
+			return []string{filepath.ToSlash(rel)}, nil
 		}
 	}
 
@@ -722,14 +725,14 @@ func findSourceHints(cfg *config.Config, symbol string) []string {
 	pattern := regexp.QuoteMeta(symbol)
 	re, err := regexp.Compile(`(?i)\b` + pattern + `\b`)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	extensions := sourceExtensionsForLanguage(cfg.Project.Language)
 	var hints []string
-	_ = filepath.Walk(sourceRoot, func(path string, info os.FileInfo, walkErr error) error {
+	err = filepath.Walk(sourceRoot, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
-			return nil
+			return walkErr
 		}
 		if info.IsDir() {
 			name := info.Name()
@@ -743,7 +746,10 @@ func findSourceHints(cfg *config.Config, symbol string) []string {
 		}
 
 		data, readErr := os.ReadFile(path)
-		if readErr != nil || !re.Match(data) {
+		if readErr != nil {
+			return fmt.Errorf("read %s: %w", path, readErr)
+		}
+		if !re.Match(data) {
 			return nil
 		}
 
@@ -759,7 +765,10 @@ func findSourceHints(cfg *config.Config, symbol string) []string {
 		return nil
 	})
 
-	return hints
+	if err != nil {
+		return nil, err
+	}
+	return hints, nil
 }
 
 func sourceExtensionsForLanguage(language string) []string {
