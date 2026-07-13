@@ -85,6 +85,7 @@ gdc init [옵션]
 gdc init
 gdc init --language typescript
 gdc init --language rust
+gdc init --language python
 gdc init --language go --storage distributed
 ```
 

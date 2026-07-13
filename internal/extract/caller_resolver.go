@@ -177,7 +177,8 @@ func (r *SimpleCallerResolver) findSourceFiles() ([]string, error) {
 			// Skip common non-source directories
 			name := info.Name()
 			if name == "vendor" || name == "node_modules" || name == ".git" ||
-				name == "dist" || name == "build" || name == "bin" || name == "obj" {
+				name == "dist" || name == "build" || name == "bin" || name == "obj" ||
+				name == "__pycache__" || name == ".venv" || name == "venv" || name == ".tox" {
 				return filepath.SkipDir
 			}
 			return nil

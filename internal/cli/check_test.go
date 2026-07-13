@@ -243,6 +243,16 @@ impl UserService {
     }
 }
 
+func TestSymbolExistsInSourceSupportsPython(t *testing.T) {
+	content := "class UserService:\n    pass\n\nasync def build_service():\n    pass\n"
+	if !symbolExistsInSource("python", content, "UserService", "class") {
+		t.Fatal("expected Python class symbol")
+	}
+	if !symbolExistsInSource("py", content, "build_service", "function") {
+		t.Fatal("expected Python async function symbol")
+	}
+}
+
 pub fn bootstrap() {}
 `
 

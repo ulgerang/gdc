@@ -21,7 +21,8 @@ func TestNewGenerator(t *testing.T) {
 		{"ts", false},
 		{"rust", false},
 		{"rs", false},
-		{"python", true},
+		{"python", false},
+		{"py", false},
 		{"java", true},
 	}
 
@@ -54,6 +55,8 @@ func TestGeneratorLanguage(t *testing.T) {
 		{"ts", "typescript"},
 		{"rust", "rust"},
 		{"rs", "rust"},
+		{"python", "python"},
+		{"py", "python"},
 	}
 
 	for _, tt := range tests {
@@ -63,6 +66,24 @@ func TestGeneratorLanguage(t *testing.T) {
 				t.Errorf("expected language '%s', got '%s'", tt.expected, g.Language())
 			}
 		})
+	}
+}
+
+func TestGenerateInterfacePython(t *testing.T) {
+	g, _ := NewGenerator("python")
+	spec := &node.Spec{
+		Node: node.NodeInfo{ID: "UserRepository", Type: "interface"},
+		Interface: node.Interface{Methods: []node.Method{{
+			Name: "find_by_id", Signature: "find_by_id(user_id: str) -> User", Description: "Finds a user",
+		}}},
+	}
+
+	code := g.GenerateInterface(spec)
+	if !strings.Contains(code, "class UserRepository(Protocol):") {
+		t.Fatalf("expected Python Protocol declaration, got:\n%s", code)
+	}
+	if !strings.Contains(code, "def find_by_id(self, user_id: str) -> User:") {
+		t.Fatalf("expected Python method declaration, got:\n%s", code)
 	}
 }
 

@@ -503,3 +503,14 @@ func TestCanonicalizeSpecDependenciesNormalizesGenericTargets(t *testing.T) {
 		t.Fatalf("expected namespaced generic target to canonicalize, got %q", spec.Dependencies[1].Target)
 	}
 }
+
+func TestIsTestSourceFileRecognizesPythonConventions(t *testing.T) {
+	for _, path := range []string{"tests/test_service.py", "service_test.py"} {
+		if !isTestSourceFile(path) {
+			t.Fatalf("expected %s to be treated as a test source file", path)
+		}
+	}
+	if isTestSourceFile("service.py") {
+		t.Fatal("production Python source must not be treated as a test")
+	}
+}

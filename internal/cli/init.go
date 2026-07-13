@@ -30,6 +30,7 @@ Example:
   $ gdc init
   $ gdc init --language typescript
   $ gdc init --language rust
+  $ gdc init --language python
   $ gdc init --language go --storage distributed`,
 	RunE: runInit,
 }

@@ -29,7 +29,7 @@ type ExtractedNode struct {
 	Namespace string
 
 	// Language-specific fields (for Hybrid Specification Strategy)
-	Language   string   // "go", "csharp", "typescript", "rust"
+	Language   string   // "go", "csharp", "typescript", "rust", "python"
 	Package    string   // Go: package name
 	Module     string   // TS: module path
 	Attributes []string // C#: class-level attributes
@@ -279,6 +279,8 @@ func GetParser(language string) (Parser, error) {
 		return NewTypeScriptParser(), nil
 	case "rust", "rs":
 		return NewRustParser(), nil
+	case "python", "py":
+		return NewPythonParser(), nil
 	default:
 		return nil, fmt.Errorf("unsupported language: %s", language)
 	}

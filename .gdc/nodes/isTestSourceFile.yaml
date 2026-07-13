@@ -1,0 +1,15 @@
+schema_version: "1.0"
+node:
+    id: isTestSourceFile
+    type: function
+    namespace: cli
+    file_path: D:\git\26\gdc\internal\cli\sync.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+metadata:
+    status: implemented
+    origin: code_extracted
+    extracted_at: "2026-07-14"

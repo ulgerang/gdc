@@ -148,3 +148,10 @@ func TestSourceExtensionsForLanguageIncludesRust(t *testing.T) {
 		t.Fatalf("expected rust extensions [.rs], got %v", extensions)
 	}
 }
+
+func TestSourceExtensionsForLanguageIncludesPython(t *testing.T) {
+	extensions := sourceExtensionsForLanguage("python")
+	if len(extensions) != 1 || extensions[0] != ".py" {
+		t.Fatalf("expected python extensions [.py], got %v", extensions)
+	}
+}

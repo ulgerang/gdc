@@ -736,7 +736,8 @@ func findSourceHints(cfg *config.Config, symbol string) ([]string, error) {
 		}
 		if info.IsDir() {
 			name := info.Name()
-			if name == ".git" || name == ".gdc" || name == "node_modules" || name == "vendor" || name == "bin" || name == "obj" {
+			if name == ".git" || name == ".gdc" || name == "node_modules" || name == "vendor" || name == "bin" || name == "obj" ||
+				name == "__pycache__" || name == ".venv" || name == "venv" || name == ".tox" {
 				return filepath.SkipDir
 			}
 			return nil
@@ -781,6 +782,8 @@ func sourceExtensionsForLanguage(language string) []string {
 		return []string{".ts", ".tsx"}
 	case "rust", "rs":
 		return []string{".rs"}
+	case "python", "py":
+		return []string{".py"}
 	case "gdscript", "gd":
 		return []string{".gd"}
 	default:

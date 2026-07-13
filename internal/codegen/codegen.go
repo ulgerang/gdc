@@ -16,6 +16,7 @@ const (
 	LangCSharp     Language = "csharp"
 	LangTypeScript Language = "typescript"
 	LangRust       Language = "rust"
+	LangPython     Language = "python"
 )
 
 // Generator generates language-specific code representations
@@ -34,6 +35,8 @@ func NewGenerator(lang string) (*Generator, error) {
 		return &Generator{language: LangTypeScript}, nil
 	case "rust", "rs":
 		return &Generator{language: LangRust}, nil
+	case "python", "py":
+		return &Generator{language: LangPython}, nil
 	default:
 		return nil, fmt.Errorf("unsupported language: %s", lang)
 	}
@@ -148,6 +151,8 @@ func (g *Generator) GenerateInterface(spec *node.Spec) string {
 		return g.generateTypeScriptInterface(spec)
 	case LangRust:
 		return g.generateRustInterface(spec)
+	case LangPython:
+		return g.generatePythonInterface(spec)
 	default:
 		return g.generateCSharpInterface(spec)
 	}
@@ -351,6 +356,124 @@ func (g *Generator) generateRustInterface(spec *node.Spec) string {
 	}
 	sb.WriteString("}")
 	return sb.String()
+}
+
+func (g *Generator) generatePythonInterface(spec *node.Spec) string {
+	var sb strings.Builder
+
+	if spec.Node.Type == "function" {
+		if len(spec.Interface.Methods) == 0 {
+			return ""
+		}
+		method := spec.Interface.Methods[0]
+		writePythonDescription(&sb, method.Description, "")
+		asyncPrefix := ""
+		if method.Async {
+			asyncPrefix = "async "
+		}
+		sb.WriteString(fmt.Sprintf("%sdef %s:\n    ...", asyncPrefix, pythonCallableSignature(method.Signature, false)))
+		return sb.String()
+	}
+
+	if spec.Node.Type == "interface" {
+		sb.WriteString(fmt.Sprintf("class %s(Protocol):\n", spec.Node.ID))
+		if len(spec.Interface.Methods) == 0 && len(spec.Interface.Properties) == 0 {
+			sb.WriteString("    pass")
+			return sb.String()
+		}
+		for _, property := range spec.Interface.Properties {
+			writePythonDescription(&sb, property.Description, "    ")
+			sb.WriteString(fmt.Sprintf("    %s: %s\n", property.Name, pythonTypeOrAny(property.Type)))
+		}
+		for _, method := range spec.Interface.Methods {
+			writePythonDescription(&sb, method.Description, "    ")
+			asyncPrefix := ""
+			if method.Async {
+				asyncPrefix = "async "
+			}
+			sb.WriteString(fmt.Sprintf("    %sdef %s:\n        ...\n", asyncPrefix, pythonCallableSignature(method.Signature, true)))
+		}
+		return strings.TrimRight(sb.String(), "\n")
+	}
+
+	sb.WriteString(fmt.Sprintf("class %s:\n", spec.Node.ID))
+	emitted := false
+	for _, property := range spec.Interface.Properties {
+		writePythonDescription(&sb, property.Description, "    ")
+		sb.WriteString(fmt.Sprintf("    %s: %s\n", property.Name, pythonTypeOrAny(property.Type)))
+		emitted = true
+	}
+	for _, constructor := range spec.Interface.Constructors {
+		writePythonDescription(&sb, constructor.Description, "    ")
+		sb.WriteString(fmt.Sprintf("    def %s:\n        ...\n", pythonConstructorSignature(constructor.Signature)))
+		emitted = true
+	}
+	for _, method := range spec.Interface.Methods {
+		writePythonDescription(&sb, method.Description, "    ")
+		asyncPrefix := ""
+		if method.Async {
+			asyncPrefix = "async "
+		}
+		sb.WriteString(fmt.Sprintf("    %sdef %s:\n        ...\n", asyncPrefix, pythonCallableSignature(method.Signature, true)))
+		emitted = true
+	}
+	if !emitted {
+		sb.WriteString("    pass")
+	}
+	return strings.TrimRight(sb.String(), "\n")
+}
+
+func pythonCallableSignature(signature string, receiver bool) string {
+	signature = strings.TrimSpace(signature)
+	open := strings.Index(signature, "(")
+	close := strings.LastIndex(signature, ")")
+	if open < 0 || close < open {
+		if receiver {
+			return signature + "(self)"
+		}
+		return signature + "()"
+	}
+	if !receiver {
+		return signature
+	}
+	parameters := strings.TrimSpace(signature[open+1 : close])
+	if parameters == "" {
+		parameters = "self"
+	} else if !strings.HasPrefix(parameters, "self") && !strings.HasPrefix(parameters, "cls") {
+		parameters = "self, " + parameters
+	}
+	return signature[:open+1] + parameters + signature[close:]
+}
+
+func pythonConstructorSignature(signature string) string {
+	signature = strings.TrimSpace(signature)
+	open := strings.Index(signature, "(")
+	close := strings.LastIndex(signature, ")")
+	if open < 0 || close < open {
+		return "__init__(self)"
+	}
+	parameters := strings.TrimSpace(signature[open+1 : close])
+	if parameters == "" {
+		parameters = "self"
+	} else if !strings.HasPrefix(parameters, "self") {
+		parameters = "self, " + parameters
+	}
+	return "__init__(" + parameters + ")"
+}
+
+func writePythonDescription(sb *strings.Builder, description, indent string) {
+	if strings.TrimSpace(description) == "" {
+		sb.WriteString(indent + "# [NEEDS DESCRIPTION]\n")
+		return
+	}
+	sb.WriteString(indent + "# " + strings.TrimSpace(description) + "\n")
+}
+
+func pythonTypeOrAny(typeName string) string {
+	if strings.TrimSpace(typeName) == "" {
+		return "Any"
+	}
+	return strings.TrimSpace(typeName)
 }
 
 // Helper functions for type conversion

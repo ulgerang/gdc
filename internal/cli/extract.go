@@ -10,6 +10,7 @@ import (
 	"text/template"
 
 	"github.com/atotto/clipboard"
+	"github.com/gdc-tools/gdc/internal/codegen"
 	"github.com/gdc-tools/gdc/internal/config"
 	extractctx "github.com/gdc-tools/gdc/internal/extract"
 	"github.com/gdc-tools/gdc/internal/node"
@@ -781,6 +782,8 @@ func loadLanguageTemplate(cfg *config.Config, language string) string {
 		templateName = "implement.typescript.md.j2"
 	case "rust", "rs":
 		templateName = "implement.rust.md.j2"
+	case "python", "py":
+		templateName = "implement.python.md.j2"
 	default:
 		return ""
 	}
@@ -819,6 +822,12 @@ func generateInterfaceCodeForLanguage(spec *node.Spec, language string) string {
 		return generateTypeScriptInterfaceCode(spec)
 	case "rust", "rs":
 		return generateRustInterfaceCode(spec)
+	case "python", "py":
+		generator, err := codegen.NewGenerator("python")
+		if err == nil {
+			return generator.GenerateInterface(spec)
+		}
+		return generateInterfaceCode(spec)
 	default:
 		return generateInterfaceCode(spec)
 	}

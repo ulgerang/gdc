@@ -157,6 +157,8 @@ func TestP3ParserOrchestrator(t *testing.T) {
 		{"ts", "typescript"},
 		{"rust", "rust"},
 		{"rs", "rust"},
+		{"python", "python"},
+		{"py", "python"},
 	}
 
 	for _, tt := range tests {
@@ -170,6 +172,25 @@ func TestP3ParserOrchestrator(t *testing.T) {
 					tt.language, p.Language(), tt.expected)
 			}
 		})
+	}
+}
+
+func TestP3PythonFixtureParsing(t *testing.T) {
+	fixturePath := filepath.Join("..", "..", "fixtures", "p1", "sample.py")
+	p, err := parser.GetParser("python")
+	if err != nil {
+		t.Fatalf("GetParser(python) error = %v", err)
+	}
+	multi, ok := p.(parser.MultiNodeParser)
+	if !ok {
+		t.Fatal("Python parser must implement MultiNodeParser")
+	}
+	nodes, err := multi.ParseFileNodes(fixturePath)
+	if err != nil {
+		t.Fatalf("failed to parse Python fixture: %v", err)
+	}
+	if len(nodes) != 4 {
+		t.Fatalf("expected 4 Python fixture nodes, got %d", len(nodes))
 	}
 }
 

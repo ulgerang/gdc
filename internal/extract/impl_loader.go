@@ -150,6 +150,11 @@ func generateSearchPatterns(nodeID, nodeType string) []string {
 		filepath.Join("src", "lib.rs"),
 		filepath.Join("src", "main.rs"),
 
+		// Python patterns
+		fmt.Sprintf("%s.py", snakeID),
+		filepath.Join("src", fmt.Sprintf("%s.py", snakeID)),
+		filepath.Join("src", "__init__.py"),
+
 		// Common directories
 		filepath.Join("cmd", strings.ToLower(nodeID), "main.go"),
 	}

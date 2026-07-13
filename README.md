@@ -70,6 +70,7 @@ make build
 gdc init
 gdc init --language typescript
 gdc init --language rust
+gdc init --language python
 gdc init --language go --storage distributed
 
 # 2. Create nodes
@@ -382,6 +383,7 @@ GDC includes multi-language parsers to extract node information from source code
 | C# | ✅ Default | ✅ (build tag) |
 | TypeScript | ✅ Default | ✅ (build tag) |
 | Rust | ✅ Default | - |
+| Python | ✅ Default | - |
 
 ### Parser Features
 
@@ -431,6 +433,7 @@ internal/
 ├── parser/                      # Source code parsers
 │   ├── csharp_parser.go         # C# Regex parser
 │   ├── csharp_parser_treesitter.go  # C# Tree-sitter parser
+│   ├── python_parser.go         # Python heuristic parser
 │   ├── rust_parser.go           # Rust Regex parser
 │   ├── typescript_parser.go     # TypeScript Regex parser
 │   └── typescript_parser_treesitter.go  # TypeScript Tree-sitter parser
@@ -469,7 +472,7 @@ make test
 
 # Phase-by-phase verification tests
 make test-p1    # P1: Basic functionality verification
-make test-p3    # P3: Parser enhancement (C#/TypeScript/Rust)
+make test-p3    # P3: Parser enhancement (C#/TypeScript/Rust/Python)
 make test-p4    # P4: Search/Query/Trace commands
 
 # Clean

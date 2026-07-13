@@ -21,10 +21,10 @@ interface:
             type: (Parser, error)
           exported: true
 dependencies:
-    - target: Parser
+    - target: parser.Parser
       type: interface
       injection: method
 metadata:
-    status: ""
+    status: implemented
     origin: code_extracted
-    extracted_at: "2026-04-03"
+    extracted_at: "2026-07-14"

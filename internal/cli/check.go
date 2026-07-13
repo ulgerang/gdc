@@ -205,7 +205,7 @@ func outputCheckJSON(issues []Issue, errors, warnings, infos int) error {
 	}
 
 	type checkOutput struct {
-		Issues []Issue      `json:"issues"`
+		Issues  []Issue      `json:"issues"`
 		Summary checkSummary `json:"summary"`
 		Result  string       `json:"result"`
 	}
@@ -772,6 +772,12 @@ func symbolExistsInSource(lang, content, nodeID, nodeType string) bool {
 			patterns = append(patterns, fmt.Sprintf(`\bfn\s+%s\b`, regexp.QuoteMeta(nodeID)))
 		} else {
 			patterns = append(patterns, fmt.Sprintf(`\bpub\s+(?:struct|trait|enum)\s+%s\b`, regexp.QuoteMeta(nodeID)))
+		}
+	case "python", "py":
+		if nodeType == "function" {
+			patterns = append(patterns, fmt.Sprintf(`(?m)^\s*(?:async\s+)?def\s+%s\s*\(`, regexp.QuoteMeta(nodeID)))
+		} else {
+			patterns = append(patterns, fmt.Sprintf(`(?m)^\s*class\s+%s(?:\s*\(|\s*:)`, regexp.QuoteMeta(nodeID)))
 		}
 	default:
 		patterns = append(patterns, fmt.Sprintf(`\b%s\b`, regexp.QuoteMeta(nodeID)))

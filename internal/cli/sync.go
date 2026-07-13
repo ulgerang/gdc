@@ -496,6 +496,8 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 		extensions = []string{".ts", ".tsx"}
 	case "rust", "rs":
 		extensions = []string{".rs"}
+	case "python", "py":
+		extensions = []string{".py"}
 	default:
 		return fmt.Errorf("unsupported language: %s", lang)
 	}
@@ -507,7 +509,8 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 		if info.IsDir() {
 			// Skip common non-source directories
 			name := info.Name()
-			if name == "node_modules" || name == ".git" || name == "bin" || name == "obj" || name == "vendor" {
+			if name == "node_modules" || name == ".git" || name == "bin" || name == "obj" || name == "vendor" ||
+				name == "__pycache__" || name == ".venv" || name == "venv" || name == ".tox" {
 				return filepath.SkipDir
 			}
 			return nil
@@ -517,7 +520,7 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 		for _, validExt := range extensions {
 			if ext == validExt {
 				// Skip test files
-				if strings.HasSuffix(path, "_test.go") || strings.HasSuffix(path, ".test.ts") || strings.HasSuffix(path, ".spec.ts") {
+				if isTestSourceFile(path) {
 					break
 				}
 				sourceFiles = append(sourceFiles, path)
@@ -734,7 +737,7 @@ func collectExplicitSourceScopeFiles(cfg *config.Config, sourceDir string, exten
 		if !hasAllowedSourceExtension(path, extensions) {
 			return nil
 		}
-		if strings.HasSuffix(path, "_test.go") || strings.HasSuffix(path, ".test.ts") || strings.HasSuffix(path, ".spec.ts") {
+		if isTestSourceFile(path) {
 			return nil
 		}
 		info, err := os.Stat(path)
@@ -780,6 +783,15 @@ func collectExplicitSourceScopeFiles(cfg *config.Config, sourceDir string, exten
 	}
 
 	return files, nil
+}
+
+func isTestSourceFile(path string) bool {
+	base := strings.ToLower(filepath.Base(path))
+	return strings.HasSuffix(base, "_test.go") ||
+		strings.HasSuffix(base, ".test.ts") ||
+		strings.HasSuffix(base, ".spec.ts") ||
+		(strings.HasPrefix(base, "test_") && strings.HasSuffix(base, ".py")) ||
+		strings.HasSuffix(base, "_test.py")
 }
 
 func hasAllowedSourceExtension(path string, extensions []string) bool {

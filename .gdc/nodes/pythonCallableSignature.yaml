@@ -1,0 +1,15 @@
+schema_version: "1.0"
+node:
+    id: pythonCallableSignature
+    type: function
+    namespace: codegen
+    file_path: D:\git\26\gdc\internal\codegen\codegen.go
+language_spec:
+    language: go
+    package: codegen
+responsibility:
+    summary: ""
+metadata:
+    status: implemented
+    origin: code_extracted
+    extracted_at: "2026-07-14"
