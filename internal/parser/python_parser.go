@@ -318,9 +318,10 @@ func splitPythonCommaList(value string) []string {
 				escaped = false
 				continue
 			}
-			if char == '\\' {
+			switch char {
+			case '\\':
 				escaped = true
-			} else if char == quote {
+			case quote:
 				quote = 0
 			}
 			continue

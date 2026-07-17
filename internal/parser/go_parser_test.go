@@ -19,7 +19,7 @@ func TestGoParserParseInterface(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	// Create test Go file with interface
 	goCode := `package example
@@ -80,7 +80,7 @@ func TestGoParserParseStruct(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	goCode := `package service
 
@@ -164,7 +164,7 @@ func TestGoParserParseEmptyFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	goCode := `package empty
 `
@@ -198,7 +198,7 @@ func TestGoParserParseInvalidSyntax(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	goCode := `package invalid
 	
@@ -222,7 +222,7 @@ func TestGoParserParseFileNodesSeparatesTypes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	goCode := `package trace
 
@@ -299,7 +299,7 @@ func TestGoParserParseFileNodesNormalizesDependencies(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	goMod := `module example.com/test
 
@@ -398,7 +398,7 @@ func TestGoParserParseFileNodesExtractsTopLevelFunctions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	goCode := `package agent
 
@@ -445,7 +445,7 @@ func TestGoParserParseFileNodesSkipsSelfTypedConstructorDetails(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	goCode := `package errors
 
@@ -489,7 +489,7 @@ func TestGoParserParseFileNodesExtractsFieldAndMethodDependencies(t *testing.T) 
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	goCode := `package agent
 

@@ -58,6 +58,11 @@ jobs:
       - name: Vet
         run: go vet ./...
 
+      - name: Static analysis
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.11
+
       - name: Test
         run: go test ./...
 
@@ -68,4 +73,4 @@ jobs:
         run: openspec validate --all --strict
 
       - name: Self-hosted graph consistency
-        run: /tmp/gdc check --no-orphan-info --exit-on-warning
+        run: /tmp/gdc check --verify-impl --no-orphan-info --exit-on-warning

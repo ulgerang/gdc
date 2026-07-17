@@ -479,7 +479,7 @@ func cleanupStagedNodeMutations(staged []stagedNodeMutation) {
 	}
 }
 
-func refreshLifecycleDatabase(cfg *config.Config) error {
+func refreshLifecycleDatabase(cfg *config.Config) (err error) {
 	nodes, err := loadAllNodes(cfg.NodesDir())
 	if err != nil {
 		return err
@@ -488,7 +488,11 @@ func refreshLifecycleDatabase(cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
-	defer database.Close()
+	defer func() {
+		if closeErr := database.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("close lifecycle database: %w", closeErr)
+		}
+	}()
 	if err := database.InitSchema(); err != nil {
 		return err
 	}

@@ -318,13 +318,7 @@ func generateJSON(view graphView) (string, error) {
 	}
 
 	for _, edge := range view.Edges {
-		graph.Edges = append(graph.Edges, edgeJSON{
-			From:      edge.From,
-			To:        edge.To,
-			Type:      edge.Type,
-			Optional:  edge.Optional,
-			Violation: edge.Violation,
-		})
+		graph.Edges = append(graph.Edges, edgeJSON(edge))
 	}
 
 	data, err := json.MarshalIndent(graph, "", "  ")
@@ -443,7 +437,7 @@ func sanitizeDOTID(id string) string {
 	return strings.NewReplacer(".", "_", "-", "_", "/", "_", "\\", "_", " ", "_").Replace(id)
 }
 
-// Export for sync command
+// GetNodesDir returns the configured node specification directory.
 func GetNodesDir() string {
 	cfg, err := config.Load("")
 	if err != nil {

@@ -1,7 +1,7 @@
+// Package fixtures contains source samples used by GDC parser validation.
 // P1 Test Fixture: Go Sample Code
 // Purpose: Test Go parsing regression for gdc sync --direction code
 // Requirements: R4 (AC-R4-1, AC-R4-2) - Existing Go behavior preservation
-
 package fixtures
 
 import (

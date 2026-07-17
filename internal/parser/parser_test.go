@@ -2,7 +2,6 @@ package parser
 
 import (
 	"os"
-	"path/filepath"
 	"testing"
 )
 
@@ -176,12 +175,11 @@ func TestExtractedNodePreservesOldDescriptions(t *testing.T) {
 	}
 }
 
-// Helper function to create temp files for testing
-func createTempFile(t *testing.T, dir, name, content string) string {
+func cleanupTempDir(t *testing.T, path string) {
 	t.Helper()
-	path := filepath.Join(dir, name)
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
-	}
-	return path
+	t.Cleanup(func() {
+		if err := os.RemoveAll(path); err != nil {
+			t.Errorf("failed to remove temporary directory %s: %v", path, err)
+		}
+	})
 }

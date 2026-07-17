@@ -106,7 +106,7 @@ func printNodeHeader(spec *node.Spec) {
 
 	fmt.Println()
 	fmt.Println(strings.Repeat("═", 70))
-	bold.Printf("  %s\n", spec.Node.ID)
+	_, _ = bold.Printf("  %s\n", spec.Node.ID)
 	fmt.Println(strings.Repeat("═", 70))
 
 	fmt.Printf("  Type: %s | Layer: %s | Status: %s\n",
@@ -128,7 +128,7 @@ func printNodeHeader(spec *node.Spec) {
 func printResponsibility(spec *node.Spec) {
 	bold := color.New(color.Bold)
 
-	bold.Println("  Responsibility:")
+	_, _ = bold.Println("  Responsibility:")
 	fmt.Printf("  %s\n", spec.Responsibility.Summary)
 
 	if spec.Responsibility.Details != "" {
@@ -141,7 +141,7 @@ func printResponsibility(spec *node.Spec) {
 
 	if len(spec.Responsibility.Invariants) > 0 {
 		fmt.Println()
-		bold.Println("  Invariants:")
+		_, _ = bold.Println("  Invariants:")
 		for _, inv := range spec.Responsibility.Invariants {
 			fmt.Printf("    • %s\n", inv)
 		}
@@ -154,18 +154,18 @@ func printInterface(spec *node.Spec) {
 	bold := color.New(color.Bold)
 	green := color.New(color.FgGreen)
 
-	bold.Println("  Interface:")
+	_, _ = bold.Println("  Interface:")
 
 	// Constructors
 	if len(spec.Interface.Constructors) > 0 {
 		for _, ctor := range spec.Interface.Constructors {
-			green.Printf("    ⊕ %s\n", ctor.Signature)
+			_, _ = green.Printf("    ⊕ %s\n", ctor.Signature)
 		}
 	}
 
 	// Methods
 	for _, method := range spec.Interface.Methods {
-		green.Printf("    ▸ %s\n", method.Signature)
+		_, _ = green.Printf("    ▸ %s\n", method.Signature)
 		if method.Description != "" && !quiet {
 			fmt.Printf("      %s\n", color.HiBlackString(method.Description))
 		}
@@ -187,7 +187,7 @@ func printInterface(spec *node.Spec) {
 func printDependencies(deps []node.Dependency) {
 	bold := color.New(color.Bold)
 
-	bold.Println("  Dependencies (→):")
+	_, _ = bold.Println("  Dependencies (→):")
 
 	if len(deps) == 0 {
 		fmt.Println("    (none)")
@@ -226,7 +226,7 @@ func findReferences(nodeName string, allNodes []*node.Spec) []string {
 func printReferences(refs []string) {
 	bold := color.New(color.Bold)
 
-	bold.Println("  Referenced by (←):")
+	_, _ = bold.Println("  Referenced by (←):")
 
 	if len(refs) == 0 {
 		fmt.Println("    (none)")
@@ -242,7 +242,7 @@ func printReferences(refs []string) {
 func printMetadata(spec *node.Spec) {
 	bold := color.New(color.Bold)
 
-	bold.Println("  Metadata:")
+	_, _ = bold.Println("  Metadata:")
 	fmt.Printf("    Created: %s | Updated: %s\n",
 		spec.Metadata.Created, spec.Metadata.Updated)
 
@@ -302,13 +302,13 @@ func printInterfaceOnly(spec *node.Spec, language string) {
 }
 
 type showNodeJSON struct {
-	Node          showNodeInfoJSON      `json:"node"`
-	Responsibility showResponsibilityJSON `json:"responsibility"`
-	Interface     showInterfaceJSON     `json:"interface"`
-	Dependencies  []showDependencyJSON  `json:"dependencies"`
-	Implementations []string            `json:"implementations,omitempty"`
-	Metadata      showMetadataJSON      `json:"metadata"`
-	References    []string              `json:"references,omitempty"`
+	Node            showNodeInfoJSON       `json:"node"`
+	Responsibility  showResponsibilityJSON `json:"responsibility"`
+	Interface       showInterfaceJSON      `json:"interface"`
+	Dependencies    []showDependencyJSON   `json:"dependencies"`
+	Implementations []string               `json:"implementations,omitempty"`
+	Metadata        showMetadataJSON       `json:"metadata"`
+	References      []string               `json:"references,omitempty"`
 }
 
 type showNodeInfoJSON struct {
@@ -334,9 +334,9 @@ type showInterfaceJSON struct {
 }
 
 type showConstructorJSON struct {
-	Signature   string               `json:"signature"`
-	Description string               `json:"description,omitempty"`
-	Parameters  []showParameterJSON  `json:"parameters,omitempty"`
+	Signature   string              `json:"signature"`
+	Description string              `json:"description,omitempty"`
+	Parameters  []showParameterJSON `json:"parameters,omitempty"`
 }
 
 type showMethodJSON struct {

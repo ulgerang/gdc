@@ -1,7 +1,7 @@
 # design-first-workflow Specification
 
 ## Purpose
-TBD - created by archiving change clarify-design-first-gdc-workflow. Update Purpose after archive.
+Define how authored GDC specifications remain authoritative while code synchronization supplies implementation evidence without erasing design intent.
 ## Requirements
 ### Requirement: README SHALL describe GDC as a design-first workflow
 The README SHALL explain that GDC YAML node specs are intended to model structure before implementation, including responsibilities, interfaces, dependencies, and implementation boundaries.

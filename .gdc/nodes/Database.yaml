@@ -155,7 +155,7 @@ interface:
             type: error
           exported: true
         - name: GetStats
-          signature: GetStats() (map[string]int, error)
+          signature: GetStats() (stats map[string]int, err error)
           description: GetStats returns basic statistics
           returns:
             type: (map[string]int, error)

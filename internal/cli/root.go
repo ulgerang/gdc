@@ -3,8 +3,9 @@ package cli
 
 import (
 	"fmt"
-	"os"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/fatih/color"
 	"github.com/gdc-tools/gdc/internal/node"
@@ -119,17 +120,12 @@ func printWarning(format string, args ...interface{}) {
 	}
 }
 
-func printError(format string, args ...interface{}) {
-	color.Red("✗ "+format, args...)
-}
-
-func exitWithError(msg string, err error) {
-	if err != nil {
-		printError("%s: %v", msg, err)
-	} else {
-		printError("%s", msg)
+func uppercaseFirst(value string) string {
+	if value == "" {
+		return ""
 	}
-	os.Exit(1)
+	first, size := utf8.DecodeRuneInString(value)
+	return string(unicode.ToUpper(first)) + value[size:]
 }
 
 func buildCanonicalSpecMap(nodes []*node.Spec) map[string]*node.Spec {

@@ -268,12 +268,12 @@ func printQueryNotFound(symbol string, suggestions []querySuggestion, sourceHint
 	bold := color.New(color.Bold)
 	red := color.New(color.FgRed)
 
-	bold.Printf("\n  Node '%s' ", symbol)
-	red.Println("not found")
+	_, _ = bold.Printf("\n  Node '%s' ", symbol)
+	_, _ = red.Println("not found")
 
 	if len(suggestions) > 0 {
 		yellow := color.New(color.FgYellow)
-		yellow.Println("\n  Closest graph matches:")
+		_, _ = yellow.Println("\n  Closest graph matches:")
 		for _, s := range suggestions {
 			line := fmt.Sprintf("    • %s", color.CyanString(s.CanonicalID))
 			if s.MatchedValue != "" && s.MatchedValue != s.CanonicalID {
@@ -285,7 +285,7 @@ func printQueryNotFound(symbol string, suggestions []querySuggestion, sourceHint
 
 	if len(sourceHints) > 0 {
 		yellow := color.New(color.FgYellow)
-		yellow.Println("\n  Found in source but missing from graph:")
+		_, _ = yellow.Println("\n  Found in source but missing from graph:")
 		for _, hint := range sourceHints {
 			fmt.Printf("    • %s\n", hint)
 		}
@@ -298,7 +298,7 @@ func printQueryNotFound(symbol string, suggestions []querySuggestion, sourceHint
 
 func printMultipleMatches(symbol string, matches []*queryMatch) {
 	yellow := color.New(color.FgYellow)
-	yellow.Printf("\n  Multiple nodes match '%s':\n", symbol)
+	_, _ = yellow.Printf("\n  Multiple nodes match '%s':\n", symbol)
 
 	for _, m := range matches {
 		label := m.CanonicalID
@@ -337,7 +337,7 @@ func outputQueryText(match *queryMatch, allNodes []*node.Spec, verbose bool) {
 
 	fmt.Println()
 
-	bold.Println("Provenance:")
+	_, _ = bold.Println("Provenance:")
 	fmt.Printf("  Canonical ID: %s\n", match.CanonicalID)
 	if match.ImplPath != "" {
 		fmt.Printf("  Implementation File: %s\n", match.ImplPath)
@@ -353,7 +353,7 @@ func outputQueryText(match *queryMatch, allNodes []*node.Spec, verbose bool) {
 	fmt.Println()
 
 	// Responsibility
-	bold.Println("Responsibility:")
+	_, _ = bold.Println("Responsibility:")
 	fmt.Printf("  %s\n", spec.Responsibility.Summary)
 
 	if verbose && spec.Responsibility.Details != "" {
@@ -367,7 +367,7 @@ func outputQueryText(match *queryMatch, allNodes []*node.Spec, verbose bool) {
 	fmt.Println()
 
 	// Dependencies
-	bold.Println("Dependencies:")
+	_, _ = bold.Println("Dependencies:")
 	if len(spec.Dependencies) == 0 {
 		fmt.Println("  (none)")
 	} else {
@@ -386,7 +386,7 @@ func outputQueryText(match *queryMatch, allNodes []*node.Spec, verbose bool) {
 
 	// Methods
 	if len(spec.Interface.Methods) > 0 {
-		bold.Println("Methods:")
+		_, _ = bold.Println("Methods:")
 		for _, method := range spec.Interface.Methods {
 			fmt.Printf("  - %s\n", method.Signature)
 			if verbose && method.Description != "" {
@@ -398,7 +398,7 @@ func outputQueryText(match *queryMatch, allNodes []*node.Spec, verbose bool) {
 
 	// Properties
 	if len(spec.Interface.Properties) > 0 {
-		bold.Println("Properties:")
+		_, _ = bold.Println("Properties:")
 		for _, prop := range spec.Interface.Properties {
 			access := prop.Access
 			if access == "" {
@@ -413,7 +413,7 @@ func outputQueryText(match *queryMatch, allNodes []*node.Spec, verbose bool) {
 	if verbose {
 		// Implementations (for interfaces)
 		if len(spec.Implementations) > 0 {
-			bold.Println("Implementations:")
+			_, _ = bold.Println("Implementations:")
 			for _, impl := range spec.Implementations {
 				fmt.Printf("  ← %s\n", color.CyanString(impl))
 			}
@@ -421,7 +421,7 @@ func outputQueryText(match *queryMatch, allNodes []*node.Spec, verbose bool) {
 		}
 
 		// Metadata
-		bold.Println("Metadata:")
+		_, _ = bold.Println("Metadata:")
 		fmt.Printf("  Created: %s\n", spec.Metadata.Created)
 		fmt.Printf("  Updated: %s\n", spec.Metadata.Updated)
 		if refNames := findReferences(spec.QualifiedID(), allNodes); len(refNames) > 0 {

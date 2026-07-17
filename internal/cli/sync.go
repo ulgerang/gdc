@@ -119,7 +119,7 @@ func runSync(cmd *cobra.Command, args []string) error {
 	}
 }
 
-func runSyncToDB(cfg *config.Config, nodesDir, dbPath string, scope *syncScope) error {
+func runSyncToDB(cfg *config.Config, nodesDir, dbPath string, scope *syncScope) (err error) {
 	startedAt := time.Now()
 	if !quiet {
 		fmt.Println("Scanning for changes...")
@@ -139,7 +139,11 @@ func runSyncToDB(cfg *config.Config, nodesDir, dbPath string, scope *syncScope) 
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
-	defer database.Close()
+	defer func() {
+		if closeErr := database.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close database: %w", closeErr)
+		}
+	}()
 
 	// Ensure schema exists
 	if err := database.InitSchema(); err != nil {
@@ -384,11 +388,6 @@ func getSpecPath(spec *node.Spec) string {
 		return nodesDir
 	}
 	return filepath.Join(nodesDir, spec.QualifiedID()+".yaml")
-}
-
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
 }
 
 type syncProfileReport struct {
@@ -1290,7 +1289,7 @@ func printSyncTiming(report syncProfileReport) {
 		parts := make([]string, 0, len(order))
 		for _, key := range order {
 			if duration, ok := report.Phases[key]; ok {
-				parts = append(parts, fmt.Sprintf("%s: %.1fs", strings.Title(key), duration.Seconds()))
+				parts = append(parts, fmt.Sprintf("%s: %.1fs", uppercaseFirst(key), duration.Seconds()))
 			}
 		}
 		if len(parts) > 0 {

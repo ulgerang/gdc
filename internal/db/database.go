@@ -221,7 +221,7 @@ func (db *Database) GetAllNodes() ([]*NodeRecord, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var nodes []*NodeRecord
 	for rows.Next() {
@@ -349,7 +349,7 @@ func (db *Database) GetEdgesFrom(nodeID string) ([]*EdgeRecord, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var edges []*EdgeRecord
 	for rows.Next() {
@@ -384,7 +384,7 @@ func (db *Database) GetEdgesTo(nodeID string) ([]*EdgeRecord, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var edges []*EdgeRecord
 	for rows.Next() {
@@ -443,7 +443,7 @@ func (db *Database) GetNodesByTag(tag string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var nodeIDs []string
 	for rows.Next() {
@@ -467,31 +467,45 @@ func (db *Database) LogSync(created, updated, deleted int, durationMs int64) err
 }
 
 // GetStats returns basic statistics
-func (db *Database) GetStats() (map[string]int, error) {
-	stats := make(map[string]int)
+func (db *Database) GetStats() (stats map[string]int, err error) {
+	stats = make(map[string]int)
 
 	// Total nodes
 	var total int
-	db.conn.QueryRow("SELECT COUNT(*) FROM nodes").Scan(&total)
+	if err := db.conn.QueryRow("SELECT COUNT(*) FROM nodes").Scan(&total); err != nil {
+		return nil, fmt.Errorf("count nodes: %w", err)
+	}
 	stats["total_nodes"] = total
 
 	// Total edges
 	var edges int
-	db.conn.QueryRow("SELECT COUNT(*) FROM edges").Scan(&edges)
+	if err := db.conn.QueryRow("SELECT COUNT(*) FROM edges").Scan(&edges); err != nil {
+		return nil, fmt.Errorf("count edges: %w", err)
+	}
 	stats["total_edges"] = edges
 
 	// By type
 	rows, err := db.conn.Query("SELECT type, COUNT(*) FROM nodes GROUP BY type")
 	if err != nil {
-		return stats, err
+		return nil, fmt.Errorf("count nodes by type: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil && err == nil {
+			stats = nil
+			err = fmt.Errorf("close node type statistics: %w", closeErr)
+		}
+	}()
 
 	for rows.Next() {
 		var t string
 		var count int
-		rows.Scan(&t, &count)
+		if err := rows.Scan(&t, &count); err != nil {
+			return nil, fmt.Errorf("scan node type statistics: %w", err)
+		}
 		stats["type_"+t] = count
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate node type statistics: %w", err)
 	}
 
 	return stats, nil

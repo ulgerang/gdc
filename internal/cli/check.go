@@ -13,7 +13,6 @@ import (
 	"github.com/gdc-tools/gdc/internal/config"
 	"github.com/gdc-tools/gdc/internal/node"
 	"github.com/gdc-tools/gdc/internal/parser"
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
@@ -942,13 +941,4 @@ func isDisabled(disabled []string, category string) bool {
 		}
 	}
 	return false
-}
-
-// Helper for stats command.
-func printStatsTable(headers []string, rows [][]string) {
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader(headers)
-	table.SetBorder(false)
-	table.AppendBulk(rows)
-	table.Render()
 }

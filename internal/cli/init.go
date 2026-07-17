@@ -42,7 +42,7 @@ func init() {
 		"storage mode (centralized, distributed)")
 }
 
-func runInit(cmd *cobra.Command, args []string) error {
+func runInit(cmd *cobra.Command, args []string) (err error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to get current directory: %w", err)
@@ -87,7 +87,11 @@ func runInit(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize database: %w", err)
 	}
-	defer database.Close()
+	defer func() {
+		if closeErr := database.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close database: %w", closeErr)
+		}
+	}()
 
 	if err := database.InitSchema(); err != nil {
 		return fmt.Errorf("failed to initialize schema: %w", err)

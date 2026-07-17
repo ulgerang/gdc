@@ -18,7 +18,7 @@ func TestTypeScriptParserParseInterface(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	tsCode := `/**
  * Repository for user data access
@@ -72,7 +72,7 @@ func TestTypeScriptParserParseClass(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	tsCode := `import { IUserRepository } from './IUserRepository';
 import { ILogger } from './ILogger';
@@ -176,7 +176,7 @@ func TestTypeScriptParserParseExtendsImplements(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	tsCode := `export class UserService extends BaseService implements IUserService, IDisposable {
   constructor() {
@@ -227,7 +227,7 @@ func TestTypeScriptParserParseArrowFunctions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	tsCode := `export class HandlerClass {
   public handleClick = (event: MouseEvent): void => {

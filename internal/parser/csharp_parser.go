@@ -58,7 +58,7 @@ var (
 	csPropertyPattern    = regexp.MustCompile(`(?:public|protected|private|internal)?\s*(virtual|override|abstract|static)?\s*(\w+(?:<[^>]+>)?(?:\[\])?)\s+(\w+)\s*\{\s*([^}]*)\}`)
 	csEventPattern       = regexp.MustCompile(`(?:public|protected|private|internal)?\s*event\s+(\w+(?:<[^>]+>)?)\s+(\w+)\s*;`)
 	csConstructorPattern = regexp.MustCompile(`(?:public|protected|private|internal)\s+(\w+)\s*\(([^)]*)\)`)
-	csXmlDocPattern      = regexp.MustCompile(`///\s*<summary>\s*(.+?)\s*</summary>`)
+	csXMLDocPattern      = regexp.MustCompile(`///\s*<summary>\s*(.+?)\s*</summary>`)
 	csFieldPattern       = regexp.MustCompile(`(?:public|protected|private|internal)?\s*(?:readonly|const)?\s*(\w+(?:<[^>]+>)?(?:\[\])?)\s+(\w+)\s*(?:=|;)`)
 )
 
@@ -68,7 +68,7 @@ func (p *RegexCSharpParser) ParseFile(filePath string) (*ExtractedNode, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	extracted := &ExtractedNode{
 		FilePath: filePath,
@@ -136,7 +136,7 @@ func (p *RegexCSharpParser) ParseFile(filePath string) (*ExtractedNode, error) {
 
 		// Collect XML doc comments
 		if strings.HasPrefix(trimmed, "///") {
-			if matches := csXmlDocPattern.FindStringSubmatch(trimmed); len(matches) > 1 {
+			if matches := csXMLDocPattern.FindStringSubmatch(trimmed); len(matches) > 1 {
 				pendingDoc = strings.TrimSpace(matches[1])
 			} else {
 				// Multi-line doc comment

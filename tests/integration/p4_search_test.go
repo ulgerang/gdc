@@ -70,20 +70,13 @@ func runGDC(t *testing.T, binaryPath, workDir string, args ...string) (string, e
 	return string(output), err
 }
 
-// runGDCWithExitCode runs gdc command and returns output and exit code.
-func runGDCWithExitCode(t *testing.T, binaryPath, workDir string, args ...string) (string, int) {
+func cleanupIntegrationTempDir(t *testing.T, path string) {
 	t.Helper()
-
-	cmd := exec.Command(binaryPath, args...)
-	cmd.Dir = workDir
-
-	output, _ := cmd.CombinedOutput()
-	exitCode := 0
-	if cmd.ProcessState != nil {
-		exitCode = cmd.ProcessState.ExitCode()
-	}
-
-	return string(output), exitCode
+	t.Cleanup(func() {
+		if err := os.RemoveAll(path); err != nil {
+			t.Errorf("failed to remove temporary directory %s: %v", path, err)
+		}
+	})
 }
 
 // setupTestProject creates a temporary GDC project for testing.
@@ -101,7 +94,9 @@ func setupTestProject(t *testing.T) string {
 	binaryPath := buildGDC(t)
 	output, err := runGDC(t, binaryPath, tempDir, "init")
 	if err != nil {
-		os.RemoveAll(tempDir)
+		if removeErr := os.RemoveAll(tempDir); removeErr != nil {
+			t.Errorf("failed to clean up project after init failure: %v", removeErr)
+		}
 		t.Fatalf("Failed to init project: %v\nOutput: %s", err, output)
 	}
 
@@ -495,7 +490,7 @@ func isWindows() bool {
 func TestSearchBasic(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	// Create sample source files for search testing
 	createSampleSourceFiles(t, projectRoot)
@@ -560,7 +555,7 @@ func TestSearchBasic(t *testing.T) {
 func TestSearchWithFilePattern(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	createSampleSourceFiles(t, projectRoot)
 
@@ -610,7 +605,7 @@ func TestSearchWithFilePattern(t *testing.T) {
 func TestSearchRegex(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	createSampleSourceFiles(t, projectRoot)
 
@@ -668,7 +663,7 @@ func TestSearchRegex(t *testing.T) {
 func TestSearchCaseSensitive(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	createSampleSourceFiles(t, projectRoot)
 
@@ -713,7 +708,7 @@ func TestSearchCaseSensitive(t *testing.T) {
 func TestSearchMaxResults(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	createSampleSourceFiles(t, projectRoot)
 
@@ -730,8 +725,9 @@ func TestSearchMaxResults(t *testing.T) {
 	for _, line := range lines {
 		if strings.Contains(line, "Found") && strings.Contains(line, "result") {
 			// Parse "Found 3 results" or "Found 1 result"
-			fmt.Sscanf(strings.TrimSpace(line), "Found %d", &resultCount)
-			break
+			if _, err := fmt.Sscanf(strings.TrimSpace(line), "Found %d", &resultCount); err == nil {
+				break
+			}
 		}
 	}
 
@@ -756,7 +752,7 @@ func TestSearchMaxResults(t *testing.T) {
 func TestSearchNoMatch(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	createSampleSourceFiles(t, projectRoot)
 
@@ -784,7 +780,7 @@ func TestSearchWithoutProject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupIntegrationTempDir(t, tempDir)
 
 	// Create a simple Go file
 	goFile := filepath.Join(tempDir, "test.go")
@@ -819,7 +815,7 @@ func main() {
 func TestTraceReverse(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	tests := []struct {
 		name          string
@@ -869,7 +865,7 @@ func TestTraceReverse(t *testing.T) {
 func TestTraceForward(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	tests := []struct {
 		name          string
@@ -914,7 +910,7 @@ func TestTraceForward(t *testing.T) {
 func TestTraceToPath(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	tests := []struct {
 		name          string
@@ -978,7 +974,7 @@ func TestTraceToPath(t *testing.T) {
 func TestTraceNonExistentNode(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	args := []string{"trace", "NonExistentNode12345"}
 	output, _ := runGDC(t, binaryPath, projectRoot, args...)
@@ -998,7 +994,7 @@ func TestTraceNonExistentNode(t *testing.T) {
 func TestQueryBasic(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	tests := []struct {
 		name          string
@@ -1048,7 +1044,7 @@ func TestQueryBasic(t *testing.T) {
 func TestQueryJSON(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	args := []string{"query", "UserService", "--format", "json"}
 	output, err := runGDC(t, binaryPath, projectRoot, args...)
@@ -1083,7 +1079,7 @@ func TestQueryJSON(t *testing.T) {
 func TestQueryYAML(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	args := []string{"query", "UserService", "--format", "yaml"}
 	output, err := runGDC(t, binaryPath, projectRoot, args...)
@@ -1104,7 +1100,7 @@ func TestQueryYAML(t *testing.T) {
 func TestQueryNotFound(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	args := []string{"query", "NonExistentNodeXYZ"}
 	output, _ := runGDC(t, binaryPath, projectRoot, args...)
@@ -1126,7 +1122,7 @@ func TestQueryNotFound(t *testing.T) {
 func TestQueryPartialMatch(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	tests := []struct {
 		name          string
@@ -1175,7 +1171,7 @@ func TestQueryPartialMatch(t *testing.T) {
 func TestQueryMultipleMatches(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	// Query for "User" which should match multiple nodes
 	args := []string{"query", "User"}
@@ -1204,7 +1200,7 @@ func TestGracefulDegradation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupIntegrationTempDir(t, tempDir)
 
 	tests := []struct {
 		name        string
@@ -1270,7 +1266,7 @@ func TestSearchGracefulDegradation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupIntegrationTempDir(t, tempDir)
 
 	// Create a sample file
 	testFile := filepath.Join(tempDir, "sample.txt")
@@ -1304,7 +1300,7 @@ func TestSearchGracefulDegradation(t *testing.T) {
 func TestSearchBinaryFileExclusion(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	// Create a binary-like file
 	binFile := filepath.Join(projectRoot, "test.bin")
@@ -1357,7 +1353,7 @@ func TestVersionCommand(t *testing.T) {
 func TestListCommand(t *testing.T) {
 	binaryPath := buildGDC(t)
 	projectRoot := setupTestProject(t)
-	defer os.RemoveAll(projectRoot)
+	cleanupIntegrationTempDir(t, projectRoot)
 
 	tests := []struct {
 		name          string

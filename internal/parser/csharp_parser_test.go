@@ -18,7 +18,7 @@ func TestCSharpParserParseInterface(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	csCode := `using System;
 
@@ -79,7 +79,7 @@ func TestCSharpParserParseClass(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	csCode := `using System;
 
@@ -183,7 +183,7 @@ func TestCSharpParserParseEvents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	csCode := `using System;
 
@@ -233,7 +233,7 @@ func TestCSharpParserHandlesAsyncMethods(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	csCode := `using System.Threading.Tasks;
 
@@ -269,7 +269,7 @@ func TestCSharpParserParsesGenericInterfaceDeclaration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	csCode := `namespace Example.Repositories
 {
@@ -307,7 +307,7 @@ func TestCSharpParserNormalizesGenericDependencyTargets(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	cleanupTempDir(t, tempDir)
 
 	csCode := `namespace Example.Services
 {

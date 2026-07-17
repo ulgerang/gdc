@@ -75,7 +75,7 @@ func (p *RegexTypeScriptParser) ParseFile(filePath string) (*ExtractedNode, erro
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	extracted := &ExtractedNode{
 		FilePath: filePath,
@@ -384,9 +384,10 @@ func (p *RegexTypeScriptParser) ParseFile(filePath string) (*ExtractedNode, erro
 			if strings.Contains(line, "(") {
 				// Determine access modifier
 				accessModifier := "public"
-				if matches[1] == "private" {
+				switch matches[1] {
+				case "private":
 					accessModifier = "private"
-				} else if matches[1] == "protected" {
+				case "protected":
 					accessModifier = "protected"
 				}
 
@@ -440,9 +441,10 @@ func (p *RegexTypeScriptParser) ParseFile(filePath string) (*ExtractedNode, erro
 
 			// Determine access modifier
 			accessModifier := "public"
-			if matches[1] == "private" {
+			switch matches[1] {
+			case "private":
 				accessModifier = "private"
-			} else if matches[1] == "protected" {
+			case "protected":
 				accessModifier = "protected"
 			}
 
@@ -757,7 +759,7 @@ func (p *RegexTypeScriptParser) extractConstructorFromContent(content string, no
 	// Find matching closing parenthesis
 	parenDepth := 0
 	paramStart := constructorStart + len("constructor(")
-	paramEnd := paramStart
+	var paramEnd int
 
 	for i := paramStart; i < len(content); i++ {
 		ch := content[i]

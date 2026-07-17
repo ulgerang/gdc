@@ -65,7 +65,7 @@ func TestNodeDeleteForceRemovesReferencesAndRefreshesDatabase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open refreshed database: %v", err)
 	}
-	defer database.Close()
+	closeTestDatabase(t, database)
 	if _, err := database.GetNode("Beta"); err != nil {
 		t.Fatalf("expected Beta in refreshed database: %v", err)
 	}
@@ -104,7 +104,7 @@ func TestNodeRenameUpdatesReferencesAndRefreshesDatabase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open refreshed database: %v", err)
 	}
-	defer database.Close()
+	closeTestDatabase(t, database)
 	if _, err := database.GetNode("Gamma"); err != nil {
 		t.Fatalf("expected Gamma in refreshed database: %v", err)
 	}
@@ -177,6 +177,15 @@ func setupNodeCommandProject(t *testing.T, specs map[string]*node.Spec) string {
 	}
 	t.Setenv("GDC_CONFIG", configPath)
 	return projectRoot
+}
+
+func closeTestDatabase(t *testing.T, database *db.Database) {
+	t.Helper()
+	t.Cleanup(func() {
+		if err := database.Close(); err != nil {
+			t.Errorf("close test database: %v", err)
+		}
+	})
 }
 
 func testNodeSpec(id string) *node.Spec {

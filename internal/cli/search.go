@@ -333,11 +333,7 @@ func isBinaryFile(path string) bool {
 		"yarn.lock":         true,
 		"pnpm-lock.yaml":    true,
 	}
-	if lockedFiles[base] {
-		return true
-	}
-
-	return false
+	return lockedFiles[base]
 }
 
 func outputSearchResults(pattern string, results []SearchResult, hasProject bool) {

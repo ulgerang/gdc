@@ -409,15 +409,15 @@ func generateInterfaceCode(spec *node.Spec) string {
 
 	// Header
 	if spec.Node.Type == "interface" {
-		sb.WriteString(fmt.Sprintf("interface %s {\n", spec.Node.ID))
+		fmt.Fprintf(&sb, "interface %s {\n", spec.Node.ID)
 	} else {
-		sb.WriteString(fmt.Sprintf("class %s {\n", spec.Node.ID))
+		fmt.Fprintf(&sb, "class %s {\n", spec.Node.ID)
 	}
 
 	// Constructors
 	for _, ctor := range spec.Interface.Constructors {
 		if ctor.Description != "" {
-			sb.WriteString(fmt.Sprintf("    // %s\n", ctor.Description))
+			fmt.Fprintf(&sb, "    // %s\n", ctor.Description)
 		} else {
 			sb.WriteString("    // ⚠️ [NEEDS DESCRIPTION]\n")
 		}
@@ -849,7 +849,7 @@ func generateGoInterfaceCode(spec *node.Spec) string {
 		} else {
 			sb.WriteString("    // ⚠️ [NEEDS DESCRIPTION]\n")
 		}
-		sb.WriteString(fmt.Sprintf("    %s %s\n", strings.Title(prop.Name), prop.Type))
+		fmt.Fprintf(&sb, "    %s %s\n", uppercaseFirst(prop.Name), prop.Type)
 	}
 
 	if len(spec.Interface.Properties) > 0 && len(spec.Interface.Methods) > 0 {
@@ -1021,12 +1021,12 @@ func toCamelCase(s string) string {
 }
 
 type extractNodeJSON struct {
-	ID         string `json:"id"`
-	Type       string `json:"type"`
-	Layer      string `json:"layer,omitempty"`
-	Namespace  string `json:"namespace,omitempty"`
-	FilePath   string `json:"file_path,omitempty"`
-	Status     string `json:"status"`
+	ID        string `json:"id"`
+	Type      string `json:"type"`
+	Layer     string `json:"layer,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+	FilePath  string `json:"file_path,omitempty"`
+	Status    string `json:"status"`
 }
 
 type extractResponsibilityJSON struct {
@@ -1037,15 +1037,15 @@ type extractResponsibilityJSON struct {
 }
 
 type extractConstructorJSON struct {
-	Signature   string     `json:"signature"`
-	Description string     `json:"description,omitempty"`
+	Signature   string             `json:"signature"`
+	Description string             `json:"description,omitempty"`
 	Parameters  []extractParamJSON `json:"parameters,omitempty"`
 }
 
 type extractMethodJSON struct {
-	Name        string     `json:"name"`
-	Signature   string     `json:"signature"`
-	Description string     `json:"description,omitempty"`
+	Name        string             `json:"name"`
+	Signature   string             `json:"signature"`
+	Description string             `json:"description,omitempty"`
 	Parameters  []extractParamJSON `json:"parameters,omitempty"`
 	Returns     extractReturnJSON  `json:"returns,omitempty"`
 }
@@ -1082,20 +1082,20 @@ type extractInterfaceJSON struct {
 }
 
 type extractDepSpecJSON struct {
-	ID            string   `json:"id"`
-	Type          string   `json:"type,omitempty"`
-	Layer         string   `json:"layer,omitempty"`
-	Status        string   `json:"status,omitempty"`
-	Methods       []string `json:"methods,omitempty"`
+	ID      string   `json:"id"`
+	Type    string   `json:"type,omitempty"`
+	Layer   string   `json:"layer,omitempty"`
+	Status  string   `json:"status,omitempty"`
+	Methods []string `json:"methods,omitempty"`
 }
 
 type extractDependencyJSON struct {
-	Target   string             `json:"target"`
-	Type     string             `json:"type,omitempty"`
-	Injection string            `json:"injection,omitempty"`
-	Optional bool               `json:"optional"`
-	Usage    string             `json:"usage,omitempty"`
-	Spec     *extractDepSpecJSON `json:"spec,omitempty"`
+	Target    string              `json:"target"`
+	Type      string              `json:"type,omitempty"`
+	Injection string              `json:"injection,omitempty"`
+	Optional  bool                `json:"optional"`
+	Usage     string              `json:"usage,omitempty"`
+	Spec      *extractDepSpecJSON `json:"spec,omitempty"`
 }
 
 type extractSourceFileJSON struct {
@@ -1114,11 +1114,11 @@ type extractTestJSON struct {
 }
 
 type extractCallerJSON struct {
-	File        string   `json:"file"`
-	Line        int      `json:"line"`
-	Function    string   `json:"function"`
-	Package     string   `json:"package,omitempty"`
-	CallSnippet string   `json:"call_snippet,omitempty"`
+	File         string   `json:"file"`
+	Line         int      `json:"line"`
+	Function     string   `json:"function"`
+	Package      string   `json:"package,omitempty"`
+	CallSnippet  string   `json:"call_snippet,omitempty"`
 	ContextLines []string `json:"context_lines,omitempty"`
 }
 
@@ -1130,16 +1130,16 @@ type extractReferenceJSON struct {
 }
 
 type extractResultJSON struct {
-	Node         extractNodeJSON         `json:"node"`
-	Responsibility extractResponsibilityJSON `json:"responsibility"`
-	Interface    extractInterfaceJSON    `json:"interface"`
-	Dependencies []extractDependencyJSON `json:"dependencies,omitempty"`
-	Implementation *extractSourceFileJSON `json:"implementation,omitempty"`
-	AdditionalFiles []extractSourceFileJSON `json:"additional_files,omitempty"`
-	Tests        []extractTestJSON       `json:"tests,omitempty"`
-	Callers      []extractCallerJSON     `json:"callers,omitempty"`
-	References   []extractReferenceJSON  `json:"references,omitempty"`
-	Warnings     []string                `json:"warnings,omitempty"`
+	Node            extractNodeJSON           `json:"node"`
+	Responsibility  extractResponsibilityJSON `json:"responsibility"`
+	Interface       extractInterfaceJSON      `json:"interface"`
+	Dependencies    []extractDependencyJSON   `json:"dependencies,omitempty"`
+	Implementation  *extractSourceFileJSON    `json:"implementation,omitempty"`
+	AdditionalFiles []extractSourceFileJSON   `json:"additional_files,omitempty"`
+	Tests           []extractTestJSON         `json:"tests,omitempty"`
+	Callers         []extractCallerJSON       `json:"callers,omitempty"`
+	References      []extractReferenceJSON    `json:"references,omitempty"`
+	Warnings        []string                  `json:"warnings,omitempty"`
 }
 
 func outputExtractJSON(spec *node.Spec, deps []DependencyInfo, evidence extractEvidence, cfg *config.Config) error {

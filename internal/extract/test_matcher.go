@@ -90,7 +90,7 @@ func (m *NamingConventionTestMatcher) generateTestPatterns(spec *NodeSpec) []str
 	case "go":
 		// Go test patterns
 		patterns = append(patterns,
-			fmt.Sprintf("*_test.go"),
+			"*_test.go",
 			fmt.Sprintf("%s_test.go", strings.ToLower(spec.ID)),
 		)
 		// Check for test files with the node name

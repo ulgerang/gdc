@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"strings"
 	"text/template"
 )
 
@@ -255,56 +254,3 @@ This component is called from the following locations:
 {{.Node.Metadata.Notes}}
 {{end}}
 `
-
-// generateInterfaceCode generates interface code for a node spec.
-// This is a template function.
-func generateInterfaceCode(node *NodeSpec) string {
-	var sb strings.Builder
-
-	// Header
-	if node.Type == "interface" {
-		sb.WriteString(fmt.Sprintf("interface %s {\n", node.ID))
-	} else {
-		sb.WriteString(fmt.Sprintf("class %s {\n", node.ID))
-	}
-
-	// Constructors
-	for _, ctor := range node.Interface.Constructors {
-		if ctor.Description != "" {
-			sb.WriteString(fmt.Sprintf("    // %s\n", ctor.Description))
-		} else {
-			sb.WriteString("    // ⚠️ [NEEDS DESCRIPTION]\n")
-		}
-		sb.WriteString(fmt.Sprintf("    %s;\n", ctor.Signature))
-	}
-
-	if len(node.Interface.Constructors) > 0 && len(node.Interface.Methods) > 0 {
-		sb.WriteString("\n")
-	}
-
-	// Methods
-	for _, method := range node.Interface.Methods {
-		if method.Description != "" {
-			sb.WriteString(fmt.Sprintf("    // %s\n", method.Description))
-		} else {
-			sb.WriteString("    // ⚠️ [NEEDS DESCRIPTION]\n")
-		}
-		sb.WriteString(fmt.Sprintf("    %s;\n", method.Signature))
-	}
-
-	// Properties
-	if len(node.Interface.Properties) > 0 {
-		sb.WriteString("\n")
-		for _, prop := range node.Interface.Properties {
-			if prop.Description != "" {
-				sb.WriteString(fmt.Sprintf("    // %s\n", prop.Description))
-			} else {
-				sb.WriteString("    // ⚠️ [NEEDS DESCRIPTION]\n")
-			}
-			sb.WriteString(fmt.Sprintf("    %s %s { %s; }\n", prop.Type, prop.Name, prop.Access))
-		}
-	}
-
-	sb.WriteString("}")
-	return sb.String()
-}

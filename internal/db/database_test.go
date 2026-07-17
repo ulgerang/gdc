@@ -2,6 +2,7 @@ package db
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -13,7 +14,11 @@ func TestInitSchemaResetsLegacyNodesTableAndAllowsFunctionType(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open db: %v", err)
 	}
-	defer database.Close()
+	t.Cleanup(func() {
+		if err := database.Close(); err != nil {
+			t.Errorf("failed to close db: %v", err)
+		}
+	})
 
 	_, err = database.conn.Exec(`
 		CREATE TABLE nodes (
@@ -47,13 +52,39 @@ func TestInitSchemaResetsLegacyNodesTableAndAllowsFunctionType(t *testing.T) {
 
 	err = database.UpsertNode(&NodeRecord{
 		QualifiedID: "ValidateConfigOwnershipMatrix",
-		ID:        "ValidateConfigOwnershipMatrix",
-		Type:      "function",
-		Status:    "implemented",
-		SpecPath:  ".gdc/nodes/ValidateConfigOwnershipMatrix.yaml",
-		UpdatedAt: time.Now(),
+		ID:          "ValidateConfigOwnershipMatrix",
+		Type:        "function",
+		Status:      "implemented",
+		SpecPath:    ".gdc/nodes/ValidateConfigOwnershipMatrix.yaml",
+		UpdatedAt:   time.Now(),
 	})
 	if err != nil {
 		t.Fatalf("expected function type to be accepted after schema init, got %v", err)
+	}
+}
+
+func TestGetStatsReturnsContextualErrorWhenDatabaseIsClosed(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "graph.db")
+
+	database, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("failed to open db: %v", err)
+	}
+	if err := database.InitSchema(); err != nil {
+		t.Fatalf("failed to init schema: %v", err)
+	}
+	if err := database.Close(); err != nil {
+		t.Fatalf("failed to close db: %v", err)
+	}
+
+	stats, err := database.GetStats()
+	if err == nil {
+		t.Fatal("expected GetStats to report the closed database")
+	}
+	if stats != nil {
+		t.Fatalf("expected no partial statistics, got %#v", stats)
+	}
+	if !strings.Contains(err.Error(), "count nodes") {
+		t.Fatalf("expected node count context, got %v", err)
 	}
 }

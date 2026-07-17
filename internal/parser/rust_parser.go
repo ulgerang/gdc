@@ -213,9 +213,7 @@ func (p *RustParser) parseRustStructBlock(lines []string, node *ExtractedNode) {
 		if line == "" {
 			continue
 		}
-		if strings.HasSuffix(line, ",") {
-			line = strings.TrimSuffix(line, ",")
-		}
+		line = strings.TrimSuffix(line, ",")
 		colonIdx := strings.Index(line, ":")
 		if colonIdx <= 0 {
 			continue
