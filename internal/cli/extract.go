@@ -123,7 +123,7 @@ func runExtract(cmd *cobra.Command, args []string) error {
 	nodeMap := buildSpecLookup(allNodes)
 
 	// Gather dependencies
-	deps := gatherDependencies(spec, nodeMap, extractDepth)
+	deps := gatherDependencies(spec, nodeMap, extractDepth, cfg.Project.Language)
 
 	evidence, err := collectExtractEvidence(context.Background(), spec, cfg)
 	if err != nil {
@@ -358,7 +358,7 @@ func toExtractNodeSpec(spec *node.Spec) *extractctx.NodeSpec {
 	return out
 }
 
-func gatherDependencies(spec *node.Spec, nodeMap map[string]*node.Spec, depth int) []DependencyInfo {
+func gatherDependencies(spec *node.Spec, nodeMap map[string]*node.Spec, depth int, language string) []DependencyInfo {
 	var deps []DependencyInfo
 	seen := make(map[string]bool)
 
@@ -385,7 +385,7 @@ func gatherDependencies(spec *node.Spec, nodeMap map[string]*node.Spec, depth in
 
 			if exists {
 				info.Spec = depSpec
-				info.InterfaceCode = generateInterfaceCode(depSpec)
+				info.InterfaceCode = generateInterfaceCodeForLanguage(depSpec, language)
 				// Collect missing descriptions
 				info.MissingDescriptions = collectMissingDescriptions(depSpec)
 			} else {
@@ -784,6 +784,8 @@ func loadLanguageTemplate(cfg *config.Config, language string) string {
 		templateName = "implement.rust.md.j2"
 	case "python", "py":
 		templateName = "implement.python.md.j2"
+	case "gdscript", "gd":
+		templateName = "implement.gdscript.md.j2"
 	default:
 		return ""
 	}
@@ -824,6 +826,12 @@ func generateInterfaceCodeForLanguage(spec *node.Spec, language string) string {
 		return generateRustInterfaceCode(spec)
 	case "python", "py":
 		generator, err := codegen.NewGenerator("python")
+		if err == nil {
+			return generator.GenerateInterface(spec)
+		}
+		return generateInterfaceCode(spec)
+	case "gdscript", "gd":
+		generator, err := codegen.NewGenerator("gdscript")
 		if err == nil {
 			return generator.GenerateInterface(spec)
 		}

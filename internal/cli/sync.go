@@ -497,6 +497,8 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 		extensions = []string{".rs"}
 	case "python", "py":
 		extensions = []string{".py"}
+	case "gdscript", "gd":
+		extensions = []string{".gd"}
 	default:
 		return fmt.Errorf("unsupported language: %s", lang)
 	}
@@ -790,7 +792,9 @@ func isTestSourceFile(path string) bool {
 		strings.HasSuffix(base, ".test.ts") ||
 		strings.HasSuffix(base, ".spec.ts") ||
 		(strings.HasPrefix(base, "test_") && strings.HasSuffix(base, ".py")) ||
-		strings.HasSuffix(base, "_test.py")
+		strings.HasSuffix(base, "_test.py") ||
+		(strings.HasPrefix(base, "test_") && strings.HasSuffix(base, ".gd")) ||
+		strings.HasSuffix(base, "_test.gd")
 }
 
 func hasAllowedSourceExtension(path string, extensions []string) bool {

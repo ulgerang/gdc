@@ -1,0 +1,24 @@
+schema_version: "1.0"
+node:
+    id: parseGDScriptParameters
+    type: function
+    namespace: parser
+    file_path: D:\git\26\gdc\internal\parser\gdscript_parser.go
+language_spec:
+    language: go
+    package: parser
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: parseGDScriptParameters
+          signature: parseGDScriptParameters(raw string) []ExtractedParameter
+          parameters:
+            - name: raw
+              type: string
+          returns:
+            type: '[]ExtractedParameter'
+metadata:
+    status: draft
+    origin: code_extracted
+    extracted_at: "2026-07-23"

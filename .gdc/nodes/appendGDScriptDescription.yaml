@@ -1,0 +1,26 @@
+schema_version: "1.0"
+node:
+    id: appendGDScriptDescription
+    type: function
+    namespace: parser
+    file_path: D:\git\26\gdc\internal\parser\gdscript_parser.go
+language_spec:
+    language: go
+    package: parser
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: appendGDScriptDescription
+          signature: appendGDScriptDescription(existing string, line string) string
+          parameters:
+            - name: existing
+              type: string
+            - name: line
+              type: string
+          returns:
+            type: string
+metadata:
+    status: draft
+    origin: code_extracted
+    extracted_at: "2026-07-23"

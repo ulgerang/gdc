@@ -9,7 +9,22 @@ language_spec:
     package: cli
 responsibility:
     summary: ""
+interface:
+    methods:
+        - name: gatherDependencies
+          signature: gatherDependencies(spec *node.Spec, nodeMap map[string]*node.Spec, depth int, language string) []DependencyInfo
+          parameters:
+            - name: spec
+              type: '*node.Spec'
+            - name: nodeMap
+              type: map[string]*node.Spec
+            - name: depth
+              type: int
+            - name: language
+              type: string
+          returns:
+            type: '[]DependencyInfo'
 metadata:
-    status: ""
+    status: draft
     origin: code_extracted
-    extracted_at: "2026-04-03"
+    extracted_at: "2026-07-23"

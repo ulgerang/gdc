@@ -23,6 +23,8 @@ func TestNewGenerator(t *testing.T) {
 		{"rs", false},
 		{"python", false},
 		{"py", false},
+		{"gdscript", false},
+		{"gd", false},
 		{"java", true},
 	}
 
@@ -57,6 +59,8 @@ func TestGeneratorLanguage(t *testing.T) {
 		{"rs", "rust"},
 		{"python", "python"},
 		{"py", "python"},
+		{"gdscript", "gdscript"},
+		{"gd", "gdscript"},
 	}
 
 	for _, tt := range tests {
@@ -84,6 +88,27 @@ func TestGenerateInterfacePython(t *testing.T) {
 	}
 	if !strings.Contains(code, "def find_by_id(self, user_id: str) -> User:") {
 		t.Fatalf("expected Python method declaration, got:\n%s", code)
+	}
+}
+
+func TestGenerateInterfaceGDScript(t *testing.T) {
+	g, err := NewGenerator("gdscript")
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec := &node.Spec{
+		Node: node.NodeInfo{ID: "SlotController", Type: "class"},
+		Interface: node.Interface{
+			Properties: []node.Property{{Name: "coins", Type: "int", Access: "get; set"}},
+			Events:     []node.Event{{Name: "spin_resolved", Signature: "spin_resolved(result: SpinResult)"}},
+			Methods:    []node.Method{{Name: "spin", Signature: "spin(seed: int) -> SpinResult"}},
+		},
+	}
+	code := g.GenerateInterface(spec)
+	for _, expected := range []string{"class_name SlotController", "extends RefCounted", "signal spin_resolved(result: SpinResult)", "var coins: int", "func spin(seed: int) -> SpinResult:"} {
+		if !strings.Contains(code, expected) {
+			t.Fatalf("expected %q in GDScript contract:\n%s", expected, code)
+		}
 	}
 }
 

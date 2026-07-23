@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	ctxDepth      int
-	ctxWithImpl   bool
-	ctxWithTests  bool
+	ctxDepth       int
+	ctxWithImpl    bool
+	ctxWithTests   bool
 	ctxWithCallers bool
 )
 
@@ -61,7 +61,7 @@ func runContext(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("node %s not found", nodeID)
 	}
 
-	deps := gatherDependencies(spec, lookup, ctxDepth)
+	deps := gatherDependencies(spec, lookup, ctxDepth, cfg.Project.Language)
 
 	var evidence extractEvidence
 	if ctxWithImpl || ctxWithTests || ctxWithCallers {
@@ -86,8 +86,8 @@ func runContext(cmd *cobra.Command, args []string) error {
 }
 
 type extractFlags struct {
-	impl   bool
-	tests  bool
+	impl    bool
+	tests   bool
 	callers bool
 }
 
@@ -129,9 +129,9 @@ type contextInterface struct {
 }
 
 type contextConstructor struct {
-	Signature   string               `json:"signature"`
-	Description string               `json:"description"`
-	Parameters  []contextParameter   `json:"parameters"`
+	Signature   string             `json:"signature"`
+	Description string             `json:"description"`
+	Parameters  []contextParameter `json:"parameters"`
 }
 
 type contextMethod struct {
@@ -167,21 +167,21 @@ type contextEvent struct {
 }
 
 type contextDepSpec struct {
-	ID             string `json:"id"`
-	Type           string `json:"type"`
-	Layer          string `json:"layer"`
-	Status         string `json:"status"`
-	InterfaceCode  string `json:"interface_code,omitempty"`
+	ID            string `json:"id"`
+	Type          string `json:"type"`
+	Layer         string `json:"layer"`
+	Status        string `json:"status"`
+	InterfaceCode string `json:"interface_code,omitempty"`
 }
 
 type contextDep struct {
-	Target    string           `json:"target"`
-	Type      string           `json:"type"`
-	Injection string           `json:"injection"`
-	Optional  bool             `json:"optional"`
-	Usage     string           `json:"usage"`
-	Depth     int              `json:"depth"`
-	Spec      *contextDepSpec  `json:"spec,omitempty"`
+	Target    string          `json:"target"`
+	Type      string          `json:"type"`
+	Injection string          `json:"injection"`
+	Optional  bool            `json:"optional"`
+	Usage     string          `json:"usage"`
+	Depth     int             `json:"depth"`
+	Spec      *contextDepSpec `json:"spec,omitempty"`
 }
 
 type contextOutput struct {
@@ -212,8 +212,8 @@ func buildContextOutput(spec *node.Spec, canonical string, deps []DependencyInfo
 			Invariants: spec.Responsibility.Invariants,
 			Boundaries: spec.Responsibility.Boundaries,
 		},
-		Interface:     convertInterface(spec.Interface),
-		Dependencies:  convertDeps(deps),
+		Interface:      convertInterface(spec.Interface),
+		Dependencies:   convertDeps(deps),
 		Implementation: nil,
 		Tests:          nil,
 		Callers:        nil,

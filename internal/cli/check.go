@@ -778,6 +778,13 @@ func symbolExistsInSource(lang, content, nodeID, nodeType string) bool {
 		} else {
 			patterns = append(patterns, fmt.Sprintf(`(?m)^\s*class\s+%s(?:\s*\(|\s*:)`, regexp.QuoteMeta(nodeID)))
 		}
+	case "gdscript", "gd":
+		if nodeType == "function" {
+			patterns = append(patterns, fmt.Sprintf(`(?m)^\s*(?:static\s+)?func\s+%s\s*\(`, regexp.QuoteMeta(nodeID)))
+		} else {
+			patterns = append(patterns, fmt.Sprintf(`(?m)^\s*class_name\s+%s\b`, regexp.QuoteMeta(nodeID)))
+			patterns = append(patterns, fmt.Sprintf(`(?m)^\s*class\s+%s(?:\s+extends\s+[A-Za-z_][A-Za-z0-9_.]*)?\s*:`, regexp.QuoteMeta(nodeID)))
+		}
 	default:
 		patterns = append(patterns, fmt.Sprintf(`\b%s\b`, regexp.QuoteMeta(nodeID)))
 	}

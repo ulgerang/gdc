@@ -1,0 +1,24 @@
+schema_version: "1.0"
+node:
+    id: gdscriptConstructorSignature
+    type: function
+    namespace: codegen
+    file_path: D:\git\26\gdc\internal\codegen\codegen.go
+language_spec:
+    language: go
+    package: codegen
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: gdscriptConstructorSignature
+          signature: gdscriptConstructorSignature(signature string) string
+          parameters:
+            - name: signature
+              type: string
+          returns:
+            type: string
+metadata:
+    status: draft
+    origin: code_extracted
+    extracted_at: "2026-07-23"

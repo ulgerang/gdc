@@ -514,3 +514,14 @@ func TestIsTestSourceFileRecognizesPythonConventions(t *testing.T) {
 		t.Fatal("production Python source must not be treated as a test")
 	}
 }
+
+func TestIsTestSourceFileRecognizesGDScriptConventions(t *testing.T) {
+	for _, path := range []string{"tests/test_slot_controller.gd", "slot_controller_test.gd"} {
+		if !isTestSourceFile(path) {
+			t.Fatalf("expected %s to be treated as a GDScript test source file", path)
+		}
+	}
+	if isTestSourceFile("slot_controller.gd") {
+		t.Fatal("production GDScript source must not be treated as a test")
+	}
+}

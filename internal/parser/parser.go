@@ -153,7 +153,7 @@ func (e *ExtractedNode) ToNodeSpec(oldSpec *node.Spec) *node.Spec {
 
 	// Convert methods (preserve old descriptions)
 	for _, method := range e.Methods {
-		if !method.IsPublic {
+		if !method.IsPublic && e.Type != "function" {
 			continue
 		}
 		newMethod := node.Method{
@@ -281,6 +281,8 @@ func GetParser(language string) (Parser, error) {
 		return NewRustParser(), nil
 	case "python", "py":
 		return NewPythonParser(), nil
+	case "gdscript", "gd":
+		return NewGDScriptParser(), nil
 	default:
 		return nil, fmt.Errorf("unsupported language: %s", language)
 	}

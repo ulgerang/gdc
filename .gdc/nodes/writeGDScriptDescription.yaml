@@ -1,0 +1,24 @@
+schema_version: "1.0"
+node:
+    id: writeGDScriptDescription
+    type: function
+    namespace: codegen
+    file_path: D:\git\26\gdc\internal\codegen\codegen.go
+language_spec:
+    language: go
+    package: codegen
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: writeGDScriptDescription
+          signature: writeGDScriptDescription(sb *strings.Builder, description string)
+          parameters:
+            - name: sb
+              type: '*strings.Builder'
+            - name: description
+              type: string
+metadata:
+    status: draft
+    origin: code_extracted
+    extracted_at: "2026-07-23"

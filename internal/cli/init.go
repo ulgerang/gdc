@@ -31,13 +31,14 @@ Example:
   $ gdc init --language typescript
   $ gdc init --language rust
   $ gdc init --language python
+	$ gdc init --language gdscript
   $ gdc init --language go --storage distributed`,
 	RunE: runInit,
 }
 
 func init() {
 	initCmd.Flags().StringVarP(&initLanguage, "language", "l", "csharp",
-		"primary language (csharp, typescript, go, rust, python, java)")
+		"primary language (csharp, typescript, go, rust, python, gdscript, java)")
 	initCmd.Flags().StringVarP(&initStorage, "storage", "s", "centralized",
 		"storage mode (centralized, distributed)")
 }

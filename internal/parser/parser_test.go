@@ -22,6 +22,8 @@ func TestGetParser(t *testing.T) {
 		{"rs", false, "rust"},
 		{"python", false, "python"},
 		{"py", false, "python"},
+		{"gdscript", false, "gdscript"},
+		{"gd", false, "gdscript"},
 		{"java", true, ""},
 	}
 
@@ -130,6 +132,23 @@ func TestExtractedNodeToNodeSpec(t *testing.T) {
 	}
 	if len(spec.Dependencies) > 0 && spec.Dependencies[0].Target != "ILogger" {
 		t.Errorf("expected dependency target 'ILogger', got '%s'", spec.Dependencies[0].Target)
+	}
+}
+
+func TestExtractedFunctionNodePreservesItsOwnContract(t *testing.T) {
+	extracted := &ExtractedNode{
+		ID:   "localHelper",
+		Type: "function",
+		Methods: []ExtractedMethod{{
+			Name:      "localHelper",
+			Signature: "localHelper(value string) string",
+			IsPublic:  false,
+		}},
+	}
+
+	spec := extracted.ToNodeSpec(nil)
+	if len(spec.Interface.Methods) != 1 || spec.Interface.Methods[0].Name != "localHelper" {
+		t.Fatalf("top-level function node must preserve its own contract, got %#v", spec.Interface.Methods)
 	}
 }
 

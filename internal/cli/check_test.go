@@ -263,3 +263,13 @@ pub fn bootstrap() {}
 		t.Fatal("expected rust function symbol to be detected")
 	}
 }
+
+func TestSymbolExistsInSourceSupportsGDScript(t *testing.T) {
+	content := "class_name SlotController\nextends RefCounted\n\nfunc spin(seed: int) -> int:\n\treturn seed\n"
+	if !symbolExistsInSource("gdscript", content, "SlotController", "class") {
+		t.Fatal("expected GDScript class_name symbol")
+	}
+	if !symbolExistsInSource("gd", content, "spin", "function") {
+		t.Fatal("expected GDScript function symbol")
+	}
+}

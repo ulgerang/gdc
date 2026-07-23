@@ -1,0 +1,26 @@
+schema_version: "1.0"
+node:
+    id: buildGDScriptConstructorSignature
+    type: function
+    namespace: parser
+    file_path: D:\git\26\gdc\internal\parser\gdscript_parser.go
+language_spec:
+    language: go
+    package: parser
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: buildGDScriptConstructorSignature
+          signature: buildGDScriptConstructorSignature(owner string, parameters []ExtractedParameter) string
+          parameters:
+            - name: owner
+              type: string
+            - name: parameters
+              type: '[]ExtractedParameter'
+          returns:
+            type: string
+metadata:
+    status: draft
+    origin: code_extracted
+    extracted_at: "2026-07-23"

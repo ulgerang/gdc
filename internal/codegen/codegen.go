@@ -17,6 +17,7 @@ const (
 	LangTypeScript Language = "typescript"
 	LangRust       Language = "rust"
 	LangPython     Language = "python"
+	LangGDScript   Language = "gdscript"
 )
 
 // Generator generates language-specific code representations
@@ -37,6 +38,8 @@ func NewGenerator(lang string) (*Generator, error) {
 		return &Generator{language: LangRust}, nil
 	case "python", "py":
 		return &Generator{language: LangPython}, nil
+	case "gdscript", "gd":
+		return &Generator{language: LangGDScript}, nil
 	default:
 		return nil, fmt.Errorf("unsupported language: %s", lang)
 	}
@@ -153,6 +156,8 @@ func (g *Generator) GenerateInterface(spec *node.Spec) string {
 		return g.generateRustInterface(spec)
 	case LangPython:
 		return g.generatePythonInterface(spec)
+	case LangGDScript:
+		return g.generateGDScriptInterface(spec)
 	default:
 		return g.generateCSharpInterface(spec)
 	}
@@ -421,6 +426,80 @@ func (g *Generator) generatePythonInterface(spec *node.Spec) string {
 		sb.WriteString("    pass")
 	}
 	return strings.TrimRight(sb.String(), "\n")
+}
+
+func (g *Generator) generateGDScriptInterface(spec *node.Spec) string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("class_name %s\n", spec.Node.ID))
+	sb.WriteString("extends RefCounted\n")
+
+	for _, event := range spec.Interface.Events {
+		writeGDScriptDescription(&sb, event.Description)
+		signature := strings.TrimSpace(strings.TrimPrefix(event.Signature, "signal "))
+		if signature == "" {
+			signature = event.Name + "()"
+		}
+		sb.WriteString("signal " + signature + "\n")
+	}
+	if len(spec.Interface.Events) > 0 {
+		sb.WriteString("\n")
+	}
+
+	for _, property := range spec.Interface.Properties {
+		writeGDScriptDescription(&sb, property.Description)
+		sb.WriteString(fmt.Sprintf("var %s: %s\n", property.Name, gdscriptCodegenTypeOrVariant(property.Type)))
+	}
+	if len(spec.Interface.Properties) > 0 {
+		sb.WriteString("\n")
+	}
+
+	for _, constructor := range spec.Interface.Constructors {
+		writeGDScriptDescription(&sb, constructor.Description)
+		sb.WriteString("func " + gdscriptConstructorSignature(constructor.Signature) + " -> void:\n\tpass\n\n")
+	}
+	for _, method := range spec.Interface.Methods {
+		writeGDScriptDescription(&sb, method.Description)
+		prefix := "func "
+		if method.Static {
+			prefix = "static func "
+		}
+		sb.WriteString(prefix + gdscriptCallableSignature(method) + ":\n\tpass\n\n")
+	}
+
+	return strings.TrimRight(sb.String(), "\n")
+}
+
+func gdscriptCallableSignature(method node.Method) string {
+	signature := strings.TrimSpace(method.Signature)
+	if signature == "" {
+		signature = method.Name + "()"
+	}
+	return strings.TrimSuffix(signature, ":")
+}
+
+func gdscriptConstructorSignature(signature string) string {
+	signature = strings.TrimSpace(signature)
+	open := strings.Index(signature, "(")
+	close := strings.LastIndex(signature, ")")
+	if open < 0 || close < open {
+		return "_init()"
+	}
+	return "_init(" + strings.TrimSpace(signature[open+1:close]) + ")"
+}
+
+func gdscriptCodegenTypeOrVariant(typeName string) string {
+	if strings.TrimSpace(typeName) == "" {
+		return "Variant"
+	}
+	return strings.TrimSpace(typeName)
+}
+
+func writeGDScriptDescription(sb *strings.Builder, description string) {
+	if strings.TrimSpace(description) == "" {
+		sb.WriteString("## [NEEDS DESCRIPTION]\n")
+		return
+	}
+	sb.WriteString("## " + strings.TrimSpace(description) + "\n")
 }
 
 func pythonCallableSignature(signature string, receiver bool) string {

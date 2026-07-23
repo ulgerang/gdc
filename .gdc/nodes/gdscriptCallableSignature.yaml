@@ -1,0 +1,24 @@
+schema_version: "1.0"
+node:
+    id: gdscriptCallableSignature
+    type: function
+    namespace: codegen
+    file_path: D:\git\26\gdc\internal\codegen\codegen.go
+language_spec:
+    language: go
+    package: codegen
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: gdscriptCallableSignature
+          signature: gdscriptCallableSignature(method node.Method) string
+          parameters:
+            - name: method
+              type: node.Method
+          returns:
+            type: string
+metadata:
+    status: draft
+    origin: code_extracted
+    extracted_at: "2026-07-23"
