@@ -52,6 +52,44 @@ func TestGDScriptParserUsesFileStemWithoutClassName(t *testing.T) {
 	}
 }
 
+func TestGDScriptParserKeepsInlineAnnotatedDeclarations(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "annotated_controller.gd")
+	source := `class_name AnnotatedController
+extends RefCounted
+
+## Configured wager.
+@export_range(1, 10, 1, "suffix:chips") var wager: int = 1
+@onready var reel_board: ReelBoard = ReelBoard.new()
+
+## Handles a remote spin request.
+@rpc("any_peer", "call_local") func request_spin(seed: int) -> SpinResult:
+	return reel_board.spin(seed)
+`
+	if err := os.WriteFile(path, []byte(source), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	node, err := NewGDScriptParser().ParseFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(node.Properties) != 2 || node.Properties[0].Name != "wager" || node.Properties[1].Name != "reel_board" {
+		t.Fatalf("expected two inline annotated properties, got %#v", node.Properties)
+	}
+	if node.Properties[0].Description != "Configured wager." {
+		t.Fatalf("expected pending documentation on annotated property, got %q", node.Properties[0].Description)
+	}
+	if len(node.Methods) != 1 || node.Methods[0].Name != "request_spin" || node.Methods[0].Description != "Handles a remote spin request." {
+		t.Fatalf("expected inline annotated RPC method, got %#v", node.Methods)
+	}
+	for _, dependency := range []string{"ReelBoard", "SpinResult"} {
+		if !hasGDScriptTestDependency(node.Dependencies, dependency) {
+			t.Fatalf("expected dependency %s in %#v", dependency, node.Dependencies)
+		}
+	}
+}
+
 func hasGDScriptTestMethod(methods []ExtractedMethod, name string) bool {
 	for _, method := range methods {
 		if method.Name == name {

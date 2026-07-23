@@ -1,0 +1,26 @@
+schema_version: "1.0"
+node:
+    id: findGDScriptAnnotationEnd
+    type: function
+    namespace: parser
+    file_path: D:\git\26\gdc\internal\parser\gdscript_parser.go
+language_spec:
+    language: go
+    package: parser
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: findGDScriptAnnotationEnd
+          signature: findGDScriptAnnotationEnd(value string, open int) int
+          parameters:
+            - name: value
+              type: string
+            - name: open
+              type: int
+          returns:
+            type: int
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-07-23"

@@ -62,11 +62,13 @@ func (p *GDScriptParser) ParseFile(filePath string) (*ExtractedNode, error) {
 			pendingDoc = appendGDScriptDescription(pendingDoc, doc)
 			continue
 		}
-		if strings.HasPrefix(trimmed, "@") {
-			continue
-		}
-
 		declaration := strings.TrimSpace(stripGDScriptComment(trimmed))
+		if strings.HasPrefix(declaration, "@") {
+			declaration = stripLeadingGDScriptAnnotations(declaration)
+			if declaration == "" {
+				continue
+			}
+		}
 		if matches := gdscriptClassNamePattern.FindStringSubmatch(declaration); len(matches) > 1 {
 			node.ID = matches[1]
 			node.Description = pendingDoc
@@ -133,6 +135,9 @@ func collectGDScriptDeclaration(lines []string, start int) (string, int) {
 	parens, brackets, braces := 0, 0, 0
 	for i := start; i < len(lines); i++ {
 		part := strings.TrimSpace(stripGDScriptComment(lines[i]))
+		if i == start && strings.HasPrefix(part, "@") {
+			part = stripLeadingGDScriptAnnotations(part)
+		}
 		if part == "" {
 			continue
 		}
@@ -158,6 +163,71 @@ func collectGDScriptDeclaration(lines []string, start int) (string, int) {
 		}
 	}
 	return collapseWhitespace(strings.Join(parts, " ")), len(lines) - 1
+}
+
+func stripLeadingGDScriptAnnotations(value string) string {
+	value = strings.TrimSpace(value)
+	for strings.HasPrefix(value, "@") {
+		index := 1
+		for index < len(value) {
+			char := value[index]
+			if (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9') || char == '_' {
+				index++
+				continue
+			}
+			break
+		}
+		if index == 1 {
+			return value
+		}
+		for index < len(value) && (value[index] == ' ' || value[index] == '\t') {
+			index++
+		}
+		if index < len(value) && value[index] == '(' {
+			end := findGDScriptAnnotationEnd(value, index)
+			if end < 0 {
+				return ""
+			}
+			index = end + 1
+		}
+		value = strings.TrimSpace(value[index:])
+	}
+	return value
+}
+
+func findGDScriptAnnotationEnd(value string, open int) int {
+	depth := 0
+	quote := byte(0)
+	escaped := false
+	for index := open; index < len(value); index++ {
+		char := value[index]
+		if quote != 0 {
+			if escaped {
+				escaped = false
+				continue
+			}
+			if char == '\\' {
+				escaped = true
+			} else if char == quote {
+				quote = 0
+			}
+			continue
+		}
+		if char == '\'' || char == '"' {
+			quote = char
+			continue
+		}
+		switch char {
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth == 0 {
+				return index
+			}
+		}
+	}
+	return -1
 }
 
 func parseGDScriptFunctionSignature(signature string) (ExtractedMethod, bool) {
