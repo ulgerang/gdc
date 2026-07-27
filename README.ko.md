@@ -180,12 +180,18 @@ gdc query Player
 # JSON 형식 출력
 gdc query PlayerController --format json
 
+# 파일에 매핑된 모든 노드를 기계 판독 가능한 배열로 출력
+gdc query src/Controllers/PlayerController.cs --all --format json
+
 # YAML 형식 출력
 gdc query PlayerController --format yaml
 
 # 상세 정보 (메타데이터, 구현 목록 포함)
 gdc query PlayerController --verbose
 ```
+
+구조화 출력은 stdout에 JSON 또는 YAML 문서만 기록합니다. `--all` 모드에서 매치가 없으면
+빈 배열을 반환하므로 파일 단위 컴패니언 도구가 안전하게 사용할 수 있습니다.
 
 ### gdc extract (확장 옵션)
 AI 프롬프트 생성 시 코드 증거를 옵트인으로 포함할 수 있습니다.

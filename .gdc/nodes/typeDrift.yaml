@@ -1,0 +1,26 @@
+schema_version: "1.0"
+node:
+    id: typeDrift
+    type: class
+    namespace: cli
+    file_path: D:\git\26\gdc\internal\cli\diff.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Name
+          type: string
+          access: get; set
+        - name: SpecType
+          type: string
+          access: get; set
+        - name: CodeType
+          type: string
+          access: get; set
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-07-17"

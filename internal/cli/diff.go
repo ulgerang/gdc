@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -45,10 +44,9 @@ func runDiff(cmd *cobra.Command, args []string) error {
 	}
 
 	nodesDir := cfg.NodesDir()
-	nodePath := filepath.Join(nodesDir, nodeName+".yaml")
-	spec, err := node.Load(nodePath)
+	spec, canonicalID, err := resolveDiffNodeSpec(nodesDir, nodeName)
 	if err != nil {
-		return fmt.Errorf("node %s not found: %w", nodeName, err)
+		return err
 	}
 	if strings.TrimSpace(spec.Node.FilePath) == "" {
 		return fmt.Errorf("node %s has no file_path to diff against", nodeName)
@@ -71,7 +69,7 @@ func runDiff(cmd *cobra.Command, args []string) error {
 	report := buildDriftReport(spec, extracted)
 
 	if diffFormat == "json" {
-		return outputDiffJSON(spec, report)
+		return outputDiffJSON(spec, canonicalID, report)
 	}
 
 	if report.isEmpty() {
@@ -83,20 +81,43 @@ func runDiff(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func resolveDiffNodeSpec(nodesDir, nodeName string) (*node.Spec, string, error) {
+	allNodes, err := loadAllNodes(nodesDir)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to load nodes: %w", err)
+	}
+	lookup := buildSpecLookup(allNodes)
+	spec, canonical, found := resolveNodeSpec(nodeName, lookup)
+	if !found {
+		var candidates []string
+		for _, candidate := range allNodes {
+			if candidate != nil && candidate.Node.ID == nodeName {
+				candidates = append(candidates, candidate.QualifiedID())
+			}
+		}
+		if len(candidates) > 1 {
+			sort.Strings(candidates)
+			return nil, "", fmt.Errorf("node %s is ambiguous; use one of: %s", nodeName, strings.Join(candidates, ", "))
+		}
+		return nil, "", fmt.Errorf("node %s not found", nodeName)
+	}
+	return spec, canonical, nil
+}
+
 type driftReport struct {
-	MissingMethods      []string        `json:"missing_methods,omitempty"`
-	ExtraMethods        []string        `json:"extra_methods,omitempty"`
+	MissingMethods      []string         `json:"missing_methods,omitempty"`
+	ExtraMethods        []string         `json:"extra_methods,omitempty"`
 	MethodMismatches    []signatureDrift `json:"method_mismatches,omitempty"`
-	MissingProperties   []string        `json:"missing_properties,omitempty"`
-	ExtraProperties     []string        `json:"extra_properties,omitempty"`
-	PropertyMismatches  []typeDrift     `json:"property_mismatches,omitempty"`
-	MissingEvents       []string        `json:"missing_events,omitempty"`
-	ExtraEvents         []string        `json:"extra_events,omitempty"`
+	MissingProperties   []string         `json:"missing_properties,omitempty"`
+	ExtraProperties     []string         `json:"extra_properties,omitempty"`
+	PropertyMismatches  []typeDrift      `json:"property_mismatches,omitempty"`
+	MissingEvents       []string         `json:"missing_events,omitempty"`
+	ExtraEvents         []string         `json:"extra_events,omitempty"`
 	EventMismatches     []signatureDrift `json:"event_mismatches,omitempty"`
-	MissingConstructors []string        `json:"missing_constructors,omitempty"`
-	ExtraConstructors   []string        `json:"extra_constructors,omitempty"`
-	MissingDeps         []string        `json:"missing_deps,omitempty"`
-	ExtraDeps           []string        `json:"extra_deps,omitempty"`
+	MissingConstructors []string         `json:"missing_constructors,omitempty"`
+	ExtraConstructors   []string         `json:"extra_constructors,omitempty"`
+	MissingDeps         []string         `json:"missing_deps,omitempty"`
+	ExtraDeps           []string         `json:"extra_deps,omitempty"`
 }
 
 type signatureDrift struct {
@@ -111,16 +132,16 @@ type typeDrift struct {
 	CodeType string `json:"code_type"`
 }
 
-func outputDiffJSON(spec *node.Spec, report driftReport) error {
+func outputDiffJSON(spec *node.Spec, canonicalID string, report driftReport) error {
 	type diffOutput struct {
-		Node     string      `json:"node"`
-		FilePath string      `json:"file_path"`
-		HasDrift bool        `json:"has_drift"`
+		Node     string       `json:"node"`
+		FilePath string       `json:"file_path"`
+		HasDrift bool         `json:"has_drift"`
 		Drift    *driftReport `json:"drift"`
 	}
 
 	output := diffOutput{
-		Node:     spec.Node.ID,
+		Node:     canonicalID,
 		FilePath: spec.Node.FilePath,
 		HasDrift: !report.isEmpty(),
 		Drift:    nil,

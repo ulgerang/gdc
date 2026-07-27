@@ -233,6 +233,9 @@ gdc query Player
 # JSON output
 gdc query PlayerController --format json
 
+# Machine-safe file lookup returning every mapped node
+gdc query src/Controllers/PlayerController.cs --all --format json
+
 # YAML output
 gdc query PlayerController --format yaml
 
@@ -242,6 +245,8 @@ gdc query PlayerController --verbose
 
 When a symbol is found in source files but is not yet in the graph, `gdc query` now points you
 to the matching files and suggests a scoped `gdc sync --direction code --symbols <name>` follow-up.
+Structured query formats write only the JSON or YAML document to stdout. In `--all` mode, no
+matches produce an empty array, making the command suitable for file-oriented companion tools.
 
 ### gdc sync
 Sync specs with the graph database or extract graph nodes from code. Scope-limited sync is supported

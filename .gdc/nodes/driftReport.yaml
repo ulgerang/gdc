@@ -1,0 +1,63 @@
+schema_version: "1.0"
+node:
+    id: driftReport
+    type: class
+    namespace: cli
+    file_path: D:\git\26\gdc\internal\cli\diff.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: MissingMethods
+          type: '[]string'
+          access: get; set
+        - name: ExtraMethods
+          type: '[]string'
+          access: get; set
+        - name: MethodMismatches
+          type: '[]signatureDrift'
+          access: get; set
+        - name: MissingProperties
+          type: '[]string'
+          access: get; set
+        - name: ExtraProperties
+          type: '[]string'
+          access: get; set
+        - name: PropertyMismatches
+          type: '[]typeDrift'
+          access: get; set
+        - name: MissingEvents
+          type: '[]string'
+          access: get; set
+        - name: ExtraEvents
+          type: '[]string'
+          access: get; set
+        - name: EventMismatches
+          type: '[]signatureDrift'
+          access: get; set
+        - name: MissingConstructors
+          type: '[]string'
+          access: get; set
+        - name: ExtraConstructors
+          type: '[]string'
+          access: get; set
+        - name: MissingDeps
+          type: '[]string'
+          access: get; set
+        - name: ExtraDeps
+          type: '[]string'
+          access: get; set
+dependencies:
+    - target: signatureDrift
+      type: class
+      injection: field
+    - target: typeDrift
+      type: class
+      injection: field
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-07-17"

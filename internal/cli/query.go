@@ -20,6 +20,7 @@ import (
 var (
 	queryVerbose bool
 	queryFormat  string
+	queryAll     bool
 )
 
 var queryCmd = &cobra.Command{
@@ -43,6 +44,7 @@ Examples:
 func init() {
 	queryCmd.Flags().BoolVarP(&queryVerbose, "verbose", "v", false, "show verbose output with full details")
 	queryCmd.Flags().StringVarP(&queryFormat, "format", "f", "text", "output format (text, json, yaml)")
+	queryCmd.Flags().BoolVar(&queryAll, "all", false, "return all ranked matches (structured formats return an array)")
 }
 
 func runQuery(cmd *cobra.Command, args []string) error {
@@ -56,7 +58,7 @@ func runQuery(cmd *cobra.Command, args []string) error {
 
 	// Graceful degradation: check project readiness and provide helpful guidance
 	if checkErr := search.CheckAndSuggest(cfg.ProjectRoot); checkErr != nil {
-		if search.IsGracefulError(checkErr) {
+		if search.IsGracefulError(checkErr) && queryAllowsHumanGuidance(queryFormat) {
 			printWarning("%v", checkErr)
 		}
 	}
@@ -70,6 +72,12 @@ func runQuery(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(allNodes) == 0 {
+		if queryAll && queryFormat == "json" {
+			return outputQueryMatches(nil, true)
+		}
+		if queryAll && queryFormat == "yaml" {
+			return outputQueryYAMLMatches(nil)
+		}
 		return fmt.Errorf("no nodes found in %s. Create one with: gdc node create <name>", nodesDir)
 	}
 
@@ -77,20 +85,38 @@ func runQuery(cmd *cobra.Command, args []string) error {
 	matches := findMatchingNodes(symbol, allNodes, cfg.ProjectRoot, nodesDir)
 
 	if len(matches) == 0 {
-		// No match found - suggest similar names and probe source for missing graph nodes
-		suggestions := findSimilarNodes(symbol, allNodes, cfg.ProjectRoot, nodesDir)
-		sourceHints, hintErr := findSourceHints(cfg, symbol)
-		if hintErr != nil {
-			return fmt.Errorf("failed to scan source hints: %w", hintErr)
+		if queryAll && queryFormat == "json" {
+			return outputQueryMatches(matches, true)
 		}
-		printQueryNotFound(symbol, suggestions, sourceHints)
+		if queryAll && queryFormat == "yaml" {
+			return outputQueryYAMLMatches(matches)
+		}
+		// No match found - suggest similar names and probe source for missing graph nodes
+		if queryAllowsHumanGuidance(queryFormat) {
+			suggestions := findSimilarNodes(symbol, allNodes, cfg.ProjectRoot, nodesDir)
+			sourceHints, hintErr := findSourceHints(cfg, symbol)
+			if hintErr != nil {
+				return fmt.Errorf("failed to scan source hints: %w", hintErr)
+			}
+			printQueryNotFound(symbol, suggestions, sourceHints)
+		}
 		return fmt.Errorf("node '%s' not found", symbol)
 	}
 
 	// If multiple matches, show all matching names
-	if len(matches) > 1 {
+	if len(matches) > 1 && queryAllowsHumanGuidance(queryFormat) {
 		printMultipleMatches(symbol, matches)
-		// Use the first (best) match for output
+		if queryAll {
+			return nil
+		}
+	}
+	if queryAll {
+		switch queryFormat {
+		case "json":
+			return outputQueryMatches(matches, true)
+		case "yaml":
+			return outputQueryYAMLMatches(matches)
+		}
 	}
 
 	// Use the best match
@@ -457,6 +483,33 @@ type queryNodeJSON struct {
 }
 
 func outputQueryJSON(match *queryMatch) error {
+	return outputQueryMatches([]*queryMatch{match}, false)
+}
+
+func outputQueryMatches(matches []*queryMatch, all bool) error {
+	data, err := marshalQueryMatches(matches, all)
+	if err != nil {
+		return err
+	}
+	_, err = os.Stdout.Write(append(data, '\n'))
+	return err
+}
+
+func marshalQueryMatches(matches []*queryMatch, all bool) ([]byte, error) {
+	outputs := make([]queryNodeJSON, 0, len(matches))
+	for _, match := range matches {
+		outputs = append(outputs, buildQueryNodeJSON(match))
+	}
+	if all {
+		return json.MarshalIndent(outputs, "", "  ")
+	}
+	if len(outputs) == 0 {
+		return nil, fmt.Errorf("cannot encode an empty single-match query result")
+	}
+	return json.MarshalIndent(outputs[0], "", "  ")
+}
+
+func buildQueryNodeJSON(match *queryMatch) queryNodeJSON {
 	spec := match.Spec
 	// Build dependencies list
 	var deps []string
@@ -476,7 +529,7 @@ func outputQueryJSON(match *queryMatch) error {
 		props = append(props, fmt.Sprintf("%s: %s", p.Name, p.Type))
 	}
 
-	output := queryNodeJSON{
+	return queryNodeJSON{
 		ID:             spec.Node.ID,
 		CanonicalID:    match.CanonicalID,
 		MatchedBy:      match.MatchedBy,
@@ -493,57 +546,33 @@ func outputQueryJSON(match *queryMatch) error {
 		Methods:        methods,
 		Properties:     props,
 	}
-
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "  ")
-	return enc.Encode(output)
 }
 
 func outputQueryYAML(match *queryMatch) error {
-	spec := match.Spec
-	// Build dependencies list
-	var deps []string
-	for _, d := range spec.Dependencies {
-		deps = append(deps, d.Target)
-	}
-
-	// Build methods list
-	var methods []string
-	for _, m := range spec.Interface.Methods {
-		methods = append(methods, m.Signature)
-	}
-
-	// Build properties list
-	var props []string
-	for _, p := range spec.Interface.Properties {
-		props = append(props, fmt.Sprintf("%s: %s", p.Name, p.Type))
-	}
-
-	output := queryNodeJSON{
-		ID:             spec.Node.ID,
-		CanonicalID:    match.CanonicalID,
-		MatchedBy:      match.MatchedBy,
-		Type:           spec.Node.Type,
-		Layer:          spec.Node.Layer,
-		Status:         spec.Metadata.Status,
-		Namespace:      spec.Node.Namespace,
-		QualifiedName:  queryQualifiedName(spec, match.QualifiedName),
-		SpecPath:       match.SpecPath,
-		ImplPath:       match.ImplPath,
-		Aliases:        match.Aliases,
-		Responsibility: spec.Responsibility.Summary,
-		Dependencies:   deps,
-		Methods:        methods,
-		Properties:     props,
-	}
-
-	data, err := yaml.Marshal(output)
+	data, err := yaml.Marshal(buildQueryNodeJSON(match))
 	if err != nil {
 		return fmt.Errorf("failed to marshal YAML: %w", err)
 	}
 
 	fmt.Print(string(data))
 	return nil
+}
+
+func outputQueryYAMLMatches(matches []*queryMatch) error {
+	outputs := make([]queryNodeJSON, 0, len(matches))
+	for _, match := range matches {
+		outputs = append(outputs, buildQueryNodeJSON(match))
+	}
+	data, err := yaml.Marshal(outputs)
+	if err != nil {
+		return fmt.Errorf("failed to marshal YAML: %w", err)
+	}
+	fmt.Print(string(data))
+	return nil
+}
+
+func queryAllowsHumanGuidance(format string) bool {
+	return strings.EqualFold(strings.TrimSpace(format), "text")
 }
 
 func evaluateQueryMatch(symbol, normalizedSymbol, normalizedPathSymbol string, spec *node.Spec, projectRoot, nodesDir string) *queryMatch {

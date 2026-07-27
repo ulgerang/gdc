@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,6 +10,47 @@ import (
 	"github.com/gdc-tools/gdc/internal/config"
 	"github.com/gdc-tools/gdc/internal/node"
 )
+
+func TestMarshalQueryMatchesAllReturnsEveryMatchAsJSONArray(t *testing.T) {
+	matches := []*queryMatch{
+		{Spec: &node.Spec{Node: node.NodeInfo{ID: "First", FilePath: "shared.go"}}, CanonicalID: "pkg.First", ImplPath: "shared.go"},
+		{Spec: &node.Spec{Node: node.NodeInfo{ID: "Second", FilePath: "shared.go"}}, CanonicalID: "pkg.Second", ImplPath: "shared.go"},
+	}
+
+	data, err := marshalQueryMatches(matches, true)
+	if err != nil {
+		t.Fatalf("marshalQueryMatches: %v", err)
+	}
+
+	var got []queryNodeJSON
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("decode all-match JSON: %v\n%s", err, data)
+	}
+	if len(got) != 2 || got[0].CanonicalID != "pkg.First" || got[1].CanonicalID != "pkg.Second" {
+		t.Fatalf("unexpected all-match result: %+v", got)
+	}
+}
+
+func TestMarshalQueryMatchesAllReturnsEmptyArrayForNoMatches(t *testing.T) {
+	data, err := marshalQueryMatches(nil, true)
+	if err != nil {
+		t.Fatalf("marshalQueryMatches: %v", err)
+	}
+	if strings.TrimSpace(string(data)) != "[]" {
+		t.Fatalf("expected empty JSON array, got %s", data)
+	}
+}
+
+func TestStructuredQueryOutputSuppressesHumanGuidance(t *testing.T) {
+	for _, format := range []string{"json", "yaml"} {
+		if queryAllowsHumanGuidance(format) {
+			t.Fatalf("%s output must not include human guidance", format)
+		}
+	}
+	if !queryAllowsHumanGuidance("text") {
+		t.Fatal("text output should preserve human guidance")
+	}
+}
 
 func TestFindMatchingNodesSupportsQualifiedNameAndPaths(t *testing.T) {
 	projectRoot := t.TempDir()

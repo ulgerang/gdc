@@ -1,11 +1,46 @@
 package cli
 
 import (
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/gdc-tools/gdc/internal/node"
 	"github.com/gdc-tools/gdc/internal/parser"
 )
+
+func TestResolveDiffNodeSpecAcceptsCanonicalID(t *testing.T) {
+	nodesDir := t.TempDir()
+	spec := &node.Spec{
+		Node: node.NodeInfo{ID: "runQuery", Namespace: "cli", Type: "function", FilePath: "query.go"},
+	}
+	if err := node.Save(filepath.Join(nodesDir, "runQuery.yaml"), spec); err != nil {
+		t.Fatalf("save node: %v", err)
+	}
+
+	resolved, canonical, err := resolveDiffNodeSpec(nodesDir, "cli.runQuery")
+	if err != nil {
+		t.Fatalf("resolve canonical diff node: %v", err)
+	}
+	if resolved.Node.ID != "runQuery" || canonical != "cli.runQuery" {
+		t.Fatalf("unexpected resolution: spec=%+v canonical=%q", resolved.Node, canonical)
+	}
+}
+
+func TestResolveDiffNodeSpecRejectsAmbiguousShortID(t *testing.T) {
+	nodesDir := t.TempDir()
+	for fileName, namespace := range map[string]string{"one.yaml": "one", "two.yaml": "two"} {
+		spec := &node.Spec{Node: node.NodeInfo{ID: "Widget", Namespace: namespace, Type: "class", FilePath: namespace + ".go"}}
+		if err := node.Save(filepath.Join(nodesDir, fileName), spec); err != nil {
+			t.Fatalf("save %s: %v", fileName, err)
+		}
+	}
+
+	_, _, err := resolveDiffNodeSpec(nodesDir, "Widget")
+	if err == nil || !strings.Contains(err.Error(), "ambiguous") {
+		t.Fatalf("expected explicit ambiguity error, got %v", err)
+	}
+}
 
 func TestBuildDriftReportDetectsSignatureAndDependencyChanges(t *testing.T) {
 	spec := &node.Spec{

@@ -1,0 +1,22 @@
+schema_version: "1.0"
+node:
+    id: buildQueryNodeJSON
+    type: function
+    namespace: cli
+    file_path: D:\git\26\gdc\internal\cli\query.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+dependencies:
+    - target: queryMatch
+      type: class
+      injection: method
+    - target: queryNodeJSON
+      type: class
+      injection: method
+metadata:
+    status: draft
+    origin: code_extracted
+    extracted_at: "2026-07-17"

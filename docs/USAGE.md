@@ -412,6 +412,8 @@ gdc query <symbol> [옵션]
 
 - 정확 일치 우선, 이후 부분/퍼지 매칭
 - 출력 형식 선택 가능
+- `--all`로 모든 랭크 매치를 구조화 배열로 반환
+- JSON/YAML 모드에서는 stdout에 구조화 문서만 출력
 - `--verbose`로 상세 메타데이터 확인 가능
 
 옵션:
@@ -420,6 +422,7 @@ gdc query <symbol> [옵션]
 |------|--------|------|--------|
 | `--format` | `-f` | 출력 형식 (`text`, `json`, `yaml`) | `text` |
 | `--verbose` | `-v` | 상세 정보 출력 | `false` |
+| `--all` | - | 모든 매치를 랭크 순서로 반환 | `false` |
 
 예시:
 
@@ -429,6 +432,7 @@ gdc query IInputManager
 gdc query Player --format json
 gdc query Controller --format yaml
 gdc query UserService --verbose
+gdc query src/service.go --all --format json
 ```
 
 ### gdc stats
