@@ -8,6 +8,7 @@ GDC describes itself as a design-first source of implementation context, but sch
 - Parse schema 1.1 node files strictly so unknown or misspelled contract fields fail instead of disappearing silently; preserve permissive loading for existing schema 1.0 files.
 - Add implementation-readiness validation for unresolved placeholders, incomplete behavioral contracts, missing dependencies, stale dependency hashes, and unavailable required dependency members.
 - Add `gdc extract <node> --for-implementation` to produce a source-free, transitive, lossless dependency-contract packet and fail when the contract closure is not implementation-ready.
+- Make `gdc check --verify-impl` honor schema 1.1 module type contracts as the module's concrete implementation symbols and select exact C# generic types and overloads from multi-type source files.
 - Preserve existing extract, sync, query, and verification behavior unless the new mode or schema is selected.
 
 ## Capabilities

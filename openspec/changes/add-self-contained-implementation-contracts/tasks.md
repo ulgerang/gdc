@@ -20,3 +20,9 @@
 - [x] 4.1 Run focused tests, full tests, race tests, vet, and formatting checks
 - [x] 4.2 Validate OpenSpec strictly and reconcile touched GDC nodes with implementation
 - [x] 4.3 Prove a temporary Rand-Defense-style contract fixture emits a source-free ready packet and rejects an incomplete variant
+
+## 5. Post-implementation verification hardening
+
+- [x] 5.1 Treat schema 1.1 module `interface.types` as concrete implementation symbols during `--verify-impl`
+- [x] 5.2 Select named C# generic types, preserve nested generic and multiline signatures, and match exact overloads
+- [x] 5.3 Run focused/full tests, strict OpenSpec validation, and the live Rand Defense verification probe

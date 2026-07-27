@@ -22,6 +22,14 @@ type MultiNodeParser interface {
 	ParseFileNodes(filePath string) ([]*ExtractedNode, error)
 }
 
+// NamedNodeParser is implemented by parsers that can select one named type
+// from a source file containing multiple public declarations. Verification uses
+// this before the legacy single-node ParseFile fallback so generic types and
+// module-owned symbols are matched against their actual declaration.
+type NamedNodeParser interface {
+	ParseFileNode(filePath, nodeID string) (*ExtractedNode, error)
+}
+
 // ExtractedNode contains information extracted from source code
 type ExtractedNode struct {
 	ID        string

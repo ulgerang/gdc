@@ -34,6 +34,12 @@ func (p *CSharpParser) ParseFile(filePath string) (*ExtractedNode, error) {
 	return p.regexParser.ParseFile(filePath)
 }
 
+// ParseFileNode selects one named C# declaration from a file that may contain
+// several public types.
+func (p *CSharpParser) ParseFileNode(filePath, nodeID string) (*ExtractedNode, error) {
+	return p.regexParser.ParseFileNode(filePath, nodeID)
+}
+
 // Ensure CSharpParser implements Parser interface
 var _ Parser = (*CSharpParser)(nil)
 
@@ -50,6 +56,37 @@ func (p *RegexCSharpParser) Language() string {
 	return "csharp"
 }
 
+// ParseFileNode selects and parses one named C# type. The legacy ParseFile
+// method intentionally keeps its first-type behavior for compatibility, while
+// implementation verification uses this targeted surface.
+func (p *RegexCSharpParser) ParseFileNode(filePath, nodeID string) (*ExtractedNode, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	content := string(data)
+	typeKind, declarationStart, bodyEnd, ok := findNamedCSharpType(content, nodeID)
+	if !ok {
+		return nil, nil
+	}
+
+	segment := content[declarationStart:bodyEnd]
+	extracted := &ExtractedNode{
+		ID:         nodeID,
+		Type:       normalizeCSharpTypeKind(typeKind),
+		Namespace:  p.extractNamespace(content),
+		Language:   "csharp",
+		Attributes: p.extractAttributes(segment),
+		FilePath:   filePath,
+	}
+
+	p.extractNamedConstructors(segment, extracted)
+	p.extractNamedMethods(segment, extracted)
+	p.extractNamedPropertiesAndEvents(segment, extracted)
+	return extracted, nil
+}
+
 // Regex patterns for C# parsing
 var (
 	csClassPattern       = regexp.MustCompile(`(?:public|internal|private|protected)?\s*(?:abstract|sealed|static|partial)?\s*class\s+(\w+)(?:\s*:\s*([^{]+))?`)
@@ -61,6 +98,206 @@ var (
 	csXMLDocPattern      = regexp.MustCompile(`///\s*<summary>\s*(.+?)\s*</summary>`)
 	csFieldPattern       = regexp.MustCompile(`(?:public|protected|private|internal)?\s*(?:readonly|const)?\s*(\w+(?:<[^>]+>)?(?:\[\])?)\s+(\w+)\s*(?:=|;)`)
 )
+
+func findNamedCSharpType(content, nodeID string) (kind string, declarationStart, bodyEnd int, ok bool) {
+	nodeID = strings.TrimSpace(nodeID)
+	if nodeID == "" {
+		return "", 0, 0, false
+	}
+
+	pattern := regexp.MustCompile(`(?m)(?:^|\n)[\t ]*(?:(?:public|internal|private|protected|abstract|sealed|static|partial|readonly|ref)[\t ]+)*(class|interface|struct|record(?:[\t ]+(?:class|struct))?|enum)[\t ]+` + regexp.QuoteMeta(nodeID) + `(?:[\t ]*<[^>{}\r\n]+>)?(?:[\t ]*:[^{]+)?\s*\{`)
+	match := pattern.FindStringSubmatchIndex(content)
+	if match == nil {
+		return "", 0, 0, false
+	}
+
+	openOffset := strings.LastIndex(content[match[0]:match[1]], "{")
+	if openOffset < 0 {
+		return "", 0, 0, false
+	}
+	openBrace := match[0] + openOffset
+	closeBrace := findMatchingCSharpBrace(content, openBrace)
+	if closeBrace < 0 {
+		return "", 0, 0, false
+	}
+
+	kind = content[match[2]:match[3]]
+	return kind, match[0], closeBrace + 1, true
+}
+
+func normalizeCSharpTypeKind(kind string) string {
+	kind = strings.ToLower(strings.TrimSpace(kind))
+	switch kind {
+	case "record struct":
+		return "struct"
+	case "record", "record class":
+		return "class"
+	default:
+		return kind
+	}
+}
+
+func findMatchingCSharpBrace(content string, openBrace int) int {
+	depth := 0
+	inLineComment := false
+	inBlockComment := false
+	inString := false
+	inVerbatimString := false
+	inChar := false
+	escaped := false
+
+	for i := openBrace; i < len(content); i++ {
+		ch := content[i]
+		next := byte(0)
+		if i+1 < len(content) {
+			next = content[i+1]
+		}
+
+		if inLineComment {
+			if ch == '\n' {
+				inLineComment = false
+			}
+			continue
+		}
+		if inBlockComment {
+			if ch == '*' && next == '/' {
+				inBlockComment = false
+				i++
+			}
+			continue
+		}
+		if inVerbatimString {
+			if ch == '"' {
+				if next == '"' {
+					i++
+				} else {
+					inVerbatimString = false
+				}
+			}
+			continue
+		}
+		if inString {
+			if escaped {
+				escaped = false
+				continue
+			}
+			if ch == '\\' {
+				escaped = true
+				continue
+			}
+			if ch == '"' {
+				inString = false
+			}
+			continue
+		}
+		if inChar {
+			if escaped {
+				escaped = false
+				continue
+			}
+			if ch == '\\' {
+				escaped = true
+				continue
+			}
+			if ch == '\'' {
+				inChar = false
+			}
+			continue
+		}
+
+		switch {
+		case ch == '/' && next == '/':
+			inLineComment = true
+			i++
+		case ch == '/' && next == '*':
+			inBlockComment = true
+			i++
+		case ch == '@' && next == '"':
+			inVerbatimString = true
+			i++
+		case ch == '"':
+			inString = true
+		case ch == '\'':
+			inChar = true
+		case ch == '{':
+			depth++
+		case ch == '}':
+			depth--
+			if depth == 0 {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+func (p *RegexCSharpParser) extractNamedConstructors(content string, extracted *ExtractedNode) {
+	pattern := regexp.MustCompile(`(?ms)^[\t ]*(?:\[[^\]\r\n]+\][\t ]*\r?\n[\t ]*)*(public|protected|private|internal)[\t ]+` + regexp.QuoteMeta(extracted.ID) + `(?:[\t ]*<[^>{}\r\n]+>)?[\t ]*\(([^)]*)\)`)
+	for _, match := range pattern.FindAllStringSubmatch(content, -1) {
+		params := normalizeCSharpDeclarationWhitespace(match[2])
+		extracted.Constructors = append(extracted.Constructors, ExtractedConstructor{
+			Signature:  strings.TrimSpace(match[1]) + " " + extracted.ID + "(" + params + ")",
+			Parameters: p.parseParameters(params),
+		})
+		p.extractDependenciesFromParams(params, extracted)
+	}
+}
+
+func (p *RegexCSharpParser) extractNamedMethods(content string, extracted *ExtractedNode) {
+	pattern := regexp.MustCompile(`(?ms)^[\t ]*(?:\[[^\]\r\n]+\][\t ]*\r?\n[\t ]*)*(public|protected|private|internal)[\t ]+((?:(?:static|virtual|override|abstract|async|sealed|new|extern|partial)[\t ]+)*)([A-Za-z_][A-Za-z0-9_.]*(?:[\t ]*<[^;{}()]+>)?(?:[\t ]*\[\])?\??)[\t ]+([A-Za-z_][A-Za-z0-9_]*)[\t ]*\(([^)]*)\)`)
+	for _, match := range pattern.FindAllStringSubmatch(content, -1) {
+		access := strings.TrimSpace(match[1])
+		modifiers := strings.Fields(match[2])
+		returnType := normalizeCSharpDeclarationWhitespace(match[3])
+		methodName := strings.TrimSpace(match[4])
+		params := normalizeCSharpDeclarationWhitespace(match[5])
+
+		sigParts := []string{access}
+		sigParts = append(sigParts, modifiers...)
+		sigParts = append(sigParts, returnType, methodName+"("+params+")")
+		extracted.Methods = append(extracted.Methods, ExtractedMethod{
+			Name:       methodName,
+			Signature:  strings.Join(sigParts, " "),
+			Parameters: p.parseParameters(params),
+			Returns:    returnType,
+			IsPublic:   access == "public",
+			Static:     containsString(modifiers, "static"),
+			Async:      containsString(modifiers, "async"),
+			Access:     access,
+		})
+	}
+}
+
+func (p *RegexCSharpParser) extractNamedPropertiesAndEvents(content string, extracted *ExtractedNode) {
+	for _, match := range csPropertyPattern.FindAllStringSubmatch(content, -1) {
+		extracted.Properties = append(extracted.Properties, ExtractedProperty{
+			Name:     match[3],
+			Type:     match[2],
+			Access:   strings.TrimSpace(match[4]),
+			IsPublic: strings.Contains(match[0], "public"),
+		})
+	}
+	for _, match := range csEventPattern.FindAllStringSubmatch(content, -1) {
+		extracted.Events = append(extracted.Events, ExtractedEvent{
+			Name:      match[2],
+			Signature: "event " + match[1] + " " + match[2],
+			IsPublic:  strings.Contains(match[0], "public"),
+		})
+	}
+}
+
+func normalizeCSharpDeclarationWhitespace(value string) string {
+	return strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
+}
+
+func containsString(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
+}
 
 // ParseFile parses a C# source file using regex-based extraction
 func (p *RegexCSharpParser) ParseFile(filePath string) (*ExtractedNode, error) {
@@ -446,3 +683,4 @@ func (p *RegexCSharpParser) extractDependenciesFromParams(params string, node *E
 
 // Ensure RegexCSharpParser implements Parser interface
 var _ Parser = (*RegexCSharpParser)(nil)
+var _ NamedNodeParser = (*RegexCSharpParser)(nil)

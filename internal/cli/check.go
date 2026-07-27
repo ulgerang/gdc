@@ -670,6 +670,13 @@ func verifyNodeImplementation(spec *node.Spec, resolvedPath, lang string, p pars
 		return result
 	}
 
+	if strings.EqualFold(strings.TrimSpace(spec.Node.Type), "module") && len(spec.Interface.Types) > 0 {
+		extracted, moduleErr := extractModuleImplementation(spec, resolvedPath, lang, p)
+		result := implVerificationResult{extracted: extracted, err: moduleErr}
+		cache[cacheKey] = result
+		return result
+	}
+
 	extracted, err := findExtractedNodeInFile(p, resolvedPath, spec.Node.ID)
 	if err != nil {
 		result := implVerificationResult{
@@ -699,8 +706,79 @@ func verifyNodeImplementation(spec *node.Spec, resolvedPath, lang string, p pars
 	return result
 }
 
+func extractModuleImplementation(spec *node.Spec, path, lang string, p parser.Parser) (*parser.ExtractedNode, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	aggregate := &parser.ExtractedNode{
+		ID:       spec.Node.ID,
+		Type:     "module",
+		Language: lang,
+		FilePath: path,
+	}
+	var missingSymbols []string
+
+	for _, contractType := range spec.Interface.Types {
+		symbol := strings.TrimSpace(contractType.Name)
+		if symbol == "" {
+			continue
+		}
+
+		extracted, parseErr := findExtractedNodeInFile(p, path, symbol)
+		if parseErr != nil {
+			return nil, parseErr
+		}
+		if extracted == nil {
+			if !symbolExistsInSource(lang, string(content), symbol, contractTypeSourceKind(contractType.Signature)) {
+				missingSymbols = append(missingSymbols, symbol)
+			}
+			continue
+		}
+
+		aggregate.Constructors = append(aggregate.Constructors, extracted.Constructors...)
+		aggregate.Methods = append(aggregate.Methods, extracted.Methods...)
+		aggregate.Properties = append(aggregate.Properties, extracted.Properties...)
+		aggregate.Events = append(aggregate.Events, extracted.Events...)
+	}
+
+	if len(missingSymbols) > 0 {
+		sort.Strings(missingSymbols)
+		return nil, fmt.Errorf("module '%s' is missing declared implementation symbols in %s: %s", spec.Node.ID, spec.Node.FilePath, strings.Join(missingSymbols, ", "))
+	}
+	return aggregate, nil
+}
+
+func contractTypeSourceKind(signature string) string {
+	signature = strings.ToLower(signature)
+	switch {
+	case strings.Contains(signature, "interface"):
+		return "interface"
+	case strings.Contains(signature, "enum"):
+		return "enum"
+	case strings.Contains(signature, "struct"):
+		return "struct"
+	case strings.Contains(signature, "record"):
+		return "record"
+	default:
+		return "class"
+	}
+}
+
 func findExtractedNodeInFile(p parser.Parser, path, nodeID string) (*parser.ExtractedNode, error) {
 	candidateIDs := candidateSourceNodeIDs(nodeID)
+	if named, ok := p.(parser.NamedNodeParser); ok {
+		for _, candidateID := range candidateIDs {
+			extracted, err := named.ParseFileNode(path, candidateID)
+			if err != nil {
+				return nil, err
+			}
+			if extracted != nil {
+				return extracted, nil
+			}
+		}
+	}
 	if multi, ok := p.(parser.MultiNodeParser); ok {
 		extractedNodes, err := multi.ParseFileNodes(path)
 		if err != nil {
@@ -757,7 +835,7 @@ func symbolExistsInSource(lang, content, nodeID, nodeType string) bool {
 		if nodeType == "function" {
 			patterns = append(patterns, fmt.Sprintf(`\b%s\s*\(`, regexp.QuoteMeta(nodeID)))
 		} else {
-			patterns = append(patterns, fmt.Sprintf(`\b(?:class|interface|enum|record)\s+%s\b`, regexp.QuoteMeta(nodeID)))
+			patterns = append(patterns, fmt.Sprintf(`\b(?:class|interface|enum|record(?:\s+(?:class|struct))?|struct)\s+%s\b`, regexp.QuoteMeta(nodeID)))
 		}
 	case "typescript", "ts", "javascript", "js":
 		if nodeType == "function" {
@@ -803,9 +881,9 @@ func compareSpecToImplementation(spec *node.Spec, extracted *parser.ExtractedNod
 		return 0, 0, nil
 	}
 
-	methods := make(map[string]parser.ExtractedMethod, len(extracted.Methods))
+	methods := make(map[string][]parser.ExtractedMethod, len(extracted.Methods))
 	for _, method := range extracted.Methods {
-		methods[method.Name] = method
+		methods[method.Name] = append(methods[method.Name], method)
 	}
 	properties := make(map[string]parser.ExtractedProperty, len(extracted.Properties))
 	for _, prop := range extracted.Properties {
@@ -818,7 +896,14 @@ func compareSpecToImplementation(spec *node.Spec, extracted *parser.ExtractedNod
 
 	for _, method := range spec.Interface.Methods {
 		total++
-		if extractedMethod, ok := methods[method.Name]; ok && signaturesCompatible(method.Signature, extractedMethod.Signature) {
+		found := false
+		for _, extractedMethod := range methods[method.Name] {
+			if signaturesCompatible(method.Signature, extractedMethod.Signature) {
+				found = true
+				break
+			}
+		}
+		if found {
 			matched++
 			continue
 		}

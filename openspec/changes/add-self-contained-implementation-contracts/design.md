@@ -34,6 +34,8 @@ The implementation must preserve existing schema 1.0 repositories and normal ext
 
 6. **Reuse `extract` rather than add a parallel packet command.** Extract is already the documented AI-context surface. A mode flag keeps resolution, formatting, language-specific interface generation, and output handling in one command while making the stronger guarantee explicit.
 
+7. **Use module type contracts as implementation-symbol authority.** For a `node.type: module` contract, `interface.types` names the concrete source symbols that must exist in the declared file. Implementation verification aggregates their public members instead of requiring a synthetic source type whose name equals the module node ID. C# verification selects a requested type from multi-type files, preserves nested generic return signatures and multiline declarations, and compares every overload before reporting a member missing.
+
 ## Risks / Trade-offs
 
 - **[Ready contracts are more verbose]** → Only nodes opting into schema 1.1 and `implementation_contract.status: ready` pay the authoring cost.
@@ -41,6 +43,7 @@ The implementation must preserve existing schema 1.0 repositories and normal ext
 - **[Contract hashes become cumbersome]** → Reuse GDC's existing canonical spec hash and report the exact expected hash in readiness diagnostics.
 - **[Cycles could expand packets indefinitely]** → Traverse by canonical node identity with a visited set and deterministic dependency order.
 - **[Language-specific custom YAML fields may break under strict parsing]** → Schema 1.1 accepts only the documented cross-language contract. New language fields must first be added to the model and schema.
+- **[Targeted C# extraction is still lexical]** → Keep the surface verification-only, cover multi-type/generic/multiline/overload cases with regression tests, and retain compilation/tests as the behavioral authority.
 
 ## Migration Plan
 

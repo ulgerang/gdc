@@ -69,3 +69,26 @@ GDC SHALL preserve existing schema 1.0 loading and ordinary `gdc extract` behavi
 #### Scenario: Legacy project runs extract
 - **WHEN** a schema 1.0 project invokes `gdc extract <node>` without the new flag
 - **THEN** the command produces the existing prompt without requiring implementation-contract metadata
+
+### Requirement: Implementation verification SHALL honor authored module symbols
+For a schema 1.1 `node.type: module` contract, GDC SHALL treat `interface.types` as the concrete implementation symbols owned by the module and SHALL aggregate their public members for `--verify-impl` comparison.
+
+#### Scenario: Module node owns several public source types
+- **WHEN** a module node ID has no same-named source declaration but every authored `interface.types` symbol exists in its `file_path`
+- **THEN** `gdc check --verify-impl` verifies the declared symbols and their public members
+- **AND** it does not require a synthetic source type named after the module node
+
+#### Scenario: Declared module symbol is absent
+- **WHEN** any `interface.types` symbol is absent from the module source file
+- **THEN** verification fails with an `impl_missing` diagnostic naming the missing symbol
+
+### Requirement: C# verification SHALL select exact generic members
+GDC SHALL select a requested C# type from a file containing multiple declarations, preserve nested generic and multiline member signatures, and compare every same-named overload before reporting a contract member missing.
+
+#### Scenario: Generic type follows another declaration
+- **WHEN** a contract targets `ComponentStore<T>` in a file whose earlier declaration has a different name
+- **THEN** verification selects `ComponentStore<T>` and recognizes its public constructor and nested-generic methods
+
+#### Scenario: Public method has an internal overload
+- **WHEN** the source contains the contracted public method and a later internal overload with the same name
+- **THEN** verification succeeds when any overload has the exact contracted signature

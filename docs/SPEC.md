@@ -1433,6 +1433,11 @@ Please provide:
 - 의존 대상/사용법/`requires`를 포함한 의존 구조
 - logic과 `implementation_contract`
 
+`node.type: module`에서는 `interface.types`가 `file_path`에 존재해야 하는
+구체적 구현 심볼 목록이다. 모듈 노드 ID와 같은 합성 래퍼 타입은 요구하지
+않는다. C# 구현 검증은 여러 타입이 있는 파일의 named generic type, 여러 줄
+멤버 선언, overload별 정확한 시그니처를 인식해야 한다.
+
 `metadata`와 의존 엣지 안의 중첩 `contract_hash` 값은 제외한다. 따라서 다른
 체크아웃에서도 같은 계약은 같은 해시를 가지며, 순환 의존도 재귀적 해시 없이
 계산할 수 있다.

@@ -537,6 +537,11 @@ gdc check --orphan-filter "entry-point"
 gdc check --layer-strict
 ```
 
+For schema 1.1 `module` nodes, `--verify-impl` treats `interface.types` as the
+concrete source symbols owned by the module. A synthetic source type matching
+the module node ID is not required. C# verification selects named generic types
+from multi-type files and recognizes multiline declarations and overloads.
+
 ### graph
 
 ```bash

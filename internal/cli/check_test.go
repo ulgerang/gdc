@@ -8,6 +8,7 @@ import (
 
 	"github.com/gdc-tools/gdc/internal/config"
 	"github.com/gdc-tools/gdc/internal/node"
+	"github.com/gdc-tools/gdc/internal/parser"
 )
 
 func TestCheckOrphansHonorsIgnoreRules(t *testing.T) {
@@ -149,6 +150,93 @@ func TestCheckImplementationConsistencyReportsCanonicalSourceNode(t *testing.T) 
 	}
 	if issues[0].SourceNode != "tools.Agent" {
 		t.Fatalf("expected canonical source node tools.Agent, got %s", issues[0].SourceNode)
+	}
+}
+
+func TestCheckImplementationConsistencyVerifiesCSharpModuleSymbols(t *testing.T) {
+	projectRoot := t.TempDir()
+	sourcePath := filepath.Join(projectRoot, "runtime_primitives.cs")
+	if err := os.WriteFile(sourcePath, []byte(`namespace Example
+{
+    public readonly struct EntityId
+    {
+        public int Value { get; }
+    }
+
+    public sealed class RngStreamSet
+    {
+        public ulong NextUInt64(int streamId)
+        {
+            return 0;
+        }
+    }
+}
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	nodes := []*node.Spec{{
+		Node: node.NodeInfo{
+			ID:       "RuntimePrimitives",
+			Type:     "module",
+			FilePath: "runtime_primitives.cs",
+		},
+		Interface: node.Interface{
+			Types: []node.TypeContract{
+				{Name: "EntityId", Signature: "public readonly struct EntityId"},
+				{Name: "RngStreamSet", Signature: "public sealed class RngStreamSet"},
+			},
+			Methods: []node.Method{{
+				Name:      "NextUInt64",
+				Signature: "public ulong NextUInt64(int streamId)",
+			}},
+		},
+	}}
+	cfg := &config.Config{
+		ProjectRoot: projectRoot,
+		Project:     config.Project{Language: "csharp"},
+	}
+
+	if issues := checkImplementationConsistency(nodes, cfg, false); len(issues) != 0 {
+		t.Fatalf("expected module implementation to verify, got %+v", issues)
+	}
+}
+
+func TestCheckImplementationConsistencyReportsMissingCSharpModuleSymbol(t *testing.T) {
+	projectRoot := t.TempDir()
+	sourcePath := filepath.Join(projectRoot, "runtime_primitives.cs")
+	if err := os.WriteFile(sourcePath, []byte(`public sealed class RngStreamSet { }`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	nodes := []*node.Spec{{
+		Node: node.NodeInfo{ID: "RuntimePrimitives", Type: "module", FilePath: "runtime_primitives.cs"},
+		Interface: node.Interface{Types: []node.TypeContract{
+			{Name: "EntityId", Signature: "public readonly struct EntityId"},
+			{Name: "RngStreamSet", Signature: "public sealed class RngStreamSet"},
+		}},
+	}}
+	cfg := &config.Config{ProjectRoot: projectRoot, Project: config.Project{Language: "csharp"}}
+
+	issues := checkImplementationConsistency(nodes, cfg, false)
+	if len(issues) != 1 || issues[0].Category != "impl_missing" || !strings.Contains(issues[0].Message, "EntityId") {
+		t.Fatalf("expected missing module symbol diagnostic, got %+v", issues)
+	}
+}
+
+func TestCompareSpecToImplementationMatchesAnyMethodOverload(t *testing.T) {
+	spec := &node.Spec{Interface: node.Interface{Methods: []node.Method{{
+		Name:      "Execute",
+		Signature: "public Result Execute(in Call call, IHost host)",
+	}}}}
+	extracted := &parser.ExtractedNode{Methods: []parser.ExtractedMethod{
+		{Name: "Execute", Signature: "public Result Execute(in Call call, IHost host)"},
+		{Name: "Execute", Signature: "internal Result Execute(in Call call, IHost host, int stepBudget)"},
+	}}
+
+	matched, total, missing := compareSpecToImplementation(spec, extracted)
+	if matched != 1 || total != 1 || len(missing) != 0 {
+		t.Fatalf("expected public overload to match, got matched=%d total=%d missing=%v", matched, total, missing)
 	}
 }
 

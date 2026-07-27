@@ -340,3 +340,58 @@ func TestCSharpParserNormalizesGenericDependencyTargets(t *testing.T) {
 		t.Fatalf("expected generic dependency to normalize to ILogger, got %q", extracted.Dependencies[0].Target)
 	}
 }
+
+func TestCSharpParserParseFileNodeSelectsGenericTypeAndMultilineMembers(t *testing.T) {
+	tempDir := t.TempDir()
+	csCode := `namespace Example
+{
+    public sealed record EarlierType(int Value);
+
+    public sealed class ComponentStore<TComponent>
+    {
+        public ComponentStore(int initialCapacity = 0)
+        {
+        }
+
+        public IEnumerable<ComponentEntry<TComponent>> EnumerateStable()
+        {
+            return null;
+        }
+
+        public static IReadOnlyList<HostFunctionDescriptor> ComposeHostFunctions(
+            IReadOnlyList<HostFunctionDescriptor> reusable,
+            IReadOnlyList<HostFunctionDescriptor> domain)
+        {
+            return null;
+        }
+    }
+}
+`
+	filePath := filepath.Join(tempDir, "ComponentStore.cs")
+	if err := os.WriteFile(filePath, []byte(csCode), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	extracted, err := NewCSharpParser().ParseFileNode(filePath, "ComponentStore")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if extracted == nil || extracted.ID != "ComponentStore" {
+		t.Fatalf("expected targeted ComponentStore, got %+v", extracted)
+	}
+	if len(extracted.Constructors) != 1 || extracted.Constructors[0].Signature != "public ComponentStore(int initialCapacity = 0)" {
+		t.Fatalf("expected public generic-type constructor, got %+v", extracted.Constructors)
+	}
+
+	methods := make(map[string]string)
+	for _, method := range extracted.Methods {
+		methods[method.Name] = method.Signature
+	}
+	if methods["EnumerateStable"] != "public IEnumerable<ComponentEntry<TComponent>> EnumerateStable()" {
+		t.Fatalf("nested generic return was not preserved: %q", methods["EnumerateStable"])
+	}
+	wantCompose := "public static IReadOnlyList<HostFunctionDescriptor> ComposeHostFunctions(IReadOnlyList<HostFunctionDescriptor> reusable, IReadOnlyList<HostFunctionDescriptor> domain)"
+	if methods["ComposeHostFunctions"] != wantCompose {
+		t.Fatalf("multiline method was not preserved:\nwant %q\n got %q", wantCompose, methods["ComposeHostFunctions"])
+	}
+}
