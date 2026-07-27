@@ -124,16 +124,16 @@ func runExtract(cmd *cobra.Command, args []string) error {
 		nodesDir = ".gdc/nodes"
 	}
 
-	// Load target node
-	nodePath := filepath.Join(nodesDir, nodeName+".yaml")
-	spec, err := node.Load(nodePath)
-	if err != nil {
-		return fmt.Errorf("node %s not found: %w", nodeName, err)
-	}
-
 	// Load all nodes for dependency resolution
-	allNodes, _ := loadAllNodes(nodesDir)
+	allNodes, err := loadAllNodes(nodesDir)
+	if err != nil {
+		return fmt.Errorf("failed to load nodes: %w", err)
+	}
 	nodeMap := buildSpecLookup(allNodes)
+	spec, err := resolveExtractNodeSpec(nodesDir, nodeName, nodeMap)
+	if err != nil {
+		return err
+	}
 
 	// Gather dependencies. Implementation mode ignores the exploratory depth knob
 	// and closes the complete authored dependency contract transitively.
@@ -180,6 +180,26 @@ func runExtract(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func resolveExtractNodeSpec(nodesDir, nodeName string, lookup map[string]*node.Spec) (*node.Spec, error) {
+	for _, extension := range []string{".yaml", ".yml"} {
+		nodePath := filepath.Join(nodesDir, nodeName+extension)
+		if _, err := os.Stat(nodePath); err == nil {
+			spec, loadErr := node.Load(nodePath)
+			if loadErr != nil {
+				return nil, fmt.Errorf("failed to load node %s: %w", nodeName, loadErr)
+			}
+			return spec, nil
+		} else if !os.IsNotExist(err) {
+			return nil, fmt.Errorf("failed to inspect node %s: %w", nodeName, err)
+		}
+	}
+
+	if spec, _, found := resolveNodeSpec(nodeName, lookup); found {
+		return spec, nil
+	}
+	return nil, fmt.Errorf("node %s not found", nodeName)
 }
 
 func validateImplementationExtractOptions() error {

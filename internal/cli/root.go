@@ -142,11 +142,13 @@ func buildCanonicalSpecMap(nodes []*node.Spec) map[string]*node.Spec {
 func buildSpecLookup(nodes []*node.Spec) map[string]*node.Spec {
 	lookup := buildCanonicalSpecMap(nodes)
 	bareCounts := make(map[string]int, len(nodes))
+	kebabCounts := make(map[string]int, len(nodes))
 	for _, spec := range nodes {
 		if spec == nil {
 			continue
 		}
 		bareCounts[spec.Node.ID]++
+		kebabCounts[kebabCaseIdentifier(spec.Node.ID)]++
 	}
 	for _, spec := range nodes {
 		if spec == nil {
@@ -155,8 +157,45 @@ func buildSpecLookup(nodes []*node.Spec) map[string]*node.Spec {
 		if bareCounts[spec.Node.ID] == 1 {
 			lookup[spec.Node.ID] = spec
 		}
+		kebabID := kebabCaseIdentifier(spec.Node.ID)
+		if kebabID != "" && kebabCounts[kebabID] == 1 {
+			lookup[kebabID] = spec
+		}
 	}
 	return lookup
+}
+
+func kebabCaseIdentifier(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+
+	runes := []rune(value)
+	var result []rune
+	for i, current := range runes {
+		if current == '.' || current == '_' || current == '-' || unicode.IsSpace(current) {
+			if len(result) > 0 && result[len(result)-1] != '-' {
+				result = append(result, '-')
+			}
+			continue
+		}
+
+		if unicode.IsUpper(current) && len(result) > 0 && result[len(result)-1] != '-' {
+			previous := runes[i-1]
+			var next rune
+			if i+1 < len(runes) {
+				next = runes[i+1]
+			}
+			if unicode.IsLower(previous) || unicode.IsDigit(previous) ||
+				(unicode.IsUpper(previous) && unicode.IsLower(next)) {
+				result = append(result, '-')
+			}
+		}
+		result = append(result, unicode.ToLower(current))
+	}
+
+	return strings.Trim(string(result), "-")
 }
 
 func resolveNodeAlias(id string, lookup map[string]*node.Spec) string {

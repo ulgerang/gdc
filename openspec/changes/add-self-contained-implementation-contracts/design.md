@@ -36,6 +36,8 @@ The implementation must preserve existing schema 1.0 repositories and normal ext
 
 7. **Use module type contracts as implementation-symbol authority.** For a `node.type: module` contract, `interface.types` names the concrete source symbols that must exist in the declared file. Implementation verification aggregates their public members instead of requiring a synthetic source type whose name equals the module node ID. C# verification selects a requested type from multi-type files, preserves nested generic return signatures and multiline declarations, and compares every overload before reporting a member missing.
 
+8. **Share module binding and preserve node-input compatibility.** `gdc diff` uses the same module implementation aggregate as `check --verify-impl`. Node-taking commands preserve exact YAML file-stem lookup first, then resolve an unambiguous canonical ID, bare ID, or kebab-case form of the authored node ID. This permits source-free packets to use stable human-facing IDs without renaming existing YAML files.
+
 ## Risks / Trade-offs
 
 - **[Ready contracts are more verbose]** → Only nodes opting into schema 1.1 and `implementation_contract.status: ready` pay the authoring cost.
@@ -44,6 +46,7 @@ The implementation must preserve existing schema 1.0 repositories and normal ext
 - **[Cycles could expand packets indefinitely]** → Traverse by canonical node identity with a visited set and deterministic dependency order.
 - **[Language-specific custom YAML fields may break under strict parsing]** → Schema 1.1 accepts only the documented cross-language contract. New language fields must first be added to the model and schema.
 - **[Targeted C# extraction is still lexical]** → Keep the surface verification-only, cover multi-type/generic/multiline/overload cases with regression tests, and retain compilation/tests as the behavioral authority.
+- **[Aliases could silently select the wrong node]** → Register kebab-case aliases only when unique and keep exact YAML stems and canonical IDs authoritative.
 
 ## Migration Plan
 

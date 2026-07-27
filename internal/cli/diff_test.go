@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -24,6 +25,65 @@ func TestResolveDiffNodeSpecAcceptsCanonicalID(t *testing.T) {
 	}
 	if resolved.Node.ID != "runQuery" || canonical != "cli.runQuery" {
 		t.Fatalf("unexpected resolution: spec=%+v canonical=%q", resolved.Node, canonical)
+	}
+}
+
+func TestResolveDiffNodeSpecAcceptsKebabCaseID(t *testing.T) {
+	nodesDir := t.TempDir()
+	spec := &node.Spec{
+		Node: node.NodeInfo{ID: "DeterministicPropertyGraphAdapter", Type: "class", FilePath: "adapter.cs"},
+	}
+	if err := node.Save(filepath.Join(nodesDir, "deterministic-property-adapter.yaml"), spec); err != nil {
+		t.Fatalf("save node: %v", err)
+	}
+
+	resolved, canonical, err := resolveDiffNodeSpec(nodesDir, "deterministic-property-graph-adapter")
+	if err != nil {
+		t.Fatalf("resolve kebab-case diff node: %v", err)
+	}
+	if resolved.Node.ID != "DeterministicPropertyGraphAdapter" || canonical != "DeterministicPropertyGraphAdapter" {
+		t.Fatalf("unexpected kebab-case resolution: spec=%+v canonical=%q", resolved.Node, canonical)
+	}
+}
+
+func TestExtractDiffImplementationBindsModuleTypes(t *testing.T) {
+	sourcePath := filepath.Join(t.TempDir(), "runtime.cs")
+	source := `namespace Example
+{
+    public readonly struct EntityId
+    {
+        public int Value { get; }
+    }
+
+    public sealed class RngStreamSet
+    {
+        public ulong NextUInt64(int streamId) { return 0; }
+    }
+}
+`
+	if err := os.WriteFile(sourcePath, []byte(source), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+
+	spec := &node.Spec{
+		Node: node.NodeInfo{ID: "RuntimePrimitives", Type: "module", FilePath: "runtime.cs"},
+		Interface: node.Interface{
+			Types: []node.TypeContract{
+				{Name: "EntityId", Signature: "public readonly struct EntityId"},
+				{Name: "RngStreamSet", Signature: "public sealed class RngStreamSet"},
+			},
+		},
+	}
+
+	extracted, err := extractDiffImplementation(spec, sourcePath, "csharp", parser.NewCSharpParser())
+	if err != nil {
+		t.Fatalf("bind module implementation: %v", err)
+	}
+	if extracted == nil || extracted.ID != "RuntimePrimitives" {
+		t.Fatalf("expected module aggregate, got %+v", extracted)
+	}
+	if len(extracted.Methods) != 1 || extracted.Methods[0].Name != "NextUInt64" {
+		t.Fatalf("expected members from authored module type, got %+v", extracted.Methods)
 	}
 }
 

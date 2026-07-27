@@ -87,6 +87,32 @@ func TestService(t *testing.T) {
 	}
 }
 
+func TestResolveExtractNodeSpecPreservesFileStemAndAcceptsKebabCaseID(t *testing.T) {
+	nodesDir := t.TempDir()
+	spec := &node.Spec{
+		Node: node.NodeInfo{ID: "DeterministicPropertyGraphAdapter", Type: "class", FilePath: "adapter.cs"},
+	}
+	if err := node.Save(filepath.Join(nodesDir, "deterministic-property-adapter.yaml"), spec); err != nil {
+		t.Fatalf("save node: %v", err)
+	}
+
+	allNodes, err := loadAllNodes(nodesDir)
+	if err != nil {
+		t.Fatalf("load nodes: %v", err)
+	}
+	lookup := buildSpecLookup(allNodes)
+
+	for _, input := range []string{"deterministic-property-adapter", "DeterministicPropertyGraphAdapter", "deterministic-property-graph-adapter"} {
+		resolved, resolveErr := resolveExtractNodeSpec(nodesDir, input, lookup)
+		if resolveErr != nil {
+			t.Fatalf("resolve %q: %v", input, resolveErr)
+		}
+		if resolved.Node.ID != "DeterministicPropertyGraphAdapter" {
+			t.Fatalf("resolve %q returned %q", input, resolved.Node.ID)
+		}
+	}
+}
+
 func TestGeneratePromptIncludesEvidenceSections(t *testing.T) {
 	spec := &node.Spec{
 		Node:           node.NodeInfo{ID: "Service", Type: "function", Layer: "application"},

@@ -92,3 +92,24 @@ GDC SHALL select a requested C# type from a file containing multiple declaration
 #### Scenario: Public method has an internal overload
 - **WHEN** the source contains the contracted public method and a later internal overload with the same name
 - **THEN** verification succeeds when any overload has the exact contracted signature
+
+### Requirement: Diff SHALL use the implementation verifier's module binding
+For a schema 1.1 `node.type: module`, `gdc diff` SHALL aggregate the concrete symbols named by `interface.types` rather than require a same-named synthetic source declaration.
+
+#### Scenario: Module node has no same-named source declaration
+- **WHEN** `gdc diff RuntimePrimitives --format json` resolves a module whose declared source contains every authored `interface.types` symbol but no `RuntimePrimitives` declaration
+- **THEN** the command returns a JSON drift report bound to `RuntimePrimitives`
+- **AND** it does not fail with a missing `RuntimePrimitives` source symbol
+
+### Requirement: Node arguments SHALL preserve stems and accept unambiguous aliases
+Node-taking commands SHALL resolve an exact YAML file stem before unambiguous canonical, bare, or kebab-case forms of the authored node ID.
+
+#### Scenario: Existing YAML stem differs from the node ID
+- **WHEN** `deterministic-property-adapter.yaml` declares `DeterministicPropertyGraphAdapter`
+- **THEN** `gdc extract deterministic-property-adapter` continues to resolve the node
+- **AND** `gdc extract deterministic-property-graph-adapter` resolves the same node through its kebab-case ID
+
+#### Scenario: Kebab-case alias is ambiguous
+- **WHEN** more than one node would register the same kebab-case alias
+- **THEN** the alias is not registered
+- **AND** the caller must use an exact stem or canonical ID

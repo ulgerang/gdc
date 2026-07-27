@@ -26,3 +26,6 @@
 - [x] 5.1 Treat schema 1.1 module `interface.types` as concrete implementation symbols during `--verify-impl`
 - [x] 5.2 Select named C# generic types, preserve nested generic and multiline signatures, and match exact overloads
 - [x] 5.3 Run focused/full tests, strict OpenSpec validation, and the live Rand Defense verification probe
+- [x] 5.4 Reuse module implementation binding in `gdc diff`
+- [x] 5.5 Preserve exact YAML stems and resolve unambiguous kebab-case node IDs in `extract`
+- [x] 5.6 Run full regression, strict OpenSpec, and both live Rand Defense resume-condition probes

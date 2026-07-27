@@ -1437,6 +1437,9 @@ Please provide:
 구체적 구현 심볼 목록이다. 모듈 노드 ID와 같은 합성 래퍼 타입은 요구하지
 않는다. C# 구현 검증은 여러 타입이 있는 파일의 named generic type, 여러 줄
 멤버 선언, overload별 정확한 시그니처를 인식해야 한다.
+이 module 바인딩은 `check --verify-impl`과 `diff`에서 동일해야 한다. 노드 인자는
+기존의 정확한 YAML 파일 stem을 보존하면서, 모호하지 않은 canonical ID, bare ID,
+그리고 node ID의 kebab-case 별칭으로도 해석할 수 있어야 한다.
 
 `metadata`와 의존 엣지 안의 중첩 `contract_hash` 값은 제외한다. 따라서 다른
 체크아웃에서도 같은 계약은 같은 해시를 가지며, 순환 의존도 재귀적 해시 없이

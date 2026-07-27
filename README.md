@@ -541,6 +541,9 @@ For schema 1.1 `module` nodes, `--verify-impl` treats `interface.types` as the
 concrete source symbols owned by the module. A synthetic source type matching
 the module node ID is not required. C# verification selects named generic types
 from multi-type files and recognizes multiline declarations and overloads.
+`gdc diff` uses the same module binding. Node-taking commands such as `extract`
+accept an exact YAML file stem or an unambiguous canonical, bare, or kebab-case
+node ID.
 
 ### graph
 

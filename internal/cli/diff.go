@@ -58,7 +58,7 @@ func runDiff(cmd *cobra.Command, args []string) error {
 	}
 
 	resolvedPath := cfg.ResolvePath(spec.Node.FilePath)
-	extracted, err := findExtractedNodeInFile(p, resolvedPath, spec.Node.ID)
+	extracted, err := extractDiffImplementation(spec, resolvedPath, cfg.Project.Language, p)
 	if err != nil {
 		return fmt.Errorf("failed to parse %s: %w", spec.Node.FilePath, err)
 	}
@@ -79,6 +79,13 @@ func runDiff(cmd *cobra.Command, args []string) error {
 
 	printDriftReport(spec, report)
 	return nil
+}
+
+func extractDiffImplementation(spec *node.Spec, path, lang string, p parser.Parser) (*parser.ExtractedNode, error) {
+	if strings.EqualFold(strings.TrimSpace(spec.Node.Type), "module") && len(spec.Interface.Types) > 0 {
+		return extractModuleImplementation(spec, path, lang, p)
+	}
+	return findExtractedNodeInFile(p, path, spec.Node.ID)
 }
 
 func resolveDiffNodeSpec(nodesDir, nodeName string) (*node.Spec, string, error) {

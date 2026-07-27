@@ -267,6 +267,9 @@ schema 1.1의 `module` 노드는 `interface.types`를 실제 구현 심볼 목�
 사용합니다. 따라서 모듈 노드 ID와 같은 가상 래퍼 타입은 필요하지 않습니다.
 C# 검증은 여러 타입이 있는 파일에서 이름이 맞는 generic 타입을 선택하고,
 여러 줄 선언과 overload를 구분해 검사합니다.
+`gdc diff`도 동일한 module 바인딩을 사용합니다. `extract`처럼 노드 입력을 받는
+명령은 정확한 YAML 파일 stem 또는 모호하지 않은 canonical/bare/kebab-case 노드
+ID를 허용합니다.
 
 ### gdc extract
 
