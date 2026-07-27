@@ -11,6 +11,9 @@ responsibility:
     summary: ""
 interface:
     properties:
+        - name: Types
+          type: '[]TypeContract'
+          access: get; set
         - name: Constructors
           type: '[]Constructor'
           access: get; set
@@ -24,6 +27,9 @@ interface:
           type: '[]Event'
           access: get; set
 dependencies:
+    - target: TypeContract
+      type: class
+      injection: field
     - target: Constructor
       type: class
       injection: field

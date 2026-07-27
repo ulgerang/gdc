@@ -29,6 +29,15 @@ interface:
         - name: Throws
           type: '[]Throws'
           access: get; set
+        - name: Preconditions
+          type: '[]string'
+          access: get; set
+        - name: Postconditions
+          type: '[]string'
+          access: get; set
+        - name: SideEffects
+          type: '[]string'
+          access: get; set
         - name: Async
           type: bool
           access: get; set

@@ -2,6 +2,7 @@
 package node
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,16 +16,17 @@ import (
 // - Header (Universal): Node, Dependencies, Metadata - for graph traversal and integrity checks
 // - Body (Language-Specific): LanguageSpec, Interface details - for LLM code generation
 type Spec struct {
-	SchemaVersion   string         `yaml:"schema_version"`
-	Node            NodeInfo       `yaml:"node"`
-	LanguageSpec    LanguageSpec   `yaml:"language_spec,omitempty"` // Language-specific configuration
-	Responsibility  Responsibility `yaml:"responsibility"`
-	Interface       Interface      `yaml:"interface,omitempty"`
-	Dependencies    []Dependency   `yaml:"dependencies,omitempty"`
-	Implementations []string       `yaml:"implementations,omitempty"`
-	Logic           Logic          `yaml:"logic,omitempty"`
-	Metadata        Metadata       `yaml:"metadata"`
-	SourcePath      string         `yaml:"-"`
+	SchemaVersion          string                  `yaml:"schema_version"`
+	Node                   NodeInfo                `yaml:"node"`
+	LanguageSpec           LanguageSpec            `yaml:"language_spec,omitempty"` // Language-specific configuration
+	Responsibility         Responsibility          `yaml:"responsibility"`
+	Interface              Interface               `yaml:"interface,omitempty"`
+	Dependencies           []Dependency            `yaml:"dependencies,omitempty"`
+	Implementations        []string                `yaml:"implementations,omitempty"`
+	Logic                  Logic                   `yaml:"logic,omitempty"`
+	ImplementationContract *ImplementationContract `yaml:"implementation_contract,omitempty"`
+	Metadata               Metadata                `yaml:"metadata"`
+	SourcePath             string                  `yaml:"-"`
 }
 
 // NodeInfo contains basic node identification
@@ -56,14 +58,16 @@ type Responsibility struct {
 
 // Interface defines the public API of the node
 type Interface struct {
-	Constructors []Constructor `yaml:"constructors,omitempty"`
-	Methods      []Method      `yaml:"methods,omitempty"`
-	Properties   []Property    `yaml:"properties,omitempty"`
-	Events       []Event       `yaml:"events,omitempty"`
+	Types        []TypeContract `yaml:"types,omitempty"`
+	Constructors []Constructor  `yaml:"constructors,omitempty"`
+	Methods      []Method       `yaml:"methods,omitempty"`
+	Properties   []Property     `yaml:"properties,omitempty"`
+	Events       []Event        `yaml:"events,omitempty"`
 }
 
 // Constructor defines a constructor
 type Constructor struct {
+	Name        string      `yaml:"name,omitempty"`
 	Signature   string      `yaml:"signature"`
 	Parameters  []Parameter `yaml:"parameters,omitempty"`
 	Description string      `yaml:"description,omitempty"`
@@ -72,14 +76,35 @@ type Constructor struct {
 	Attributes []string `yaml:"attributes,omitempty"` // C#: [Inject], [SerializeField], etc.
 }
 
+// TypeContract defines a public DTO, record, enum, interface, or value type
+// required to understand and implement the node contract.
+type TypeContract struct {
+	Name        string          `yaml:"name"`
+	Signature   string          `yaml:"signature"`
+	Description string          `yaml:"description"`
+	Fields      []ContractField `yaml:"fields,omitempty"`
+	Values      []string        `yaml:"values,omitempty"`
+}
+
+// ContractField describes one public field or positional value in a type contract.
+type ContractField struct {
+	Name        string `yaml:"name"`
+	Type        string `yaml:"type"`
+	Description string `yaml:"description,omitempty"`
+	Constraint  string `yaml:"constraint,omitempty"`
+}
+
 // Method defines a method
 type Method struct {
-	Name        string      `yaml:"name"`
-	Signature   string      `yaml:"signature"`
-	Description string      `yaml:"description,omitempty"`
-	Parameters  []Parameter `yaml:"parameters,omitempty"`
-	Returns     Returns     `yaml:"returns,omitempty"`
-	Throws      []Throws    `yaml:"throws,omitempty"`
+	Name           string      `yaml:"name"`
+	Signature      string      `yaml:"signature"`
+	Description    string      `yaml:"description,omitempty"`
+	Parameters     []Parameter `yaml:"parameters,omitempty"`
+	Returns        Returns     `yaml:"returns,omitempty"`
+	Throws         []Throws    `yaml:"throws,omitempty"`
+	Preconditions  []string    `yaml:"preconditions,omitempty"`
+	Postconditions []string    `yaml:"postconditions,omitempty"`
+	SideEffects    []string    `yaml:"side_effects,omitempty"`
 	// Language-specific fields (Body) - LLM uses these for accurate code generation
 	Async      bool     `yaml:"async,omitempty"`      // TS: Promise return, C#: async/await
 	Access     string   `yaml:"access,omitempty"`     // C#: public, private, internal, protected
@@ -92,12 +117,14 @@ type Method struct {
 
 // Parameter defines a method parameter
 type Parameter struct {
-	Name        string `yaml:"name"`
-	Type        string `yaml:"type"`
-	Description string `yaml:"description,omitempty"`
-	Optional    bool   `yaml:"optional,omitempty"`
-	Default     string `yaml:"default,omitempty"`
-	Constraint  string `yaml:"constraint,omitempty"`
+	Name        string   `yaml:"name"`
+	Type        string   `yaml:"type"`
+	Description string   `yaml:"description,omitempty"`
+	Optional    bool     `yaml:"optional,omitempty"`
+	Default     string   `yaml:"default,omitempty"`
+	Constraint  string   `yaml:"constraint,omitempty"`
+	Examples    []string `yaml:"examples,omitempty"`
+	Enum        []string `yaml:"enum,omitempty"`
 }
 
 // Returns defines method return info
@@ -105,6 +132,7 @@ type Returns struct {
 	Type        string `yaml:"type,omitempty"`
 	Description string `yaml:"description,omitempty"`
 	Nullable    bool   `yaml:"nullable,omitempty"`
+	Constraint  string `yaml:"constraint,omitempty"`
 }
 
 // Throws defines an exception that can be thrown
@@ -137,18 +165,20 @@ type Event struct {
 
 // Dependency defines a dependency on another node
 type Dependency struct {
-	Target       string `yaml:"target"`
-	Type         string `yaml:"type,omitempty"`      // interface, class, module
-	Injection    string `yaml:"injection,omitempty"` // constructor, property, method
-	Optional     bool   `yaml:"optional,omitempty"`
-	Usage        string `yaml:"usage,omitempty"`
-	ContractHash string `yaml:"contract_hash,omitempty"`
+	Target       string   `yaml:"target"`
+	Type         string   `yaml:"type,omitempty"`      // interface, class, module
+	Injection    string   `yaml:"injection,omitempty"` // constructor, property, method
+	Optional     bool     `yaml:"optional,omitempty"`
+	Usage        string   `yaml:"usage,omitempty"`
+	ContractHash string   `yaml:"contract_hash,omitempty"`
+	Requires     []string `yaml:"requires,omitempty"`
 }
 
 // Logic contains internal implementation details
 type Logic struct {
 	StateMachine *StateMachine `yaml:"state_machine,omitempty"`
 	Algorithms   []Algorithm   `yaml:"algorithms,omitempty"`
+	Rules        []Rule        `yaml:"rules,omitempty"`
 	DataFlow     string        `yaml:"data_flow,omitempty"`
 	Pseudocode   string        `yaml:"pseudocode,omitempty"`
 }
@@ -165,6 +195,8 @@ type State struct {
 	Description string       `yaml:"description,omitempty"`
 	OnEnter     string       `yaml:"on_enter,omitempty"`
 	OnExit      string       `yaml:"on_exit,omitempty"`
+	EntryAction string       `yaml:"entry_action,omitempty"`
+	ExitAction  string       `yaml:"exit_action,omitempty"`
 	Transitions []Transition `yaml:"transitions,omitempty"`
 }
 
@@ -178,10 +210,36 @@ type Transition struct {
 
 // Algorithm describes an algorithm
 type Algorithm struct {
-	Name        string `yaml:"name"`
-	Description string `yaml:"description,omitempty"`
-	Complexity  string `yaml:"complexity,omitempty"`
-	Steps       string `yaml:"steps,omitempty"`
+	Name        string   `yaml:"name"`
+	Description string   `yaml:"description,omitempty"`
+	Complexity  string   `yaml:"complexity,omitempty"`
+	Steps       string   `yaml:"steps,omitempty"`
+	Pseudocode  string   `yaml:"pseudocode,omitempty"`
+	References  []string `yaml:"references,omitempty"`
+}
+
+// Rule describes one condition-to-action behavior contract.
+type Rule struct {
+	Name      string `yaml:"name"`
+	Condition string `yaml:"condition"`
+	Action    string `yaml:"action"`
+}
+
+// ImplementationContract marks an authored node as sufficient for source-free
+// implementation after local and dependency-closure validation succeeds.
+type ImplementationContract struct {
+	Status      string               `yaml:"status"`
+	Lifecycle   []string             `yaml:"lifecycle,omitempty"`
+	Constraints []string             `yaml:"constraints,omitempty"`
+	Acceptance  []AcceptanceScenario `yaml:"acceptance,omitempty"`
+}
+
+// AcceptanceScenario is a source-free given/when/then implementation oracle.
+type AcceptanceScenario struct {
+	ID    string   `yaml:"id"`
+	Given string   `yaml:"given"`
+	When  string   `yaml:"when"`
+	Then  []string `yaml:"then"`
 }
 
 // Metadata contains additional node information
@@ -207,9 +265,24 @@ func Load(path string) (*Spec, error) {
 		return nil, fmt.Errorf("failed to read %s: %w", path, err)
 	}
 
-	var spec Spec
-	if err := yaml.Unmarshal(data, &spec); err != nil {
+	var header struct {
+		SchemaVersion string `yaml:"schema_version"`
+	}
+	if err := yaml.Unmarshal(data, &header); err != nil {
 		return nil, fmt.Errorf("failed to parse %s: %w", path, err)
+	}
+
+	var spec Spec
+	var parseErr error
+	if strings.TrimSpace(header.SchemaVersion) == "1.1" {
+		decoder := yaml.NewDecoder(bytes.NewReader(data))
+		decoder.KnownFields(true)
+		parseErr = decoder.Decode(&spec)
+	} else {
+		parseErr = yaml.Unmarshal(data, &spec)
+	}
+	if parseErr != nil {
+		return nil, fmt.Errorf("failed to parse %s: %w", path, parseErr)
 	}
 
 	// Validate required fields
@@ -267,6 +340,13 @@ func (s *Spec) Validate() []string {
 	}
 	if !validStatuses[s.Metadata.Status] {
 		errors = append(errors, fmt.Sprintf("invalid metadata.status: %s", s.Metadata.Status))
+	}
+
+	if s.ImplementationContract != nil {
+		validReadiness := map[string]bool{"draft": true, "ready": true}
+		if !validReadiness[s.ImplementationContract.Status] {
+			errors = append(errors, fmt.Sprintf("invalid implementation_contract.status: %s", s.ImplementationContract.Status))
+		}
 	}
 
 	if s.Responsibility.Summary == "" {

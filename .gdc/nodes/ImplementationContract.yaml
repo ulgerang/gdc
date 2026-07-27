@@ -1,0 +1,33 @@
+schema_version: "1.0"
+node:
+    id: ImplementationContract
+    type: class
+    namespace: node
+    file_path: D:\git\26\gdc\internal\node\spec.go
+language_spec:
+    language: go
+    package: node
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Status
+          type: string
+          access: get; set
+        - name: Lifecycle
+          type: '[]string'
+          access: get; set
+        - name: Constraints
+          type: '[]string'
+          access: get; set
+        - name: Acceptance
+          type: '[]AcceptanceScenario'
+          access: get; set
+dependencies:
+    - target: AcceptanceScenario
+      type: class
+      injection: field
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-07-28"

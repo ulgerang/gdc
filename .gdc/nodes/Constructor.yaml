@@ -11,6 +11,9 @@ responsibility:
     summary: ""
 interface:
     properties:
+        - name: Name
+          type: string
+          access: get; set
         - name: Signature
           type: string
           access: get; set

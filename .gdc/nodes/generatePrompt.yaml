@@ -9,11 +9,30 @@ language_spec:
     package: cli
 responsibility:
     summary: ""
+interface:
+    methods:
+        - name: generatePrompt
+          signature: generatePrompt(spec *node.Spec, deps []DependencyInfo, cfg *config.Config, includeLogic bool, evidence extractEvidence, forImplementation bool) (string, error)
+          parameters:
+            - name: spec
+              type: '*node.Spec'
+            - name: deps
+              type: '[]DependencyInfo'
+            - name: cfg
+              type: '*config.Config'
+            - name: includeLogic
+              type: bool
+            - name: evidence
+              type: extractEvidence
+            - name: forImplementation
+              type: bool
+          returns:
+            type: (string, error)
 dependencies:
-    - target: extractEvidence
+    - target: cli.extractEvidence
       type: class
       injection: method
 metadata:
-    status: ""
+    status: draft
     origin: code_extracted
-    extracted_at: "2026-04-03"
+    extracted_at: "2026-07-28"

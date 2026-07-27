@@ -1,6 +1,6 @@
 schema_version: "1.0"
 node:
-    id: runExtract
+    id: validateImplementationExtractOptions
     type: function
     namespace: cli
     file_path: D:\git\26\gdc\internal\cli\extract.go
@@ -11,16 +11,11 @@ responsibility:
     summary: ""
 interface:
     methods:
-        - name: runExtract
-          signature: runExtract(cmd *cobra.Command, args []string) error
-          parameters:
-            - name: cmd
-              type: '*cobra.Command'
-            - name: args
-              type: '[]string'
+        - name: validateImplementationExtractOptions
+          signature: validateImplementationExtractOptions() error
           returns:
             type: error
 metadata:
-    status: draft
+    status: ""
     origin: code_extracted
     extracted_at: "2026-07-28"

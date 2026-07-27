@@ -276,6 +276,10 @@ Include code evidence as opt-in when generating AI prompts.
 # Basic prompt (specs + dependency interfaces only)
 gdc extract PlayerController
 
+# Source-free implementation packet. Requires a complete schema 1.1
+# implementation contract and validates the full dependency closure.
+gdc extract PlayerController --for-implementation
+
 # Include implementation code
 gdc extract PlayerController --with-impl
 
@@ -297,6 +301,15 @@ gdc extract PlayerController --output prompt.md
 # Use different template
 gdc extract PlayerController --template review
 ```
+
+`--for-implementation` is the only extract mode that claims the authored `.gdc`
+contracts are sufficient to implement the target without repository source context.
+It fails on unknown schema fields, unresolved placeholders, missing behavioral or
+acceptance contracts, missing dependency members, and stale `contract_hash` values.
+`contract_hash` is not a Git commit or source hash; it is GDC's fingerprint of the
+dependency's authored contract, and readiness errors report the current value to use.
+The mode cannot be combined with `--with-impl`, `--with-tests`, or `--with-callers`.
+Ordinary extract remains the exploratory, backward-compatible mode.
 
 ### gdc graph
 Export the dependency graph in various formats.

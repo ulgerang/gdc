@@ -1057,13 +1057,21 @@ gdc watch --check             # 동기화 + 검증
 특정 노드를 구현하기 위한 최적화된 프롬프트를 생성합니다.
 
 ```bash
-gdc extract <NodeName> [--template <name>] [--output <file>] [--depth <n>]
+gdc extract <NodeName> [--template <name>] [--output <file>] [--depth <n>] [--for-implementation]
 
 # 예시
 gdc extract PlayerController
 gdc extract PlayerController --template implement
 gdc extract PlayerController --output prompt.md
+gdc extract PlayerController --for-implementation
 ```
+
+`--for-implementation` requires schema 1.1 and an
+`implementation_contract.status: ready` target. It rejects unknown fields,
+placeholder values, incomplete behavior or acceptance contracts, missing required
+dependency members, and stale contract hashes. The output contains the complete
+transitive dependency contract closure and no implementation, test, caller, or
+reference source evidence.
 
 **옵션:**
 | 옵션 | 기본값 | 설명 |
@@ -1412,20 +1420,24 @@ Please provide:
 
 ### 7.1. Spec Hash
 
-노드의 **공개 인터페이스 변경**을 감지하기 위한 해시.
+노드 계약 변경을 감지하기 위한 8자리 SHA-256 지문이다. Git 커밋이나 소스
+파일 해시가 아니다.
 
-**포함 항목:**
-- `interface.methods[*].signature`
-- `interface.properties[*].type` + `access`
-- `interface.events[*].signature`
-- `interface.constructors[*].signature`
+**schema 1.0:** 기존 호환성을 위해 생성자/메서드 시그니처, 속성 타입과 접근,
+이벤트 시그니처만 포함한다.
 
-**제외 항목:**
-- `description`, `usage` 등 문서적 내용
-- `metadata`
-- `logic` (내부 구현 상세)
+**schema 1.1:** 소스 없는 구현 보장을 위해 다음 계약을 포함한다.
 
-**계산:**
+- 로컬 `file_path`를 제외한 노드 식별 정보와 `language_spec`
+- 책임, 공개 타입, 전체 인터페이스와 행동 계약
+- 의존 대상/사용법/`requires`를 포함한 의존 구조
+- logic과 `implementation_contract`
+
+`metadata`와 의존 엣지 안의 중첩 `contract_hash` 값은 제외한다. 따라서 다른
+체크아웃에서도 같은 계약은 같은 해시를 가지며, 순환 의존도 재귀적 해시 없이
+계산할 수 있다.
+
+**schema 1.0 계산(호환 모드):**
 ```python
 def calculate_spec_hash(node):
     parts = []
@@ -1455,7 +1467,7 @@ def calculate_impl_hash(file_path):
 
 ### 7.3. Contract Hash
 
-의존 시점의 대상 노드 인터페이스 해시.
+의존 시점의 대상 `.gdc` 계약 해시. Git 커밋이나 구현 소스 해시가 아니다.
 
 ```python
 # A가 B를 의존할 때

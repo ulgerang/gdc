@@ -63,6 +63,9 @@ interface:
         - name: Logic
           type: Logic
           access: get; set
+        - name: ImplementationContract
+          type: '*ImplementationContract'
+          access: get; set
         - name: Metadata
           type: Metadata
           access: get; set
@@ -86,6 +89,9 @@ dependencies:
       type: class
       injection: field
     - target: Logic
+      type: class
+      injection: field
+    - target: ImplementationContract
       type: class
       injection: field
     - target: Metadata

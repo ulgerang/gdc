@@ -17,6 +17,9 @@ interface:
         - name: Algorithms
           type: '[]Algorithm'
           access: get; set
+        - name: Rules
+          type: '[]Rule'
+          access: get; set
         - name: DataFlow
           type: string
           access: get; set
@@ -28,6 +31,9 @@ dependencies:
       type: class
       injection: field
     - target: Algorithm
+      type: class
+      injection: field
+    - target: Rule
       type: class
       injection: field
 metadata:

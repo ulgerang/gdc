@@ -26,7 +26,22 @@ interface:
         - name: Usage
           type: string
           access: get; set
+        - name: ContractHash
+          type: string
+          access: get; set
+        - name: Requires
+          type: '[]string'
+          access: get; set
+        - name: RequiredMembers
+          type: string
+          access: get; set
         - name: InterfaceCode
+          type: string
+          access: get; set
+        - name: ContractDetails
+          type: string
+          access: get; set
+        - name: ContractYAML
           type: string
           access: get; set
         - name: Spec
@@ -37,6 +52,6 @@ interface:
           access: get; set
           description: List of methods/properties that need documentation
 metadata:
-    status: ""
+    status: draft
     origin: code_extracted
-    extracted_at: "2026-04-03"
+    extracted_at: "2026-07-28"

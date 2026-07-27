@@ -23,6 +23,12 @@ interface:
         - name: OnExit
           type: string
           access: get; set
+        - name: EntryAction
+          type: string
+          access: get; set
+        - name: ExitAction
+          type: string
+          access: get; set
         - name: Transitions
           type: '[]Transition'
           access: get; set

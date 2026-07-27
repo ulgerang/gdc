@@ -31,5 +31,8 @@ interface:
         - name: ContractHash
           type: string
           access: get; set
+        - name: Requires
+          type: '[]string'
+          access: get; set
 metadata:
     status: draft

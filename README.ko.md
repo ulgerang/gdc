@@ -200,6 +200,10 @@ AI 프롬프트 생성 시 코드 증거를 옵트인으로 포함할 수 있습
 # 기본 프롬프트 (스펙 + 의존성 인터페이스만)
 gdc extract PlayerController
 
+# 저장소 소스 없이 구현 가능한 패킷. 완전한 schema 1.1 구현 계약과
+# 전체 의존 계약 closure를 엄격하게 검증합니다.
+gdc extract PlayerController --for-implementation
+
 # 구현 코드 포함
 gdc extract PlayerController --with-impl
 
@@ -221,6 +225,14 @@ gdc extract PlayerController --output prompt.md
 # 다른 템플릿 사용
 gdc extract PlayerController --template review
 ```
+
+`--for-implementation`만이 `.gdc` 계약만으로 대상 구현에 충분하다고 판정하는
+모드입니다. 알 수 없는 스키마 필드, 미확정 placeholder, 행동/acceptance 계약
+누락, 존재하지 않는 의존 멤버, 오래된 `contract_hash`가 있으면 패킷 생성을
+거부합니다. `contract_hash`는 Git 커밋이나 소스 해시가 아니라 의존 `.gdc`
+계약 내용의 지문이며, 준비도 오류가 현재 입력해야 할 값을 알려줍니다.
+`--with-impl`, `--with-tests`, `--with-callers`와 함께 사용할 수
+없으며, 일반 extract는 기존 탐색 모드로 호환됩니다.
 
 ### gdc graph
 의존성 그래프를 다양한 형식으로 내보냅니다.

@@ -1,5 +1,5 @@
 # GDC Node Specification Schema
-# Version: 1.0.0
+# Version: 1.1.0
 # 
 # 이 파일은 노드 명세 YAML 파일의 표준 스키마를 정의합니다.
 # 각 필드에 대한 상세 설명과 예시를 포함합니다.
@@ -8,7 +8,7 @@
 # ROOT SCHEMA
 # ═══════════════════════════════════════════════════════════════════════════════
 
-schema_version: "1.0"  # 스키마 버전 (필수)
+schema_version: "1.1"  # 1.0=legacy permissive, 1.1=strict implementation contract
 
 # ─────────────────────────────────────────────────────────────────────────────────
 # NODE: 노드 기본 정보
@@ -42,34 +42,47 @@ responsibility:
 # INTERFACE: 공개 인터페이스 정의
 # ─────────────────────────────────────────────────────────────────────────────────
 interface:
+  types:                        # 공개 DTO/record/enum/value 계약 (선택)
+    - name: string
+      signature: string
+      description: string
+      fields:
+        - name: string
+          type: string
+          description: string
+          constraint: string
+      values: [string]          # enum/closed-value 목록 (선택)
   constructors:                 # 생성자 목록 (선택)
-    - signature: string         # 전체 시그니처
+    - name: string              # 생성자 식별 이름 (선택)
+      signature: string         # 전체 시그니처
       description: string       # 설명
       parameters:               # 파라미터 목록
         - name: string
           type: string
           description: string
-          default: any          # 기본값 (선택)
+          default: string       # 기본값 (선택)
   
   methods:                      # 메서드 목록 (선택)
     - name: string              # 메서드 이름 (필수)
       signature: string         # 전체 시그니처 (필수)
-      description: string       # 설명 (선택)
+      description: string       # 설명 (ready 계약에서는 필수)
       parameters:               # 파라미터 목록
         - name: string
           type: string
           description: string
           constraint: string    # 제약 조건 (선택)
-          examples: [any]       # 예시 값들 (선택)
+          examples: [string]    # 예시 값들 (선택)
+          enum: [string]        # 허용된 closed 값 목록 (선택)
       returns:                  # 반환값 정보
         type: string
-        description: string
+        description: string     # ready 계약에서는 필수
         constraint: string      # 제약 조건 (선택)
       throws:                   # 예외 목록 (선택)
         - type: string
           condition: string
-      preconditions: [string]   # 사전 조건 (선택)
-      postconditions: [string]  # 사후 조건 (선택)
+      preconditions: [string]   # 사전 조건 (ready는 행동 필드/throws 중 하나 필수)
+      postconditions: [string]  # 사후 조건 (ready는 행동 필드/throws 중 하나 필수)
+      side_effects: [string]    # 상태/외부 효과 (ready는 행동 필드/throws 중 하나 필수)
       async: boolean            # 비동기 여부 (기본: false)
   
   properties:                   # 속성 목록 (선택)
@@ -86,9 +99,7 @@ interface:
     - name: string              # 이벤트 이름 (필수)
       signature: string         # 전체 시그니처 (필수)
       description: string       # 설명 (선택)
-      payload:                  # 페이로드 정보 (선택)
-        - name: string
-          type: string
+      payload: string           # payload type/signature (선택)
 
 # ─────────────────────────────────────────────────────────────────────────────────
 # DEPENDENCIES: 의존성 정의 (Edges)
@@ -105,7 +116,8 @@ dependencies:
       # - method:      메서드 주입
     optional: boolean           # 선택적 의존성 여부 (기본: false)
     usage: string               # 사용 방식 설명 (멀티라인)
-    contract_hash: string       # 의존 시점의 대상 spec_hash (자동 생성)
+    contract_hash: string       # Git 해시가 아닌 대상 .gdc 계약 지문 (ready 필수)
+    requires: [string]          # 실제 구현에서 사용하는 대상 public member 이름
 
 # ─────────────────────────────────────────────────────────────────────────────────
 # LOGIC: 내부 로직 스펙 (선택)
@@ -139,6 +151,19 @@ logic:
 # ─────────────────────────────────────────────────────────────────────────────────
 implementations:                # 이 인터페이스를 구현하는 클래스 목록 (선택)
   - string                      # 노드 ID
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# IMPLEMENTATION CONTRACT: source-free 구현 준비도 (schema 1.1)
+# ─────────────────────────────────────────────────────────────────────────────────
+implementation_contract:
+  status: enum                  # draft | ready
+  lifecycle: [string]           # 생성/재사용/reset/dispose 규칙
+  constraints: [string]         # 전역 결정론·소유권·금지 사항
+  acceptance:
+    - id: string                # 안정적인 acceptance ID
+      given: string             # 사전 상태
+      when: string              # 실행 조건
+      then: [string]            # 관찰 가능한 기대 결과
 
 # ─────────────────────────────────────────────────────────────────────────────────
 # METADATA: 메타데이터

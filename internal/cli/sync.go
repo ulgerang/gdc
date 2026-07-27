@@ -16,6 +16,7 @@ import (
 	"github.com/gdc-tools/gdc/internal/node"
 	"github.com/gdc-tools/gdc/internal/parser"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -355,6 +356,42 @@ func syncNodeToDB(database *db.Database, spec *node.Spec, specHash string) error
 }
 
 func calculateSpecHash(spec *node.Spec) string {
+	if strings.TrimSpace(spec.SchemaVersion) == "1.1" {
+		dependencies := append([]node.Dependency(nil), spec.Dependencies...)
+		for i := range dependencies {
+			// Edge hashes attest to dependency contents. Excluding only that nested
+			// value keeps this node's hash stable and computable for cyclic graphs.
+			dependencies[i].ContractHash = ""
+		}
+		contract := struct {
+			Node                   node.NodeInfo                `yaml:"node"`
+			LanguageSpec           node.LanguageSpec            `yaml:"language_spec,omitempty"`
+			Responsibility         node.Responsibility          `yaml:"responsibility"`
+			Interface              node.Interface               `yaml:"interface"`
+			Dependencies           []node.Dependency            `yaml:"dependencies,omitempty"`
+			Logic                  node.Logic                   `yaml:"logic,omitempty"`
+			ImplementationContract *node.ImplementationContract `yaml:"implementation_contract,omitempty"`
+		}{
+			Node: node.NodeInfo{
+				ID:        spec.Node.ID,
+				Type:      spec.Node.Type,
+				Layer:     spec.Node.Layer,
+				Namespace: spec.Node.Namespace,
+			},
+			LanguageSpec:           spec.LanguageSpec,
+			Responsibility:         spec.Responsibility,
+			Interface:              spec.Interface,
+			Dependencies:           dependencies,
+			Logic:                  spec.Logic,
+			ImplementationContract: spec.ImplementationContract,
+		}
+		content, err := yaml.Marshal(contract)
+		if err == nil {
+			hash := sha256.Sum256(content)
+			return hex.EncodeToString(hash[:4])
+		}
+	}
+
 	// Hash based on interface signature (not documentation)
 	var content string
 

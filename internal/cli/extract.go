@@ -24,10 +24,11 @@ var (
 	extractIncludeLogic bool
 	extractClipboard    bool
 	// P2: New context extension flags
-	extractWithImpl    bool
-	extractWithTests   bool
-	extractWithCallers bool
-	extractFormat      string
+	extractWithImpl          bool
+	extractWithTests         bool
+	extractWithCallers       bool
+	extractFormat            string
+	extractForImplementation bool
 )
 
 var extractCmd = &cobra.Command{
@@ -70,10 +71,15 @@ Optional code evidence:
   --with-tests    Include related test files
   --with-callers  Include caller/reference evidence from code search fallback
 
+Source-free implementation contract:
+  --for-implementation  Validate schema 1.1 readiness and emit the complete
+                        transitive dependency contract without repository code
+
 Examples:
   $ gdc extract PlayerController
   $ gdc extract PlayerController --clipboard
   $ gdc extract PlayerController --output prompt.md
+  $ gdc extract PlayerController --for-implementation
   $ gdc extract PlayerController --with-impl
   $ gdc extract PlayerController --with-impl --with-tests --with-callers`
 	extractCmd.Flags().StringVarP(&extractTemplate, "template", "t", "implement",
@@ -95,11 +101,18 @@ Examples:
 	extractCmd.Flags().BoolVar(&extractWithCallers, "with-callers", false,
 		"include caller references in output (opt-in)")
 	extractCmd.Flags().StringVar(&extractFormat, "format", "text", "output format (text, json)")
+	extractCmd.Flags().BoolVar(&extractForImplementation, "for-implementation", false,
+		"require and emit a source-free, implementation-ready dependency contract closure")
 }
 
 func runExtract(cmd *cobra.Command, args []string) error {
 	extractFormat = resolveFormat(extractFormat)
 	nodeName := args[0]
+	if extractForImplementation {
+		if err := validateImplementationExtractOptions(); err != nil {
+			return err
+		}
+	}
 
 	cfg, err := config.Load("")
 	if err != nil {
@@ -122,8 +135,17 @@ func runExtract(cmd *cobra.Command, args []string) error {
 	allNodes, _ := loadAllNodes(nodesDir)
 	nodeMap := buildSpecLookup(allNodes)
 
-	// Gather dependencies
-	deps := gatherDependencies(spec, nodeMap, extractDepth, cfg.Project.Language)
+	// Gather dependencies. Implementation mode ignores the exploratory depth knob
+	// and closes the complete authored dependency contract transitively.
+	var deps []DependencyInfo
+	if extractForImplementation {
+		if issues := validateImplementationClosure(spec, nodeMap); len(issues) > 0 {
+			return fmt.Errorf("implementation contract is not ready:\n  - %s", strings.Join(issues, "\n  - "))
+		}
+		deps = gatherImplementationDependencies(spec, nodeMap, cfg.Project.Language)
+	} else {
+		deps = gatherDependencies(spec, nodeMap, extractDepth, cfg.Project.Language)
+	}
 
 	evidence, err := collectExtractEvidence(context.Background(), spec, cfg)
 	if err != nil {
@@ -131,11 +153,11 @@ func runExtract(cmd *cobra.Command, args []string) error {
 	}
 
 	if extractFormat == "json" {
-		return outputExtractJSON(spec, deps, evidence, cfg)
+		return outputExtractJSON(spec, deps, evidence, cfg, extractForImplementation)
 	}
 
 	// Generate prompt
-	prompt, err := generatePrompt(spec, deps, cfg, extractIncludeLogic, evidence)
+	prompt, err := generatePrompt(spec, deps, cfg, extractIncludeLogic || extractForImplementation, evidence, extractForImplementation)
 	if err != nil {
 		return fmt.Errorf("failed to generate prompt: %w", err)
 	}
@@ -160,13 +182,25 @@ func runExtract(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func validateImplementationExtractOptions() error {
+	if extractWithImpl || extractWithTests || extractWithCallers {
+		return fmt.Errorf("--for-implementation is source-free and cannot be combined with --with-impl, --with-tests, or --with-callers")
+	}
+	return nil
+}
+
 type DependencyInfo struct {
 	Target              string
 	Type                string
 	Injection           string
 	Optional            bool
 	Usage               string
+	ContractHash        string
+	Requires            []string
+	RequiredMembers     string
 	InterfaceCode       string
+	ContractDetails     string
+	ContractYAML        string
 	Spec                *node.Spec
 	MissingDescriptions []string // List of methods/properties that need documentation
 }
@@ -376,16 +410,21 @@ func gatherDependencies(spec *node.Spec, nodeMap map[string]*node.Spec, depth in
 
 			depSpec, exists := nodeMap[dep.Target]
 			info := DependencyInfo{
-				Target:    dep.Target,
-				Type:      dep.Type,
-				Injection: dep.Injection,
-				Optional:  dep.Optional,
-				Usage:     dep.Usage,
+				Target:          dep.Target,
+				Type:            dep.Type,
+				Injection:       dep.Injection,
+				Optional:        dep.Optional,
+				Usage:           dep.Usage,
+				ContractHash:    dep.ContractHash,
+				Requires:        append([]string(nil), dep.Requires...),
+				RequiredMembers: strings.Join(dep.Requires, ", "),
 			}
 
 			if exists {
 				info.Spec = depSpec
 				info.InterfaceCode = generateInterfaceCodeForLanguage(depSpec, language)
+				info.ContractDetails = generateContractDetails(depSpec)
+				info.ContractYAML = generateContractYAML(depSpec)
 				// Collect missing descriptions
 				info.MissingDescriptions = collectMissingDescriptions(depSpec)
 			} else {
@@ -496,12 +535,17 @@ func collectMissingDescriptions(spec *node.Spec) []string {
 	return missing
 }
 
-func generatePrompt(spec *node.Spec, deps []DependencyInfo, cfg *config.Config, includeLogic bool, evidence extractEvidence) (string, error) {
+func generatePrompt(spec *node.Spec, deps []DependencyInfo, cfg *config.Config, includeLogic bool, evidence extractEvidence, forImplementation bool) (string, error) {
 	const promptTemplate = `# Implementation Request: {{.Node.ID}}
 
 ## Context
 This is a structured implementation request. Implement the following {{.Node.Type}} according to the specification.
 Use ONLY the provided interfaces - do not assume or access any external systems not listed here.
+{{if .ForImplementation}}
+
+- **Implementation Ready: true**
+- **Source Free: true**
+{{end}}
 
 ---
 
@@ -527,6 +571,17 @@ Use ONLY the provided interfaces - do not assume or access any external systems 
 {{range .Responsibility.Invariants}}
 - {{.}}
 {{end}}
+{{end}}
+
+{{if .ForImplementation}}
+## Complete Implementation Contract
+
+{{.ContractDetails}}
+
+### Authored Target Contract
+
+` + "```yaml" + `
+{{.ContractYAML}}` + "```" + `
 {{end}}
 
 ---
@@ -577,6 +632,10 @@ Use ONLY these interfaces. Do not access any other systems.
 ### {{.Target}}{{if .Optional}} (Optional){{end}}
 
 **Injection**: {{.Injection}}
+{{if $.ForImplementation}}
+**Contract Hash**: ` + "`{{.ContractHash}}`" + `
+**Required Members: {{.RequiredMembers}}**
+{{end}}
 
 ` + "```{{$.Config.Language}}" + `
 {{.InterfaceCode}}
@@ -584,6 +643,15 @@ Use ONLY these interfaces. Do not access any other systems.
 {{if .Usage}}
 **Usage Notes:**
 {{.Usage}}
+{{end}}
+{{if $.ForImplementation}}
+
+**Complete Dependency Contract:**
+
+{{.ContractDetails}}
+
+` + "```yaml" + `
+{{.ContractYAML}}` + "```" + `
 {{end}}
 
 ---
@@ -724,6 +792,9 @@ Use ONLY these interfaces. Do not access any other systems.
 		HasReferences     bool
 		References        []*extractctx.ReferenceInfo
 		Warnings          []string
+		ForImplementation bool
+		ContractDetails   string
+		ContractYAML      string
 	}
 
 	data := TemplateData{
@@ -745,11 +816,14 @@ Use ONLY these interfaces. Do not access any other systems.
 		HasReferences:     len(evidence.References) > 0,
 		References:        evidence.References,
 		Warnings:          evidence.Warnings,
+		ForImplementation: forImplementation,
+		ContractDetails:   generateContractDetails(spec),
+		ContractYAML:      generateContractYAML(spec),
 	}
 
 	// Try to load language-specific template
 	templateContent := promptTemplate
-	if cfg.Project.Language != "" {
+	if !forImplementation && cfg.Project.Language != "" {
 		langTemplate := loadLanguageTemplate(cfg, cfg.Project.Language)
 		if langTemplate != "" {
 			templateContent = langTemplate
@@ -1045,28 +1119,60 @@ type extractResponsibilityJSON struct {
 }
 
 type extractConstructorJSON struct {
+	Name        string             `json:"name,omitempty"`
 	Signature   string             `json:"signature"`
 	Description string             `json:"description,omitempty"`
 	Parameters  []extractParamJSON `json:"parameters,omitempty"`
 }
 
-type extractMethodJSON struct {
-	Name        string             `json:"name"`
-	Signature   string             `json:"signature"`
-	Description string             `json:"description,omitempty"`
-	Parameters  []extractParamJSON `json:"parameters,omitempty"`
-	Returns     extractReturnJSON  `json:"returns,omitempty"`
-}
-
-type extractParamJSON struct {
+type extractContractFieldJSON struct {
 	Name        string `json:"name"`
 	Type        string `json:"type"`
 	Description string `json:"description,omitempty"`
+	Constraint  string `json:"constraint,omitempty"`
+}
+
+type extractTypeJSON struct {
+	Name        string                     `json:"name"`
+	Signature   string                     `json:"signature"`
+	Description string                     `json:"description"`
+	Fields      []extractContractFieldJSON `json:"fields,omitempty"`
+	Values      []string                   `json:"values,omitempty"`
+}
+
+type extractMethodJSON struct {
+	Name           string              `json:"name"`
+	Signature      string              `json:"signature"`
+	Description    string              `json:"description,omitempty"`
+	Parameters     []extractParamJSON  `json:"parameters,omitempty"`
+	Returns        extractReturnJSON   `json:"returns,omitempty"`
+	Throws         []extractThrowsJSON `json:"throws,omitempty"`
+	Preconditions  []string            `json:"preconditions,omitempty"`
+	Postconditions []string            `json:"postconditions,omitempty"`
+	SideEffects    []string            `json:"side_effects,omitempty"`
+}
+
+type extractParamJSON struct {
+	Name        string   `json:"name"`
+	Type        string   `json:"type"`
+	Description string   `json:"description,omitempty"`
+	Optional    bool     `json:"optional,omitempty"`
+	Default     string   `json:"default,omitempty"`
+	Constraint  string   `json:"constraint,omitempty"`
+	Examples    []string `json:"examples,omitempty"`
+	Enum        []string `json:"enum,omitempty"`
 }
 
 type extractReturnJSON struct {
 	Type        string `json:"type,omitempty"`
 	Description string `json:"description,omitempty"`
+	Nullable    bool   `json:"nullable,omitempty"`
+	Constraint  string `json:"constraint,omitempty"`
+}
+
+type extractThrowsJSON struct {
+	Type      string `json:"type"`
+	Condition string `json:"condition,omitempty"`
 }
 
 type extractPropertyJSON struct {
@@ -1083,6 +1189,7 @@ type extractEventJSON struct {
 }
 
 type extractInterfaceJSON struct {
+	Types        []extractTypeJSON        `json:"types,omitempty"`
 	Constructors []extractConstructorJSON `json:"constructors,omitempty"`
 	Methods      []extractMethodJSON      `json:"methods,omitempty"`
 	Properties   []extractPropertyJSON    `json:"properties,omitempty"`
@@ -1090,20 +1197,52 @@ type extractInterfaceJSON struct {
 }
 
 type extractDepSpecJSON struct {
-	ID      string   `json:"id"`
-	Type    string   `json:"type,omitempty"`
-	Layer   string   `json:"layer,omitempty"`
-	Status  string   `json:"status,omitempty"`
-	Methods []string `json:"methods,omitempty"`
+	ID                     string                             `json:"id"`
+	Type                   string                             `json:"type,omitempty"`
+	Layer                  string                             `json:"layer,omitempty"`
+	Status                 string                             `json:"status,omitempty"`
+	Responsibility         extractResponsibilityJSON          `json:"responsibility"`
+	Interface              extractInterfaceJSON               `json:"interface"`
+	Logic                  extractLogicJSON                   `json:"logic,omitempty"`
+	ImplementationContract *extractImplementationContractJSON `json:"implementation_contract,omitempty"`
+	Contract               map[string]any                     `json:"contract,omitempty"`
 }
 
 type extractDependencyJSON struct {
-	Target    string              `json:"target"`
-	Type      string              `json:"type,omitempty"`
-	Injection string              `json:"injection,omitempty"`
-	Optional  bool                `json:"optional"`
-	Usage     string              `json:"usage,omitempty"`
-	Spec      *extractDepSpecJSON `json:"spec,omitempty"`
+	Target       string              `json:"target"`
+	Type         string              `json:"type,omitempty"`
+	Injection    string              `json:"injection,omitempty"`
+	Optional     bool                `json:"optional"`
+	Usage        string              `json:"usage,omitempty"`
+	ContractHash string              `json:"contract_hash,omitempty"`
+	Requires     []string            `json:"requires,omitempty"`
+	Spec         *extractDepSpecJSON `json:"spec,omitempty"`
+}
+
+type extractRuleJSON struct {
+	Name      string `json:"name"`
+	Condition string `json:"condition"`
+	Action    string `json:"action"`
+}
+
+type extractLogicJSON struct {
+	Rules      []extractRuleJSON `json:"rules,omitempty"`
+	DataFlow   string            `json:"data_flow,omitempty"`
+	Pseudocode string            `json:"pseudocode,omitempty"`
+}
+
+type extractAcceptanceJSON struct {
+	ID    string   `json:"id"`
+	Given string   `json:"given"`
+	When  string   `json:"when"`
+	Then  []string `json:"then"`
+}
+
+type extractImplementationContractJSON struct {
+	Status      string                  `json:"status"`
+	Lifecycle   []string                `json:"lifecycle,omitempty"`
+	Constraints []string                `json:"constraints,omitempty"`
+	Acceptance  []extractAcceptanceJSON `json:"acceptance,omitempty"`
 }
 
 type extractSourceFileJSON struct {
@@ -1138,19 +1277,28 @@ type extractReferenceJSON struct {
 }
 
 type extractResultJSON struct {
-	Node            extractNodeJSON           `json:"node"`
-	Responsibility  extractResponsibilityJSON `json:"responsibility"`
-	Interface       extractInterfaceJSON      `json:"interface"`
-	Dependencies    []extractDependencyJSON   `json:"dependencies,omitempty"`
-	Implementation  *extractSourceFileJSON    `json:"implementation,omitempty"`
-	AdditionalFiles []extractSourceFileJSON   `json:"additional_files,omitempty"`
-	Tests           []extractTestJSON         `json:"tests,omitempty"`
-	Callers         []extractCallerJSON       `json:"callers,omitempty"`
-	References      []extractReferenceJSON    `json:"references,omitempty"`
-	Warnings        []string                  `json:"warnings,omitempty"`
+	Node                   extractNodeJSON                    `json:"node"`
+	Responsibility         extractResponsibilityJSON          `json:"responsibility"`
+	Interface              extractInterfaceJSON               `json:"interface"`
+	Dependencies           []extractDependencyJSON            `json:"dependencies,omitempty"`
+	Implementation         *extractSourceFileJSON             `json:"implementation,omitempty"`
+	AdditionalFiles        []extractSourceFileJSON            `json:"additional_files,omitempty"`
+	Tests                  []extractTestJSON                  `json:"tests,omitempty"`
+	Callers                []extractCallerJSON                `json:"callers,omitempty"`
+	References             []extractReferenceJSON             `json:"references,omitempty"`
+	Warnings               []string                           `json:"warnings,omitempty"`
+	Logic                  extractLogicJSON                   `json:"logic,omitempty"`
+	ImplementationContract *extractImplementationContractJSON `json:"implementation_contract,omitempty"`
+	ImplementationReady    bool                               `json:"implementation_ready,omitempty"`
+	SourceFree             bool                               `json:"source_free,omitempty"`
+	Contract               map[string]any                     `json:"contract,omitempty"`
 }
 
-func outputExtractJSON(spec *node.Spec, deps []DependencyInfo, evidence extractEvidence, cfg *config.Config) error {
+func outputExtractJSON(spec *node.Spec, deps []DependencyInfo, evidence extractEvidence, cfg *config.Config, forImplementation bool) error {
+	return outputJSONValue(buildExtractResultJSON(spec, deps, evidence, forImplementation))
+}
+
+func buildExtractResultJSON(spec *node.Spec, deps []DependencyInfo, evidence extractEvidence, forImplementation bool) extractResultJSON {
 	result := extractResultJSON{
 		Node: extractNodeJSON{
 			ID:        spec.Node.ID,
@@ -1167,13 +1315,19 @@ func outputExtractJSON(spec *node.Spec, deps []DependencyInfo, evidence extractE
 			Boundaries: spec.Responsibility.Boundaries,
 		},
 		Interface: extractInterfaceJSON{
+			Types:        buildTypesJSON(spec.Interface.Types),
 			Constructors: buildConstructorsJSON(spec.Interface.Constructors),
 			Methods:      buildMethodsJSON(spec.Interface.Methods),
 			Properties:   buildPropertiesJSON(spec.Interface.Properties),
 			Events:       buildEventsJSON(spec.Interface.Events),
 		},
-		Dependencies: buildDependenciesJSON(deps),
-		Warnings:     evidence.Warnings,
+		Dependencies:           buildDependenciesJSON(deps),
+		Warnings:               evidence.Warnings,
+		Logic:                  buildLogicJSON(spec.Logic),
+		ImplementationContract: buildImplementationContractJSON(spec.ImplementationContract),
+		ImplementationReady:    forImplementation,
+		SourceFree:             forImplementation,
+		Contract:               buildContractMap(spec),
 	}
 
 	if evidence.Implementation != nil {
@@ -1225,7 +1379,7 @@ func outputExtractJSON(spec *node.Spec, deps []DependencyInfo, evidence extractE
 		})
 	}
 
-	return outputJSONValue(result)
+	return result
 }
 
 func buildConstructorsJSON(ctors []node.Constructor) []extractConstructorJSON {
@@ -1233,9 +1387,10 @@ func buildConstructorsJSON(ctors []node.Constructor) []extractConstructorJSON {
 	for _, c := range ctors {
 		params := make([]extractParamJSON, 0, len(c.Parameters))
 		for _, p := range c.Parameters {
-			params = append(params, extractParamJSON{Name: p.Name, Type: p.Type, Description: p.Description})
+			params = append(params, buildParamJSON(p))
 		}
 		result = append(result, extractConstructorJSON{
+			Name:        c.Name,
 			Signature:   c.Signature,
 			Description: c.Description,
 			Parameters:  params,
@@ -1249,14 +1404,22 @@ func buildMethodsJSON(methods []node.Method) []extractMethodJSON {
 	for _, m := range methods {
 		params := make([]extractParamJSON, 0, len(m.Parameters))
 		for _, p := range m.Parameters {
-			params = append(params, extractParamJSON{Name: p.Name, Type: p.Type, Description: p.Description})
+			params = append(params, buildParamJSON(p))
+		}
+		throws := make([]extractThrowsJSON, 0, len(m.Throws))
+		for _, declared := range m.Throws {
+			throws = append(throws, extractThrowsJSON{Type: declared.Type, Condition: declared.Condition})
 		}
 		result = append(result, extractMethodJSON{
-			Name:        m.Name,
-			Signature:   m.Signature,
-			Description: m.Description,
-			Parameters:  params,
-			Returns:     extractReturnJSON{Type: m.Returns.Type, Description: m.Returns.Description},
+			Name:           m.Name,
+			Signature:      m.Signature,
+			Description:    m.Description,
+			Parameters:     params,
+			Returns:        extractReturnJSON{Type: m.Returns.Type, Description: m.Returns.Description, Nullable: m.Returns.Nullable, Constraint: m.Returns.Constraint},
+			Throws:         throws,
+			Preconditions:  append([]string(nil), m.Preconditions...),
+			Postconditions: append([]string(nil), m.Postconditions...),
+			SideEffects:    append([]string(nil), m.SideEffects...),
 		})
 	}
 	return result
@@ -1291,26 +1454,100 @@ func buildDependenciesJSON(deps []DependencyInfo) []extractDependencyJSON {
 	result := make([]extractDependencyJSON, 0, len(deps))
 	for _, d := range deps {
 		item := extractDependencyJSON{
-			Target:    d.Target,
-			Type:      d.Type,
-			Injection: d.Injection,
-			Optional:  d.Optional,
-			Usage:     d.Usage,
+			Target:       d.Target,
+			Type:         d.Type,
+			Injection:    d.Injection,
+			Optional:     d.Optional,
+			Usage:        d.Usage,
+			ContractHash: d.ContractHash,
+			Requires:     append([]string(nil), d.Requires...),
 		}
 		if d.Spec != nil {
-			methods := make([]string, 0, len(d.Spec.Interface.Methods))
-			for _, m := range d.Spec.Interface.Methods {
-				methods = append(methods, m.Signature)
-			}
 			item.Spec = &extractDepSpecJSON{
-				ID:      d.Spec.Node.ID,
-				Type:    d.Spec.Node.Type,
-				Layer:   d.Spec.Node.Layer,
-				Status:  d.Spec.Metadata.Status,
-				Methods: methods,
+				ID:                     d.Spec.Node.ID,
+				Type:                   d.Spec.Node.Type,
+				Layer:                  d.Spec.Node.Layer,
+				Status:                 d.Spec.Metadata.Status,
+				Responsibility:         buildResponsibilityJSON(d.Spec.Responsibility),
+				Interface:              buildInterfaceJSON(d.Spec.Interface),
+				Logic:                  buildLogicJSON(d.Spec.Logic),
+				ImplementationContract: buildImplementationContractJSON(d.Spec.ImplementationContract),
+				Contract:               buildContractMap(d.Spec),
 			}
 		}
 		result = append(result, item)
 	}
 	return result
+}
+
+func buildParamJSON(p node.Parameter) extractParamJSON {
+	return extractParamJSON{
+		Name:        p.Name,
+		Type:        p.Type,
+		Description: p.Description,
+		Optional:    p.Optional,
+		Default:     p.Default,
+		Constraint:  p.Constraint,
+		Examples:    append([]string(nil), p.Examples...),
+		Enum:        append([]string(nil), p.Enum...),
+	}
+}
+
+func buildResponsibilityJSON(responsibility node.Responsibility) extractResponsibilityJSON {
+	return extractResponsibilityJSON{
+		Summary:    responsibility.Summary,
+		Details:    responsibility.Details,
+		Invariants: append([]string(nil), responsibility.Invariants...),
+		Boundaries: responsibility.Boundaries,
+	}
+}
+
+func buildInterfaceJSON(contract node.Interface) extractInterfaceJSON {
+	return extractInterfaceJSON{
+		Types:        buildTypesJSON(contract.Types),
+		Constructors: buildConstructorsJSON(contract.Constructors),
+		Methods:      buildMethodsJSON(contract.Methods),
+		Properties:   buildPropertiesJSON(contract.Properties),
+		Events:       buildEventsJSON(contract.Events),
+	}
+}
+
+func buildTypesJSON(types []node.TypeContract) []extractTypeJSON {
+	result := make([]extractTypeJSON, 0, len(types))
+	for _, contractType := range types {
+		fields := make([]extractContractFieldJSON, 0, len(contractType.Fields))
+		for _, field := range contractType.Fields {
+			fields = append(fields, extractContractFieldJSON{
+				Name: field.Name, Type: field.Type, Description: field.Description, Constraint: field.Constraint,
+			})
+		}
+		result = append(result, extractTypeJSON{
+			Name: contractType.Name, Signature: contractType.Signature, Description: contractType.Description,
+			Fields: fields, Values: append([]string(nil), contractType.Values...),
+		})
+	}
+	return result
+}
+
+func buildLogicJSON(logic node.Logic) extractLogicJSON {
+	rules := make([]extractRuleJSON, 0, len(logic.Rules))
+	for _, rule := range logic.Rules {
+		rules = append(rules, extractRuleJSON{Name: rule.Name, Condition: rule.Condition, Action: rule.Action})
+	}
+	return extractLogicJSON{Rules: rules, DataFlow: logic.DataFlow, Pseudocode: logic.Pseudocode}
+}
+
+func buildImplementationContractJSON(contract *node.ImplementationContract) *extractImplementationContractJSON {
+	if contract == nil {
+		return nil
+	}
+	acceptance := make([]extractAcceptanceJSON, 0, len(contract.Acceptance))
+	for _, scenario := range contract.Acceptance {
+		acceptance = append(acceptance, extractAcceptanceJSON{
+			ID: scenario.ID, Given: scenario.Given, When: scenario.When, Then: append([]string(nil), scenario.Then...),
+		})
+	}
+	return &extractImplementationContractJSON{
+		Status: contract.Status, Lifecycle: append([]string(nil), contract.Lifecycle...), Constraints: append([]string(nil), contract.Constraints...), Acceptance: acceptance,
+	}
 }

@@ -1,9 +1,9 @@
 schema_version: "1.0"
 node:
-    id: calculateSpecHash
+    id: buildContractMap
     type: function
     namespace: cli
-    file_path: D:\git\26\gdc\internal\cli\sync.go
+    file_path: D:\git\26\gdc\internal\cli\implementation_contract.go
 language_spec:
     language: go
     package: cli
@@ -11,14 +11,14 @@ responsibility:
     summary: ""
 interface:
     methods:
-        - name: calculateSpecHash
-          signature: calculateSpecHash(spec *node.Spec) string
+        - name: buildContractMap
+          signature: buildContractMap(spec *node.Spec) map[string]any
           parameters:
             - name: spec
               type: '*node.Spec'
           returns:
-            type: string
+            type: map[string]any
 metadata:
-    status: draft
+    status: ""
     origin: code_extracted
     extracted_at: "2026-07-28"

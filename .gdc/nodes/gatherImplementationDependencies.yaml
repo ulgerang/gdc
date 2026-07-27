@@ -1,0 +1,28 @@
+schema_version: "1.0"
+node:
+    id: gatherImplementationDependencies
+    type: function
+    namespace: cli
+    file_path: D:\git\26\gdc\internal\cli\implementation_contract.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: gatherImplementationDependencies
+          signature: gatherImplementationDependencies(spec *node.Spec, nodeMap map[string]*node.Spec, language string) []DependencyInfo
+          parameters:
+            - name: spec
+              type: '*node.Spec'
+            - name: nodeMap
+              type: map[string]*node.Spec
+            - name: language
+              type: string
+          returns:
+            type: '[]DependencyInfo'
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-07-28"

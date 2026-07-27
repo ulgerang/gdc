@@ -23,5 +23,11 @@ interface:
         - name: Steps
           type: string
           access: get; set
+        - name: Pseudocode
+          type: string
+          access: get; set
+        - name: References
+          type: '[]string'
+          access: get; set
 metadata:
     status: draft

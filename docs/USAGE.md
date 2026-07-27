@@ -283,6 +283,7 @@ gdc extract <node> [옵션]
 | `--with-impl` | - | 구현 코드 포함 | `false` |
 | `--with-tests` | - | 관련 테스트 포함 | `false` |
 | `--with-callers` | - | 호출자/참조 정보 포함 | `false` |
+| `--for-implementation` | - | schema 1.1 계약 완결성을 검증하고 source-free 전체 의존 계약 패킷 생성 | `false` |
 | `--format` | - | 출력 형식 (`text`, `json`) | `text` |
 
 예시:
@@ -294,7 +295,13 @@ gdc extract PlayerController --output prompt.md
 gdc extract PlayerController --with-impl
 gdc extract PlayerController --with-impl --with-tests --with-callers
 gdc extract PlayerController --format json
+gdc extract PlayerController --for-implementation
 ```
+
+`--for-implementation`은 전체 전이 의존성을 깊이 제한 없이 포함하며 대상과
+모든 의존 노드의 행동·수명주기·acceptance·필수 멤버·계약 해시를 검사합니다.
+저장소 코드 증거를 포함하지 않으므로 `--with-impl`, `--with-tests`,
+`--with-callers`와 함께 사용하면 오류가 발생합니다.
 
 ### gdc trace
 

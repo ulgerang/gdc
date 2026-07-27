@@ -1,6 +1,6 @@
 schema_version: "1.0"
 node:
-    id: Parameter
+    id: ContractField
     type: class
     namespace: node
     file_path: D:\git\26\gdc\internal\node\spec.go
@@ -20,20 +20,10 @@ interface:
         - name: Description
           type: string
           access: get; set
-        - name: Optional
-          type: bool
-          access: get; set
-        - name: Default
-          type: string
-          access: get; set
         - name: Constraint
           type: string
           access: get; set
-        - name: Examples
-          type: '[]string'
-          access: get; set
-        - name: Enum
-          type: '[]string'
-          access: get; set
 metadata:
-    status: draft
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-07-28"
