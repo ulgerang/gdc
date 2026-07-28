@@ -356,7 +356,7 @@ func syncNodeToDB(database *db.Database, spec *node.Spec, specHash string) error
 }
 
 func calculateSpecHash(spec *node.Spec) string {
-	if strings.TrimSpace(spec.SchemaVersion) == "1.1" {
+	if strings.TrimSpace(spec.SchemaVersion) == "1.1" || strings.TrimSpace(spec.SchemaVersion) == "1.2" {
 		dependencies := append([]node.Dependency(nil), spec.Dependencies...)
 		for i := range dependencies {
 			// Edge hashes attest to dependency contents. Excluding only that nested

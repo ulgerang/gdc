@@ -293,6 +293,64 @@ func TestBuildExtractResultJSONMarksSourceFreePacketAndPreservesLiteralContracts
 	}
 }
 
+func TestProfiledExtractResultIncludesReadinessAndSelectedExternalContracts(t *testing.T) {
+	root := t.TempDir()
+	contractPath := filepath.Join(root, "contracts", "headless.json")
+	if err := os.MkdirAll(filepath.Dir(contractPath), 0o755); err != nil {
+		t.Fatalf("create contract directory: %v", err)
+	}
+	content := []byte("{\"profile\":\"headless\"}\n")
+	if err := os.WriteFile(contractPath, content, 0o644); err != nil {
+		t.Fatalf("write external contract: %v", err)
+	}
+	target := profiledImplementationSpec("Verifier", "sealed")
+	target.ImplementationContract.ExternalContracts = []node.ExternalContract{{
+		ID: "headless", Path: "contracts/headless.json", ContractHash: rawSHA256(content),
+		Description: "Headless surface contract.", Profiles: []string{"headless"},
+	}}
+	report := evaluateImplementationReadiness(target, buildSpecLookup([]*node.Spec{target}), root, "headless", "implementation")
+	if !report.ImplementationPermitted {
+		t.Fatalf("fixture preflight failed: %+v", report)
+	}
+
+	result := buildExtractResultJSONWithReadiness(target, nil, extractEvidence{}, true, &report)
+	if result.Profile != "headless" || result.Readiness == nil || !result.Readiness.ImplementationPermitted {
+		t.Fatalf("profile readiness was omitted: %+v", result)
+	}
+	if len(result.ExternalContracts) != 1 || result.ExternalContracts[0].Content != string(content) {
+		t.Fatalf("selected external contract was omitted: %+v", result.ExternalContracts)
+	}
+	if !result.ImplementationReady || !result.SourceFree {
+		t.Fatalf("sealed profile packet was not marked ready/source-free: %+v", result)
+	}
+}
+
+func TestProfiledPromptNamesSelectedProfileAndEmbedsExternalContract(t *testing.T) {
+	root := t.TempDir()
+	contractPath := filepath.Join(root, "headless.json")
+	content := []byte("{\"pluginRequired\":false}\n")
+	if err := os.WriteFile(contractPath, content, 0o644); err != nil {
+		t.Fatalf("write external contract: %v", err)
+	}
+	target := profiledImplementationSpec("Verifier", "sealed")
+	target.ImplementationContract.ExternalContracts = []node.ExternalContract{{
+		ID: "surface", Path: "headless.json", ContractHash: rawSHA256(content),
+		Description: "Selected surface contract.", Profiles: []string{"headless"},
+	}}
+	report := evaluateImplementationReadiness(target, buildSpecLookup([]*node.Spec{target}), root, "headless", "implementation")
+	cfg := config.DefaultConfig()
+	cfg.Project.Language = "go"
+	prompt, err := generatePromptWithReadiness(target, nil, cfg, true, extractEvidence{}, true, &report)
+	if err != nil {
+		t.Fatalf("generate profiled prompt: %v", err)
+	}
+	for _, expected := range []string{"Selected Profile: headless", "External Contracts", "pluginRequired", rawSHA256(content)} {
+		if !strings.Contains(prompt, expected) {
+			t.Fatalf("profiled prompt omitted %q:\n%s", expected, prompt)
+		}
+	}
+}
+
 func TestRunExtractForImplementationUsesOnlyGDCContracts(t *testing.T) {
 	projectRoot := t.TempDir()
 	nodesDir := filepath.Join(projectRoot, ".gdc", "nodes")

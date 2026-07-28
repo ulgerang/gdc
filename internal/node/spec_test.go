@@ -178,6 +178,100 @@ metadata: {status: specified}
 	}
 }
 
+func TestLoadSchema12PreservesProfiledReadinessContract(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "Verifier.yaml")
+	content := `schema_version: "1.2"
+node: {id: Verifier, type: service}
+responsibility: {summary: Verify one selected surface.}
+interface:
+  methods:
+    - name: Verify
+      signature: "Verify(profile string) error"
+      description: Verify the selected surface.
+      parameters:
+        - {name: profile, type: string, description: Closed profile identifier.}
+      returns: {type: error, description: Nil only for a green verdict.}
+      postconditions: [Unknown profiles fail closed.]
+implementation_contract:
+  status: sealed
+  closed_world: true
+  constraints: [No undeclared surface may be selected.]
+  acceptance:
+    - id: HEADLESS-GREEN
+      given: Valid vendored sources.
+      when: Headless verification runs.
+      then: [The verdict is green.]
+  profiles:
+    - id: headless
+      description: Direct project-reference verification.
+      requires: [vendored source identity]
+      forbids: [publish plugin bytes]
+      acceptance: [HEADLESS-GREEN]
+  external_contracts:
+    - id: modes
+      path: contracts/modes.json
+      contract_hash: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      description: Closed surface contract.
+      profiles: [headless]
+  gates:
+    - id: design-approval
+      kind: approval
+      phase: implementation
+      status: satisfied
+      description: Independent design approval.
+      profiles: [headless]
+      contract: modes
+metadata: {status: specified}
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write schema 1.2 fixture: %v", err)
+	}
+
+	spec, err := Load(path)
+	if err != nil {
+		t.Fatalf("load schema 1.2 fixture: %v", err)
+	}
+	contract := spec.ImplementationContract
+	if contract == nil || !contract.ClosedWorld || contract.Status != "sealed" {
+		t.Fatalf("schema 1.2 readiness metadata was not preserved: %+v", contract)
+	}
+	if len(contract.Profiles) != 1 || contract.Profiles[0].ID != "headless" || len(contract.Profiles[0].Forbids) != 1 {
+		t.Fatalf("profile contract was not preserved: %+v", contract.Profiles)
+	}
+	if len(contract.ExternalContracts) != 1 || len(contract.Gates) != 1 || contract.Gates[0].Contract != "modes" {
+		t.Fatalf("external contracts or gates were not preserved: %+v", contract)
+	}
+
+	roundTrip := filepath.Join(t.TempDir(), "Verifier.yaml")
+	if err := Save(roundTrip, spec); err != nil {
+		t.Fatalf("save schema 1.2 fixture: %v", err)
+	}
+	if _, err := Load(roundTrip); err != nil {
+		t.Fatalf("reload schema 1.2 fixture: %v", err)
+	}
+}
+
+func TestLoadSchema12RejectsUnknownProfileFields(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "Verifier.yaml")
+	content := `schema_version: "1.2"
+node: {id: Verifier, type: service}
+responsibility: {summary: Verify work.}
+implementation_contract:
+  status: ready
+  profiles:
+    - id: headless
+      requirez: [source]
+metadata: {status: specified}
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write strict fixture: %v", err)
+	}
+	_, err := Load(path)
+	if err == nil || !strings.Contains(err.Error(), "requirez") {
+		t.Fatalf("expected schema 1.2 profile field rejection, got %v", err)
+	}
+}
+
 func TestLoadSchema10RetainsPermissiveCompatibility(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "Legacy.yaml")
 	content := `schema_version: "1.0"

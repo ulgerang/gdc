@@ -84,6 +84,7 @@ func init() {
 	rootCmd.AddCommand(diffCmd)
 	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(extractCmd)
+	rootCmd.AddCommand(preflightCmd)
 	rootCmd.AddCommand(statsCmd)
 	rootCmd.AddCommand(searchCmd)
 	rootCmd.AddCommand(queryCmd)

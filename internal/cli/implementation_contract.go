@@ -72,14 +72,19 @@ func validateImplementationClosure(target *node.Spec, nodeMap map[string]*node.S
 func validateImplementationNode(spec *node.Spec) []string {
 	id := spec.QualifiedID()
 	var issues []string
-	if strings.TrimSpace(spec.SchemaVersion) != "1.1" {
-		issues = append(issues, id+": schema_version 1.1 is required for implementation-ready extraction")
+	schemaVersion := strings.TrimSpace(spec.SchemaVersion)
+	if schemaVersion != "1.1" && schemaVersion != "1.2" {
+		issues = append(issues, id+": schema_version 1.1 or 1.2 is required for implementation-ready extraction")
 	}
-	if spec.ImplementationContract == nil || spec.ImplementationContract.Status != "ready" {
-		issues = append(issues, id+": implementation_contract.status must be ready")
+	validStatus := spec.ImplementationContract != nil && (spec.ImplementationContract.Status == "ready" || (schemaVersion == "1.2" && spec.ImplementationContract.Status == "sealed"))
+	if !validStatus {
+		issues = append(issues, id+": implementation_contract.status must be ready (or sealed for schema 1.2)")
 	} else {
 		if !hasNonBlankContractValue(spec.ImplementationContract.Lifecycle) && !hasNonBlankContractValue(spec.ImplementationContract.Constraints) {
 			issues = append(issues, id+": implementation_contract requires lifecycle or global constraints")
+		}
+		if schemaVersion == "1.2" {
+			issues = append(issues, validateProfiledImplementationContract(spec)...)
 		}
 		issues = append(issues, blankContractValueIssues(id+".implementation_contract.lifecycle", spec.ImplementationContract.Lifecycle)...)
 		issues = append(issues, blankContractValueIssues(id+".implementation_contract.constraints", spec.ImplementationContract.Constraints)...)
@@ -177,6 +182,114 @@ func validateImplementationNode(spec *node.Spec) []string {
 		}
 	}
 	return issues
+}
+
+func validateProfiledImplementationContract(spec *node.Spec) []string {
+	id := spec.QualifiedID()
+	contract := spec.ImplementationContract
+	if contract == nil {
+		return []string{id + ": implementation_contract is required"}
+	}
+	var issues []string
+	if !contract.ClosedWorld {
+		issues = append(issues, id+": implementation_contract.closed_world must be true for schema 1.2")
+	}
+	if len(contract.Profiles) == 0 {
+		issues = append(issues, id+": at least one implementation profile is required for schema 1.2")
+	}
+	acceptanceIDs := make(map[string]bool, len(contract.Acceptance))
+	for _, scenario := range contract.Acceptance {
+		if acceptanceIDs[scenario.ID] {
+			issues = append(issues, fmt.Sprintf("%s: duplicate acceptance id %s", id, scenario.ID))
+		}
+		acceptanceIDs[scenario.ID] = true
+	}
+	profileIDs := make(map[string]bool, len(contract.Profiles))
+	for i, profile := range contract.Profiles {
+		field := fmt.Sprintf("%s.implementation_contract.profiles[%d]", id, i)
+		if strings.TrimSpace(profile.ID) == "" || strings.TrimSpace(profile.Description) == "" {
+			issues = append(issues, field+": id and description are required")
+		}
+		if profileIDs[profile.ID] {
+			issues = append(issues, field+": duplicate profile id "+profile.ID)
+		}
+		profileIDs[profile.ID] = true
+		if len(profile.Requires) == 0 {
+			issues = append(issues, field+": requires must declare the selected surface requirements")
+		}
+		if len(profile.Forbids) == 0 {
+			issues = append(issues, field+": forbids must declare excluded or mixed surfaces")
+		}
+		if len(profile.Acceptance) == 0 {
+			issues = append(issues, field+": acceptance must reference at least one scenario")
+		}
+		issues = append(issues, blankContractValueIssues(field+".requires", profile.Requires)...)
+		issues = append(issues, blankContractValueIssues(field+".forbids", profile.Forbids)...)
+		for _, acceptanceID := range profile.Acceptance {
+			if !acceptanceIDs[acceptanceID] {
+				issues = append(issues, fmt.Sprintf("%s.acceptance: scenario %s is not declared", field, acceptanceID))
+			}
+		}
+	}
+	externalIDs := make(map[string]bool, len(contract.ExternalContracts))
+	for i, external := range contract.ExternalContracts {
+		field := fmt.Sprintf("%s.implementation_contract.external_contracts[%d]", id, i)
+		if strings.TrimSpace(external.ID) == "" || strings.TrimSpace(external.Path) == "" || strings.TrimSpace(external.Description) == "" {
+			issues = append(issues, field+": id, path, and description are required")
+		}
+		if externalIDs[external.ID] {
+			issues = append(issues, field+": duplicate external contract id "+external.ID)
+		}
+		externalIDs[external.ID] = true
+		if !isFullSHA256(external.ContractHash) {
+			issues = append(issues, field+": contract_hash must be a lowercase 64-hex raw-byte SHA-256")
+		}
+		for _, profileID := range external.Profiles {
+			if !profileIDs[profileID] {
+				issues = append(issues, fmt.Sprintf("%s.profiles: unknown profile %s", field, profileID))
+			}
+		}
+	}
+	gateIDs := make(map[string]bool, len(contract.Gates))
+	for i, gate := range contract.Gates {
+		field := fmt.Sprintf("%s.implementation_contract.gates[%d]", id, i)
+		if strings.TrimSpace(gate.ID) == "" || strings.TrimSpace(gate.Kind) == "" || strings.TrimSpace(gate.Description) == "" {
+			issues = append(issues, field+": id, kind, and description are required")
+		}
+		if gateIDs[gate.ID] {
+			issues = append(issues, field+": duplicate gate id "+gate.ID)
+		}
+		gateIDs[gate.ID] = true
+		if !validReadinessPhase(gate.Phase) {
+			issues = append(issues, field+": phase must be contract, implementation, verification, or publish")
+		}
+		switch gate.Status {
+		case "pending", "blocked", "satisfied":
+		default:
+			issues = append(issues, field+": status must be pending, blocked, or satisfied")
+		}
+		for _, profileID := range gate.Profiles {
+			if !profileIDs[profileID] {
+				issues = append(issues, fmt.Sprintf("%s.profiles: unknown profile %s", field, profileID))
+			}
+		}
+		if gate.Contract != "" && !externalIDs[gate.Contract] {
+			issues = append(issues, fmt.Sprintf("%s.contract: unknown external contract %s", field, gate.Contract))
+		}
+	}
+	return issues
+}
+
+func isFullSHA256(value string) bool {
+	if len(value) != 64 {
+		return false
+	}
+	for _, r := range value {
+		if (r < '0' || r > '9') && (r < 'a' || r > 'f') {
+			return false
+		}
+	}
+	return true
 }
 
 func hasNonBlankContractValue(values []string) bool {
@@ -340,6 +453,21 @@ func generateContractDetails(spec *node.Spec) string {
 				for _, then := range scenario.Then {
 					fmt.Fprintf(&out, "  - Then: %s\n", then)
 				}
+			}
+		}
+		if len(contract.Profiles) > 0 {
+			out.WriteString("\n**Implementation Profiles:**\n")
+			for _, profile := range contract.Profiles {
+				fmt.Fprintf(&out, "- %s: %s\n", profile.ID, profile.Description)
+				fmt.Fprintf(&out, "  - Requires: %s\n", strings.Join(profile.Requires, ", "))
+				fmt.Fprintf(&out, "  - Forbids: %s\n", strings.Join(profile.Forbids, ", "))
+				fmt.Fprintf(&out, "  - Acceptance: %s\n", strings.Join(profile.Acceptance, ", "))
+			}
+		}
+		if len(contract.Gates) > 0 {
+			out.WriteString("\n**Phase Gates:**\n")
+			for _, gate := range contract.Gates {
+				fmt.Fprintf(&out, "- %s (%s/%s): %s — %s\n", gate.ID, gate.Kind, gate.Phase, gate.Status, gate.Description)
 			}
 		}
 	}

@@ -1,0 +1,1 @@
+{"profile":"unity-publish","requires":["plugin-provenance","publish-verification"],"forbids":["mixed-source-plugin-binding"]}

@@ -13,6 +13,7 @@
   - [gdc sync](#gdc-sync)
   - [gdc check](#gdc-check)
   - [gdc extract](#gdc-extract)
+  - [gdc preflight](#gdc-preflight)
   - [gdc trace](#gdc-trace)
   - [gdc graph](#gdc-graph)
   - [gdc diff](#gdc-diff)
@@ -291,7 +292,8 @@ gdc extract <node> [옵션]
 | `--with-impl` | - | 구현 코드 포함 | `false` |
 | `--with-tests` | - | 관련 테스트 포함 | `false` |
 | `--with-callers` | - | 호출자/참조 정보 포함 | `false` |
-| `--for-implementation` | - | schema 1.1 계약 완결성을 검증하고 source-free 전체 의존 계약 패킷 생성 | `false` |
+| `--for-implementation` | - | schema 1.1/1.2 계약 완결성을 검증하고 source-free 전체 의존 계약 패킷 생성 | `false` |
+| `--profile` | - | schema 1.2 구현 프로파일 선택 (여러 프로파일일 때 필수) | - |
 | `--format` | - | 출력 형식 (`text`, `json`) | `text` |
 
 예시:
@@ -304,12 +306,53 @@ gdc extract PlayerController --with-impl
 gdc extract PlayerController --with-impl --with-tests --with-callers
 gdc extract PlayerController --format json
 gdc extract PlayerController --for-implementation
+gdc extract PlayerController --for-implementation --profile headless
 ```
 
-`--for-implementation`은 전체 전이 의존성을 깊이 제한 없이 포함하며 대상과
-모든 의존 노드의 행동·수명주기·acceptance·필수 멤버·계약 해시를 검사합니다.
+`--for-implementation`은 전체 전이 의존성을 깊이 제한 없이 포함하며 대상과 모든
+의존 노드의 행동·수명주기·acceptance·필수 멤버·계약 해시를 검사합니다.
+schema 1.2 노드는 `sealed` 상태와 선택된 프로파일의 외부 계약·게이트까지
+검증하며, 선택된 프로파일과 관련 없는 계약·게이트는 패킷에서 제외됩니다.
 저장소 코드 증거를 포함하지 않으므로 `--with-impl`, `--with-tests`,
 `--with-callers`와 함께 사용하면 오류가 발생합니다.
+
+### gdc preflight
+
+구현 전에 source-free 계약 준비도를 평가합니다.
+
+```bash
+gdc preflight <node> [옵션]
+```
+
+옵션:
+
+| 옵션 | 설명 | 기본값 |
+|------|------|--------|
+| `--profile` | 구현 프로파일 (여러 프로파일일 때 필수) | - |
+| `--phase` | 평가 단계 (`contract`, `implementation`, `verification`, `publish`) | `implementation` |
+| `--format` | 출력 형식 (`text`, `json`) | `text` |
+
+예시:
+
+```bash
+gdc preflight PlayerController --profile headless
+gdc preflight PlayerController --profile headless --phase implementation --format json
+gdc preflight PlayerController --phase contract
+```
+
+preflight는 구현 소스를 읽지 않고 다음을 보고합니다:
+
+- `contract_complete`: 행동 계약과 프로파일 구조가 완전한가
+- `dependency_closure_complete`: 코드 의존 노드와 멤버가 닫혔는가
+- `external_contracts_complete`: 선택된 외부 계약이 존재하고 hash가 일치하는가
+- `gates_satisfied`: 관련 단계의 게이트가 모두 만족되었는가
+- `sealed`: 계약이 sealed 상태인가
+- `phase_permitted` / `implementation_permitted`: 해당 단계에서 실행 가능한가
+- `missing` / `blocked_by`: 구체적인 누락 항목과 차단 사유
+
+schema 1.2에서 `status: ready`는 수정 가능한 계약 상태를 의미하며 구현을
+허용하지 않습니다. `status: sealed`로 전환한 후에만 구현 패킷을 추출할 수
+있습니다.
 
 ### gdc trace
 

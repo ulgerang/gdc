@@ -29,6 +29,7 @@ var (
 	extractWithCallers       bool
 	extractFormat            string
 	extractForImplementation bool
+	extractProfile           string
 )
 
 var extractCmd = &cobra.Command{
@@ -72,14 +73,16 @@ Optional code evidence:
   --with-callers  Include caller/reference evidence from code search fallback
 
 Source-free implementation contract:
-  --for-implementation  Validate schema 1.1 readiness and emit the complete
+  --for-implementation  Validate schema 1.1/1.2 readiness and emit the complete
                         transitive dependency contract without repository code
+  --profile             Select a schema 1.2 implementation profile
 
 Examples:
   $ gdc extract PlayerController
   $ gdc extract PlayerController --clipboard
   $ gdc extract PlayerController --output prompt.md
   $ gdc extract PlayerController --for-implementation
+  $ gdc extract PlayerController --for-implementation --profile headless
   $ gdc extract PlayerController --with-impl
   $ gdc extract PlayerController --with-impl --with-tests --with-callers`
 	extractCmd.Flags().StringVarP(&extractTemplate, "template", "t", "implement",
@@ -103,6 +106,8 @@ Examples:
 	extractCmd.Flags().StringVar(&extractFormat, "format", "text", "output format (text, json)")
 	extractCmd.Flags().BoolVar(&extractForImplementation, "for-implementation", false,
 		"require and emit a source-free, implementation-ready dependency contract closure")
+	extractCmd.Flags().StringVar(&extractProfile, "profile", "",
+		"schema 1.2 implementation profile (required when more than one is declared)")
 }
 
 func runExtract(cmd *cobra.Command, args []string) error {
@@ -112,6 +117,8 @@ func runExtract(cmd *cobra.Command, args []string) error {
 		if err := validateImplementationExtractOptions(); err != nil {
 			return err
 		}
+	} else if strings.TrimSpace(extractProfile) != "" {
+		return fmt.Errorf("--profile requires --for-implementation")
 	}
 
 	cfg, err := config.Load("")
@@ -135,12 +142,26 @@ func runExtract(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	var readiness *ImplementationReadinessReport
 	// Gather dependencies. Implementation mode ignores the exploratory depth knob
 	// and closes the complete authored dependency contract transitively.
 	var deps []DependencyInfo
 	if extractForImplementation {
-		if issues := validateImplementationClosure(spec, nodeMap); len(issues) > 0 {
-			return fmt.Errorf("implementation contract is not ready:\n  - %s", strings.Join(issues, "\n  - "))
+		if strings.TrimSpace(spec.SchemaVersion) == "1.2" {
+			report := evaluateImplementationReadiness(spec, nodeMap, cfg.ProjectRoot, extractProfile, defaultReadinessPhase)
+			readiness = &report
+			if !report.ImplementationPermitted {
+				problems := append([]string(nil), report.Missing...)
+				problems = append(problems, report.BlockedBy...)
+				return fmt.Errorf("implementation contract is not permitted:\n  - %s", strings.Join(uniqueSortedStrings(problems), "\n  - "))
+			}
+		} else {
+			if strings.TrimSpace(extractProfile) != "" {
+				return fmt.Errorf("--profile requires a schema 1.2 target")
+			}
+			if issues := validateImplementationClosure(spec, nodeMap); len(issues) > 0 {
+				return fmt.Errorf("implementation contract is not ready:\n  - %s", strings.Join(issues, "\n  - "))
+			}
 		}
 		deps = gatherImplementationDependencies(spec, nodeMap, cfg.Project.Language)
 	} else {
@@ -151,13 +172,17 @@ func runExtract(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to collect extract evidence: %w", err)
 	}
+	outputSpec := spec
+	if readiness != nil {
+		outputSpec = projectSpecForProfile(spec, readiness.Profile, defaultReadinessPhase)
+	}
 
 	if extractFormat == "json" {
-		return outputExtractJSON(spec, deps, evidence, cfg, extractForImplementation)
+		return outputExtractJSONWithReadiness(outputSpec, deps, evidence, cfg, extractForImplementation, readiness)
 	}
 
 	// Generate prompt
-	prompt, err := generatePrompt(spec, deps, cfg, extractIncludeLogic || extractForImplementation, evidence, extractForImplementation)
+	prompt, err := generatePromptWithReadiness(outputSpec, deps, cfg, extractIncludeLogic || extractForImplementation, evidence, extractForImplementation, readiness)
 	if err != nil {
 		return fmt.Errorf("failed to generate prompt: %w", err)
 	}
@@ -180,6 +205,46 @@ func runExtract(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func projectSpecForProfile(spec *node.Spec, profileID, phase string) *node.Spec {
+	if spec == nil || spec.ImplementationContract == nil || strings.TrimSpace(spec.SchemaVersion) != "1.2" {
+		return spec
+	}
+	projected := *spec
+	contract := *spec.ImplementationContract
+	projected.ImplementationContract = &contract
+	var selected node.ImplementationProfile
+	for _, profile := range contract.Profiles {
+		if profile.ID == profileID {
+			selected = profile
+			contract.Profiles = []node.ImplementationProfile{profile}
+			break
+		}
+	}
+	accepted := make(map[string]bool, len(selected.Acceptance))
+	for _, id := range selected.Acceptance {
+		accepted[id] = true
+	}
+	contract.Acceptance = nil
+	for _, scenario := range spec.ImplementationContract.Acceptance {
+		if accepted[scenario.ID] {
+			contract.Acceptance = append(contract.Acceptance, scenario)
+		}
+	}
+	contract.ExternalContracts = nil
+	for _, external := range spec.ImplementationContract.ExternalContracts {
+		if profileApplies(external.Profiles, profileID) {
+			contract.ExternalContracts = append(contract.ExternalContracts, external)
+		}
+	}
+	contract.Gates = nil
+	for _, gate := range spec.ImplementationContract.Gates {
+		if profileApplies(gate.Profiles, profileID) && (gate.Phase == "contract" || gate.Phase == phase) {
+			contract.Gates = append(contract.Gates, gate)
+		}
+	}
+	return &projected
 }
 
 func resolveExtractNodeSpec(nodesDir, nodeName string, lookup map[string]*node.Spec) (*node.Spec, error) {
@@ -556,6 +621,10 @@ func collectMissingDescriptions(spec *node.Spec) []string {
 }
 
 func generatePrompt(spec *node.Spec, deps []DependencyInfo, cfg *config.Config, includeLogic bool, evidence extractEvidence, forImplementation bool) (string, error) {
+	return generatePromptWithReadiness(spec, deps, cfg, includeLogic, evidence, forImplementation, nil)
+}
+
+func generatePromptWithReadiness(spec *node.Spec, deps []DependencyInfo, cfg *config.Config, includeLogic bool, evidence extractEvidence, forImplementation bool, readiness *ImplementationReadinessReport) (string, error) {
 	const promptTemplate = `# Implementation Request: {{.Node.ID}}
 
 ## Context
@@ -565,6 +634,7 @@ Use ONLY the provided interfaces - do not assume or access any external systems 
 
 - **Implementation Ready: true**
 - **Source Free: true**
+{{if .Profile}}- **Selected Profile: {{.Profile}}**{{end}}
 {{end}}
 
 ---
@@ -602,6 +672,21 @@ Use ONLY the provided interfaces - do not assume or access any external systems 
 
 ` + "```yaml" + `
 {{.ContractYAML}}` + "```" + `
+{{if .ExternalContracts}}
+
+### Selected External Contracts
+
+{{range .ExternalContracts}}
+#### {{.ID}}
+
+- **Path:** ` + "`{{.Path}}`" + `
+- **SHA-256:** ` + "`{{.SHA256}}`" + `
+- **Purpose:** {{.Description}}
+
+` + "```text" + `
+{{.Content}}` + "```" + `
+{{end}}
+{{end}}
 {{end}}
 
 ---
@@ -813,6 +898,9 @@ Use ONLY these interfaces. Do not access any other systems.
 		References        []*extractctx.ReferenceInfo
 		Warnings          []string
 		ForImplementation bool
+		Profile           string
+		Readiness         *ImplementationReadinessReport
+		ExternalContracts []ResolvedExternalContract
 		ContractDetails   string
 		ContractYAML      string
 	}
@@ -837,8 +925,13 @@ Use ONLY these interfaces. Do not access any other systems.
 		References:        evidence.References,
 		Warnings:          evidence.Warnings,
 		ForImplementation: forImplementation,
+		Readiness:         readiness,
 		ContractDetails:   generateContractDetails(spec),
 		ContractYAML:      generateContractYAML(spec),
+	}
+	if readiness != nil {
+		data.Profile = readiness.Profile
+		data.ExternalContracts = append([]ResolvedExternalContract(nil), readiness.ExternalContracts...)
 	}
 
 	// Try to load language-specific template
@@ -1259,10 +1352,41 @@ type extractAcceptanceJSON struct {
 }
 
 type extractImplementationContractJSON struct {
-	Status      string                  `json:"status"`
-	Lifecycle   []string                `json:"lifecycle,omitempty"`
-	Constraints []string                `json:"constraints,omitempty"`
-	Acceptance  []extractAcceptanceJSON `json:"acceptance,omitempty"`
+	Status            string                        `json:"status"`
+	ClosedWorld       bool                          `json:"closed_world,omitempty"`
+	Lifecycle         []string                      `json:"lifecycle,omitempty"`
+	Constraints       []string                      `json:"constraints,omitempty"`
+	Acceptance        []extractAcceptanceJSON       `json:"acceptance,omitempty"`
+	Profiles          []extractProfileJSON          `json:"profiles,omitempty"`
+	ExternalContracts []extractExternalContractJSON `json:"external_contracts,omitempty"`
+	Gates             []extractGateJSON             `json:"gates,omitempty"`
+}
+
+type extractProfileJSON struct {
+	ID          string   `json:"id"`
+	Description string   `json:"description"`
+	Requires    []string `json:"requires,omitempty"`
+	Forbids     []string `json:"forbids,omitempty"`
+	Acceptance  []string `json:"acceptance,omitempty"`
+}
+
+type extractExternalContractJSON struct {
+	ID           string   `json:"id"`
+	Path         string   `json:"path"`
+	ContractHash string   `json:"contract_hash"`
+	Description  string   `json:"description"`
+	Profiles     []string `json:"profiles,omitempty"`
+}
+
+type extractGateJSON struct {
+	ID          string   `json:"id"`
+	Kind        string   `json:"kind"`
+	Phase       string   `json:"phase"`
+	Status      string   `json:"status"`
+	Description string   `json:"description"`
+	Reason      string   `json:"reason,omitempty"`
+	Profiles    []string `json:"profiles,omitempty"`
+	Contract    string   `json:"contract,omitempty"`
 }
 
 type extractSourceFileJSON struct {
@@ -1311,14 +1435,29 @@ type extractResultJSON struct {
 	ImplementationContract *extractImplementationContractJSON `json:"implementation_contract,omitempty"`
 	ImplementationReady    bool                               `json:"implementation_ready,omitempty"`
 	SourceFree             bool                               `json:"source_free,omitempty"`
+	Profile                string                             `json:"profile,omitempty"`
+	Readiness              *ImplementationReadinessReport     `json:"readiness,omitempty"`
+	ExternalContracts      []ResolvedExternalContract         `json:"external_contracts,omitempty"`
 	Contract               map[string]any                     `json:"contract,omitempty"`
 }
 
 func outputExtractJSON(spec *node.Spec, deps []DependencyInfo, evidence extractEvidence, cfg *config.Config, forImplementation bool) error {
-	return outputJSONValue(buildExtractResultJSON(spec, deps, evidence, forImplementation))
+	return outputExtractJSONWithReadiness(spec, deps, evidence, cfg, forImplementation, nil)
+}
+
+func outputExtractJSONWithReadiness(spec *node.Spec, deps []DependencyInfo, evidence extractEvidence, cfg *config.Config, forImplementation bool, readiness *ImplementationReadinessReport) error {
+	return outputJSONValue(buildExtractResultJSONWithReadiness(spec, deps, evidence, forImplementation, readiness))
 }
 
 func buildExtractResultJSON(spec *node.Spec, deps []DependencyInfo, evidence extractEvidence, forImplementation bool) extractResultJSON {
+	return buildExtractResultJSONWithReadiness(spec, deps, evidence, forImplementation, nil)
+}
+
+func buildExtractResultJSONWithReadiness(spec *node.Spec, deps []DependencyInfo, evidence extractEvidence, forImplementation bool, readiness *ImplementationReadinessReport) extractResultJSON {
+	implementationReady := forImplementation
+	if readiness != nil {
+		implementationReady = readiness.ImplementationPermitted
+	}
 	result := extractResultJSON{
 		Node: extractNodeJSON{
 			ID:        spec.Node.ID,
@@ -1345,9 +1484,14 @@ func buildExtractResultJSON(spec *node.Spec, deps []DependencyInfo, evidence ext
 		Warnings:               evidence.Warnings,
 		Logic:                  buildLogicJSON(spec.Logic),
 		ImplementationContract: buildImplementationContractJSON(spec.ImplementationContract),
-		ImplementationReady:    forImplementation,
+		ImplementationReady:    implementationReady,
 		SourceFree:             forImplementation,
+		Readiness:              readiness,
 		Contract:               buildContractMap(spec),
+	}
+	if readiness != nil {
+		result.Profile = readiness.Profile
+		result.ExternalContracts = append([]ResolvedExternalContract(nil), readiness.ExternalContracts...)
 	}
 
 	if evidence.Implementation != nil {
@@ -1567,7 +1711,30 @@ func buildImplementationContractJSON(contract *node.ImplementationContract) *ext
 			ID: scenario.ID, Given: scenario.Given, When: scenario.When, Then: append([]string(nil), scenario.Then...),
 		})
 	}
+	profiles := make([]extractProfileJSON, 0, len(contract.Profiles))
+	for _, profile := range contract.Profiles {
+		profiles = append(profiles, extractProfileJSON{
+			ID: profile.ID, Description: profile.Description, Requires: append([]string(nil), profile.Requires...),
+			Forbids: append([]string(nil), profile.Forbids...), Acceptance: append([]string(nil), profile.Acceptance...),
+		})
+	}
+	externals := make([]extractExternalContractJSON, 0, len(contract.ExternalContracts))
+	for _, external := range contract.ExternalContracts {
+		externals = append(externals, extractExternalContractJSON{
+			ID: external.ID, Path: external.Path, ContractHash: external.ContractHash,
+			Description: external.Description, Profiles: append([]string(nil), external.Profiles...),
+		})
+	}
+	gates := make([]extractGateJSON, 0, len(contract.Gates))
+	for _, gate := range contract.Gates {
+		gates = append(gates, extractGateJSON{
+			ID: gate.ID, Kind: gate.Kind, Phase: gate.Phase, Status: gate.Status,
+			Description: gate.Description, Reason: gate.Reason, Profiles: append([]string(nil), gate.Profiles...), Contract: gate.Contract,
+		})
+	}
 	return &extractImplementationContractJSON{
-		Status: contract.Status, Lifecycle: append([]string(nil), contract.Lifecycle...), Constraints: append([]string(nil), contract.Constraints...), Acceptance: acceptance,
+		Status: contract.Status, ClosedWorld: contract.ClosedWorld,
+		Lifecycle: append([]string(nil), contract.Lifecycle...), Constraints: append([]string(nil), contract.Constraints...),
+		Acceptance: acceptance, Profiles: profiles, ExternalContracts: externals, Gates: gates,
 	}
 }

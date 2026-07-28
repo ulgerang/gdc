@@ -232,8 +232,8 @@ func TestValidateImplementationNodeRequiresExactSchema11(t *testing.T) {
 	spec := readyImplementationSpec("Worker", "Execute")
 	spec.SchemaVersion = "1.10"
 	issues := validateImplementationNode(spec)
-	if !strings.Contains(strings.Join(issues, "\n"), "schema_version 1.1 is required") {
-		t.Fatalf("future schema version was incorrectly treated as 1.1: %v", issues)
+	if !strings.Contains(strings.Join(issues, "\n"), "schema_version 1.1 or 1.2 is required") {
+		t.Fatalf("future schema version was incorrectly treated as supported: %v", issues)
 	}
 }
 

@@ -1,0 +1,127 @@
+schema_version: "1.2"
+
+node:
+  id: UJDependencyVerifier
+  type: service
+  layer: infrastructure
+  file_path: tools/uj-dependency-verifier/Program.cs
+
+language_spec:
+  language: csharp
+
+responsibility:
+  summary: Verify exactly one explicitly selected UJ consumption surface.
+  invariants:
+    - Headless verification never reads or requires publish-only plugin bytes.
+    - Unity publish verification never accepts a mixed source and plugin target.
+
+interface:
+  types:
+    - name: UJVerificationProfile
+      signature: public enum UJVerificationProfile
+      description: Closed verification surface selection.
+      values: [Headless, UnityPublish]
+  methods:
+    - name: Main
+      signature: public static int Main(string[] args)
+      description: Verify the explicitly selected profile and emit a fail-closed verdict.
+      parameters:
+        - name: args
+          type: string[]
+          description: Command line containing exactly one profile selection.
+          constraint: Must include --profile headless or --profile unity-publish.
+          enum: [headless, unity-publish]
+      returns:
+        type: int
+        description: Zero only when every selected-profile check succeeds.
+      preconditions:
+        - Exactly one known profile is selected.
+      postconditions:
+        - Unknown, omitted, or mixed profiles return nonzero.
+
+dependencies: []
+
+logic:
+  rules:
+    - name: NO-IMPLICIT-PROFILE
+      condition: The profile is missing or unknown.
+      action: Reject without selecting a fallback.
+    - name: HEADLESS-EXCLUDES-PUBLISH
+      condition: The headless profile is selected.
+      action: Verify direct project references without reading plugin bytes or provenance.
+    - name: UNITY-PUBLISH-REQUIRES-PROVENANCE
+      condition: The unity-publish profile is selected.
+      action: Require verified plugin provenance and reject mixed source/plugin binding.
+
+implementation_contract:
+  status: sealed
+  closed_world: true
+  constraints:
+    - Only the selected profile's contracts and gates may affect its verdict.
+  acceptance:
+    - id: HEADLESS-GREEN
+      given: Valid vendored source and standalone project contracts with no plugin bytes.
+      when: The headless profile runs.
+      then:
+        - Verification succeeds without reading publish provenance.
+    - id: UNITY-PUBLISH-GREEN
+      given: Verified published plugin bytes and matching provenance.
+      when: The unity-publish profile runs.
+      then:
+        - Verification succeeds only for the published plugin surface.
+  profiles:
+    - id: headless
+      description: Repository-local direct standalone project references.
+      requires:
+        - vendored source identity
+        - standalone project boundaries
+      forbids:
+        - publish plugin bytes
+        - plugin provenance
+      acceptance: [HEADLESS-GREEN]
+    - id: unity-publish
+      description: Published and verified netstandard plugin consumption.
+      requires:
+        - plugin provenance
+        - publish verification
+      forbids:
+        - mixed source and plugin binding
+      acceptance: [UNITY-PUBLISH-GREEN]
+  external_contracts:
+    - id: headless-surface
+      path: contracts/headless-surface.json
+      contract_hash: ad6a81ab6f92b4e09678a47637f51f496c6e3c3924a0f97f38e783e1294515bb
+      description: Closed headless requirements and exclusions.
+      profiles: [headless]
+    - id: unity-publish-surface
+      path: contracts/unity-publish-surface.json
+      contract_hash: b22c5f5118f95d9bf0afaf23c603efd95d69fc42db7f377c2a668cbdb66c1835
+      description: Closed Unity publish requirements and exclusions.
+      profiles: [unity-publish]
+  gates:
+    - id: headless-design-approved
+      kind: approval
+      phase: implementation
+      status: satisfied
+      description: The headless behavior contract is independently approved.
+      profiles: [headless]
+      contract: headless-surface
+    - id: unity-implementation-approval
+      kind: approval
+      phase: implementation
+      status: blocked
+      description: Unity implementation remains intentionally blocked in this fixture.
+      reason: Proves profile-scoped fail-closed behavior.
+      profiles: [unity-publish]
+      contract: unity-publish-surface
+    - id: plugin-provenance
+      kind: provenance
+      phase: publish
+      status: blocked
+      description: Published plugin bytes are not available in the fixture.
+      profiles: [unity-publish]
+      contract: unity-publish-surface
+
+metadata:
+  status: specified
+  tags: [fixture, source-free, profiles, gates]

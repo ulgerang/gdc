@@ -228,10 +228,14 @@ type Rule struct {
 // ImplementationContract marks an authored node as sufficient for source-free
 // implementation after local and dependency-closure validation succeeds.
 type ImplementationContract struct {
-	Status      string               `yaml:"status"`
-	Lifecycle   []string             `yaml:"lifecycle,omitempty"`
-	Constraints []string             `yaml:"constraints,omitempty"`
-	Acceptance  []AcceptanceScenario `yaml:"acceptance,omitempty"`
+	Status            string                  `yaml:"status"`
+	ClosedWorld       bool                    `yaml:"closed_world,omitempty"`
+	Lifecycle         []string                `yaml:"lifecycle,omitempty"`
+	Constraints       []string                `yaml:"constraints,omitempty"`
+	Acceptance        []AcceptanceScenario    `yaml:"acceptance,omitempty"`
+	Profiles          []ImplementationProfile `yaml:"profiles,omitempty"`
+	ExternalContracts []ExternalContract      `yaml:"external_contracts,omitempty"`
+	Gates             []ImplementationGate    `yaml:"gates,omitempty"`
 }
 
 // AcceptanceScenario is a source-free given/when/then implementation oracle.
@@ -240,6 +244,40 @@ type AcceptanceScenario struct {
 	Given string   `yaml:"given"`
 	When  string   `yaml:"when"`
 	Then  []string `yaml:"then"`
+}
+
+// ImplementationProfile closes one explicit implementation or execution
+// surface without forcing contracts and gates from unrelated surfaces.
+type ImplementationProfile struct {
+	ID          string   `yaml:"id"`
+	Description string   `yaml:"description"`
+	Requires    []string `yaml:"requires,omitempty"`
+	Forbids     []string `yaml:"forbids,omitempty"`
+	Acceptance  []string `yaml:"acceptance,omitempty"`
+}
+
+// ExternalContract identifies an authored non-code contract that must be
+// embedded in a selected source-free packet. ContractHash is a full raw-byte
+// SHA-256, not a source commit or implementation identity.
+type ExternalContract struct {
+	ID           string   `yaml:"id"`
+	Path         string   `yaml:"path"`
+	ContractHash string   `yaml:"contract_hash"`
+	Description  string   `yaml:"description"`
+	Profiles     []string `yaml:"profiles,omitempty"`
+}
+
+// ImplementationGate scopes an authored authority/evidence decision to the
+// phases and profiles where it is actually relevant.
+type ImplementationGate struct {
+	ID          string   `yaml:"id"`
+	Kind        string   `yaml:"kind"`
+	Phase       string   `yaml:"phase"`
+	Status      string   `yaml:"status"`
+	Description string   `yaml:"description"`
+	Reason      string   `yaml:"reason,omitempty"`
+	Profiles    []string `yaml:"profiles,omitempty"`
+	Contract    string   `yaml:"contract,omitempty"`
 }
 
 // Metadata contains additional node information
@@ -274,7 +312,7 @@ func Load(path string) (*Spec, error) {
 
 	var spec Spec
 	var parseErr error
-	if strings.TrimSpace(header.SchemaVersion) == "1.1" {
+	if strings.TrimSpace(header.SchemaVersion) == "1.1" || strings.TrimSpace(header.SchemaVersion) == "1.2" {
 		decoder := yaml.NewDecoder(bytes.NewReader(data))
 		decoder.KnownFields(true)
 		parseErr = decoder.Decode(&spec)
@@ -343,7 +381,7 @@ func (s *Spec) Validate() []string {
 	}
 
 	if s.ImplementationContract != nil {
-		validReadiness := map[string]bool{"draft": true, "ready": true}
+		validReadiness := map[string]bool{"draft": true, "ready": true, "sealed": true}
 		if !validReadiness[s.ImplementationContract.Status] {
 			errors = append(errors, fmt.Sprintf("invalid implementation_contract.status: %s", s.ImplementationContract.Status))
 		}

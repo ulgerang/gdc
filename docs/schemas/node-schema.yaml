@@ -153,10 +153,11 @@ implementations:                # 이 인터페이스를 구현하는 클래스 
   - string                      # 노드 ID
 
 # ─────────────────────────────────────────────────────────────────────────────────
-# IMPLEMENTATION CONTRACT: source-free 구현 준비도 (schema 1.1)
+# IMPLEMENTATION CONTRACT: source-free 구현 준비도 (schema 1.1 / 1.2)
 # ─────────────────────────────────────────────────────────────────────────────────
 implementation_contract:
-  status: enum                  # draft | ready
+  status: enum                  # draft | ready | sealed (sealed는 schema 1.2 구현 입력)
+  closed_world: boolean         # schema 1.2: 닫힌 세계 계약 여부 (true 필수)
   lifecycle: [string]           # 생성/재사용/reset/dispose 규칙
   constraints: [string]         # 전역 결정론·소유권·금지 사항
   acceptance:
@@ -164,6 +165,27 @@ implementation_contract:
       given: string             # 사전 상태
       when: string              # 실행 조건
       then: [string]            # 관찰 가능한 기대 결과
+  profiles:                     # schema 1.2: 닫힌 구현/실행 표면 (선택)
+    - id: string                # 프로파일 ID (예: headless, unity-publish)
+      description: string       # 표면 설명
+      requires: [string]        # 이 표면에 필요한 조건
+      forbids: [string]         # 이 표면에서 금지되는 조건
+      acceptance: [string]      # 이 표면이 충족해야 하는 acceptance ID
+  external_contracts:           # schema 1.2: 코드 외 계약 (선택)
+    - id: string                # 외부 계약 ID
+      path: string              # 저장소 상대 경로
+      contract_hash: string     # 원문 raw-byte SHA-256 (64-hex)
+      description: string       # 계약 목적
+      profiles: [string]        # 적용 프로파일 (비어 있으면 전체)
+  gates:                        # schema 1.2: 단계별 승인/증거 게이트 (선택)
+    - id: string                # 게이트 ID
+      kind: enum                # approval | evidence | provenance | policy | manual
+      phase: enum               # contract | implementation | verification | publish
+      status: enum              # pending | blocked | satisfied
+      description: string       # 게이트 설명
+      reason: string            # 차단 사유 (선택)
+      profiles: [string]        # 적용 프로파일 (비어 있으면 전체)
+      contract: string          # 관련 external_contracts ID (선택)
 
 # ─────────────────────────────────────────────────────────────────────────────────
 # METADATA: 메타데이터

@@ -1057,19 +1057,23 @@ gdc watch --check             # 동기화 + 검증
 특정 노드를 구현하기 위한 최적화된 프롬프트를 생성합니다.
 
 ```bash
-gdc extract <NodeName> [--template <name>] [--output <file>] [--depth <n>] [--for-implementation]
+gdc extract <NodeName> [--template <name>] [--output <file>] [--depth <n>] [--for-implementation] [--profile <id>]
 
 # 예시
 gdc extract PlayerController
 gdc extract PlayerController --template implement
 gdc extract PlayerController --output prompt.md
 gdc extract PlayerController --for-implementation
+gdc extract PlayerController --for-implementation --profile headless
 ```
 
-`--for-implementation` requires schema 1.1 and an
-`implementation_contract.status: ready` target. It rejects unknown fields,
+`--for-implementation` requires schema 1.1 (`status: ready`) or schema 1.2
+(`status: sealed`) and rejects unknown fields,
 placeholder values, incomplete behavior or acceptance contracts, missing required
-dependency members, and stale contract hashes. The output contains the complete
+dependency members, and stale contract hashes. Schema 1.2 additionally requires
+an explicit `--profile` selection when multiple profiles are declared, closes
+selected external contracts by raw-byte SHA-256, and evaluates only relevant
+phase gates. The output contains the complete
 transitive dependency contract closure and no implementation, test, caller, or
 reference source evidence.
 
@@ -1081,6 +1085,8 @@ reference source evidence.
 | `--depth` | 1 | 인접 노드 포함 깊이 |
 | `--include-logic` | false | 내부 로직 스펙 포함 |
 | `--clipboard` | false | 클립보드에 복사 |
+| `--profile` | - | schema 1.2 구현 프로파일 선택 |
+| `--format` | `text` | 출력 형식 (`text`, `json`) |
 
 **생성되는 프롬프트 예시:**
 ```markdown
@@ -1225,6 +1231,27 @@ Overall Score: 7.5/10
 ---
 
 ### 5.8. 통계 및 리포트 (Statistics & Reports)
+
+### 5.9. 구현 준비도 사전 검증 (Preflight)
+
+```bash
+gdc preflight <NodeName> [--profile <id>] [--phase <phase>] [--format <fmt>]
+```
+
+구현 소스를 읽지 않고 authored 계약만으로 다음을 평가합니다:
+
+- 코드 의존 closure 완결성
+- schema 1.2 프로파일 선택과 구조 검증
+- 선택된 외부 계약의 존재와 raw-byte SHA-256 일치
+- 관련 단계(profile + phase) 게이트 만족 여부
+- sealing 상태와 최종 단계 허가
+
+`--phase`는 `contract`, `implementation`(기본), `verification`, `publish` 중
+하나입니다. `contract` 단계는 sealing을 요구하지 않으므로 수정 중인 계약을
+검토할 때 사용합니다.
+
+출력은 text 또는 JSON이며, 차단 시 exit 1과 함께 `missing`/`blocked_by`
+항목을 보고합니다.
 
 #### `gdc stats`
 
@@ -1441,6 +1468,9 @@ Please provide:
 기존의 정확한 YAML 파일 stem을 보존하면서, 모호하지 않은 canonical ID, bare ID,
 그리고 node ID의 kebab-case 별칭으로도 해석할 수 있어야 한다.
 
+**schema 1.2:** schema 1.1의 모든 필드와 `implementation_contract` 안의
+`closed_world`, `profiles`, `external_contracts`, `gates`를 포함한다.
+
 `metadata`와 의존 엣지 안의 중첩 `contract_hash` 값은 제외한다. 따라서 다른
 체크아웃에서도 같은 계약은 같은 해시를 가지며, 순환 의존도 재귀적 해시 없이
 계산할 수 있다.
@@ -1571,6 +1601,7 @@ gdc
 ├── check                   # 정합성 검사
 ├── watch                   # 파일 감시
 ├── extract <node>          # AI 프롬프트 추출
+├── preflight <node>        # source-free 구현 준비도 사전 검증
 ├── prompt <type> <node>    # 다양한 프롬프트 생성
 ├── validate-design         # LLM 설계 검증
 ├── stats                   # 통계
@@ -1591,6 +1622,11 @@ gdc
 | **Impl Hash** | 구현 코드 변경을 감지하기 위한 해시 |
 | **Contract Hash** | 의존 시점의 대상 인터페이스 해시 |
 | **SDD** | Specification-Driven Development |
+| **Profile** | 닫힌 구현/실행 표면 (예: headless, unity-publish) |
+| **External Contract** | 코드 외 authored 계약 (JSON/YAML), raw-byte SHA-256으로 고정 |
+| **Gate** | 단계별 승인/증거/provenance 결정 (approval, evidence, provenance, policy, manual) |
+| **Sealed** | 독립 검토를 마쳐 구현 입력으로 고정된 계약 상태 |
+| **Preflight** | 구현 전에 계약 준비도를 source-free로 평가하는 명령 |
 | **Context Isolation** | AI에게 최소 컨텍스트만 제공하는 전략 |
 
 ---
