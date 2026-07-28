@@ -33,6 +33,7 @@ OpenSpec or BDD acceptance
   -> GDC YAML node specs
   -> gdc sync
   -> gdc query/show/trace to collect dependency context
+  -> gdc preflight <node> --profile <id> to verify contract readiness
   -> gdc extract <node> to create a focused coder/agent packet
   -> implementation and tests
   -> gdc sync --direction code or gdc sync --direction both
@@ -113,13 +114,18 @@ gdc show IInputManager --full
 gdc show IInputManager --interface-only
 gdc show PlayerController --format json
 
-# 7. Generate a focused implementation packet for a coder or AI agent
+# 7. Verify contract readiness before implementation (schema 1.2)
+gdc preflight PlayerController --profile headless
+gdc preflight PlayerController --profile headless --format json
+gdc preflight PlayerController --phase contract          # review without sealing
+
+# 8. Generate a focused implementation packet for a coder or AI agent
 gdc extract PlayerController --clipboard
 gdc extract PlayerController --output prompt.md
 gdc extract PlayerController --template implement
 gdc extract PlayerController --format json
 
-# 8. Include code evidence only when needed (opt-in)
+# 9. Include code evidence only when needed (opt-in)
 gdc extract PlayerController --with-impl
 gdc extract PlayerController --with-impl --with-tests
 ```
@@ -141,6 +147,7 @@ gdc extract PlayerController --with-impl --with-tests
 | `gdc sync` | Sync YAML ↔ DB |
 | `gdc check` | Consistency check |
 | `gdc extract <node>` | Generate AI implementation prompt |
+| `gdc preflight <node>` | Evaluate source-free contract readiness before implementation |
 | `gdc diff <node>` | Compare YAML spec against current code |
 | `gdc stats` | Project statistics |
 | `gdc search <pattern>` | Search patterns in codebase |
@@ -302,14 +309,52 @@ gdc extract PlayerController --output prompt.md
 gdc extract PlayerController --template review
 ```
 
-`--for-implementation` is the only extract mode that claims the authored `.gdc`
+`--for-implementation` is the extract mode that claims the authored `.gdc`
 contracts are sufficient to implement the target without repository source context.
 It fails on unknown schema fields, unresolved placeholders, missing behavioral or
 acceptance contracts, missing dependency members, and stale `contract_hash` values.
+Schema 1.2 nodes additionally require `--profile` selection (when multiple profiles
+are declared), `status: sealed`, and close selected external contracts by raw-byte
+SHA-256. Only relevant phase gates are evaluated; unrelated profiles and later-phase
+gates are excluded from the packet.
 `contract_hash` is not a Git commit or source hash; it is GDC's fingerprint of the
 dependency's authored contract, and readiness errors report the current value to use.
 The mode cannot be combined with `--with-impl`, `--with-tests`, or `--with-callers`.
 Ordinary extract remains the exploratory, backward-compatible mode.
+
+### gdc preflight
+Evaluate a node's authored contract without reading implementation source.
+Schema 1.2 preflight selects one implementation profile, closes its code and
+external contracts, evaluates only relevant phase gates, and reports contract
+completeness separately from permission to implement, verify, or publish.
+
+```bash
+# Evaluate headless profile readiness
+gdc preflight PlayerController --profile headless
+
+# JSON output for machine consumption
+gdc preflight PlayerController --profile headless --format json
+
+# Review contract completeness without requiring sealing
+gdc preflight PlayerController --profile headless --phase contract
+
+# Evaluate publish-phase gates
+gdc preflight PlayerController --profile unity-publish --phase publish
+```
+
+Preflight reports:
+
+- `contract_complete`: behavioral contract and profile structure are complete
+- `dependency_closure_complete`: code dependency nodes and members are closed
+- `external_contracts_complete`: selected external contracts exist and match SHA-256
+- `gates_satisfied`: all relevant phase gates are satisfied
+- `sealed`: contract is in sealed state (required for implementation)
+- `phase_permitted` / `implementation_permitted`: whether the phase may proceed
+- `missing` / `blocked_by`: concrete missing items and blockers
+
+Schema 1.2 `status: ready` means the contract is amendable and does not authorize
+implementation. Only `status: sealed` permits implementation packet extraction.
+Multiple profiles require explicit `--profile` selection; omission is fail-closed.
 
 ### gdc graph
 Export the dependency graph in various formats.
@@ -439,6 +484,7 @@ internal/
 │   ├── refs.go                  # refs command (reverse dependency listing)
 │   ├── context.go               # context command (full extraction context)
 │   ├── extract.go               # extract command (AI prompt generation)
+│   ├── preflight.go             # preflight command (source-free readiness evaluation)
 │   ├── search.go                # search command (pattern search)
 │   ├── query.go                 # query command (symbol query)
 │   └── trace.go                 # trace command (dependency/reverse dependency tracing)
@@ -461,7 +507,8 @@ internal/
 ├── config/                      # Configuration management
 └── node/                        # Node spec model
 
-fixtures/                        # Parser test fixtures
+fixtures/                        # Parser and schema test fixtures
+└── profiled-readiness/          # Schema 1.2 headless/unity-publish regression fixture
 scripts/                         # Utility scripts
 └── benchmark_baseline.sh        # Performance benchmark baseline
 tests/
@@ -542,6 +589,7 @@ concrete source symbols owned by the module. A synthetic source type matching
 the module node ID is not required. C# verification selects named generic types
 from multi-type files and recognizes multiline declarations and overloads.
 `gdc diff` uses the same module binding. Node-taking commands such as `extract`
+and `preflight`
 accept an exact YAML file stem or an unambiguous canonical, bare, or kebab-case
 node ID.
 
