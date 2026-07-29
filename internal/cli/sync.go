@@ -871,14 +871,14 @@ func buildCodeSyncPlans(sourceDir, nodesDir string, existingNodes []*node.Spec, 
 	existingByID := make(map[string]*node.Spec, len(existingNodes))
 	existingBySource := make(map[string][]*node.Spec)
 	for _, spec := range existingNodes {
-		existingByID[spec.Node.ID] = spec
+		existingByID[portableNodeIDKey(spec.Node.ID)] = spec
 		if spec.Node.FilePath != "" {
 			key := normalizeSyncPath(spec.Node.FilePath)
 			existingBySource[key] = append(existingBySource[key], spec)
 		}
 	}
 
-	resolvedIDs, duplicateCounts := resolveExtractedNodeIDs(sourceDir, extractedNodes)
+	resolvedIDs, duplicateCounts := resolveExtractedNodeIDs(sourceDir, existingNodes, extractedNodes)
 	dependencyLookup := buildDependencyLookup(extractedNodes, resolvedIDs)
 
 	plans := make([]*codeSyncPlan, 0, len(extractedNodes))
@@ -905,7 +905,7 @@ func buildCodeSyncPlans(sourceDir, nodesDir string, existingNodes []*node.Spec, 
 	return plans
 }
 
-func resolveExtractedNodeIDs(sourceDir string, extractedNodes []*parser.ExtractedNode) (map[string]string, map[string]int) {
+func resolveExtractedNodeIDs(sourceDir string, existingNodes []*node.Spec, extractedNodes []*parser.ExtractedNode) (map[string]string, map[string]int) {
 	duplicateCounts := make(map[string]int)
 	groups := make(map[string][]*parser.ExtractedNode)
 
@@ -913,46 +913,106 @@ func resolveExtractedNodeIDs(sourceDir string, extractedNodes []*parser.Extracte
 		if extracted == nil || extracted.ID == "" {
 			continue
 		}
-		duplicateCounts[extracted.ID]++
-		groups[extracted.ID] = append(groups[extracted.ID], extracted)
+		groupKey := portableNodeIDKey(extracted.ID)
+		groups[groupKey] = append(groups[groupKey], extracted)
 	}
 
 	resolved := make(map[string]string, len(extractedNodes))
-	for bareID, group := range groups {
-		if len(group) == 1 {
-			resolved[extractedNodeKey(group[0].FilePath, bareID)] = bareID
+	for groupKey, group := range groups {
+		externalBareOwners := countExternalBareNodeOwners(groupKey, group, existingNodes)
+		effectiveCount := len(group) + externalBareOwners
+		for _, extracted := range group {
+			duplicateCounts[extracted.ID] = effectiveCount
+		}
+
+		if len(group) == 1 && externalBareOwners == 0 {
+			extracted := group[0]
+			finalID := extracted.ID
+			if existing := findExistingNodeForExtracted(existingNodes, extracted); existing != nil {
+				finalID = existing.Node.ID
+			}
+			resolved[extractedNodeKey(extracted.FilePath, extracted.ID)] = finalID
 			continue
 		}
 
 		if canUseNamespaceQualifiedIDs(group) {
 			for _, extracted := range group {
-				resolved[extractedNodeKey(extracted.FilePath, bareID)] = extracted.Namespace + "." + bareID
+				resolved[extractedNodeKey(extracted.FilePath, extracted.ID)] = extracted.Namespace + "." + extracted.ID
 			}
 			continue
 		}
 
 		prefixes := buildUniquePathPrefixes(sourceDir, group)
 		for _, extracted := range group {
-			key := extractedNodeKey(extracted.FilePath, bareID)
+			key := extractedNodeKey(extracted.FilePath, extracted.ID)
 			prefix := prefixes[key]
 			if prefix == "" {
 				prefix = fallbackIDPrefix(extracted)
 			}
-			resolved[key] = prefix + "." + bareID
+			resolved[key] = prefix + "." + extracted.ID
 		}
 	}
 
 	return resolved, duplicateCounts
 }
 
+func countExternalBareNodeOwners(groupKey string, extractedNodes []*parser.ExtractedNode, existingNodes []*node.Spec) int {
+	count := 0
+	for _, spec := range existingNodes {
+		if spec == nil || portableNodeIDKey(spec.Node.ID) != groupKey {
+			continue
+		}
+		matched := false
+		for _, extracted := range extractedNodes {
+			if existingNodeRepresentsExtracted(spec, extracted) {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			count++
+		}
+	}
+	return count
+}
+
+func findExistingNodeForExtracted(existingNodes []*node.Spec, extracted *parser.ExtractedNode) *node.Spec {
+	for _, spec := range existingNodes {
+		if existingNodeRepresentsExtracted(spec, extracted) {
+			return spec
+		}
+	}
+	return nil
+}
+
+func existingNodeRepresentsExtracted(spec *node.Spec, extracted *parser.ExtractedNode) bool {
+	if spec == nil || extracted == nil {
+		return false
+	}
+	if spec.Node.FilePath != "" && extracted.FilePath != "" && !sameSyncPath(spec.Node.FilePath, extracted.FilePath) {
+		return false
+	}
+	if spec.Node.Namespace != "" && extracted.Namespace != "" && spec.Node.Namespace != extracted.Namespace {
+		return false
+	}
+
+	specID := strings.TrimSpace(spec.Node.ID)
+	bareID := strings.TrimSpace(extracted.ID)
+	if specID == bareID {
+		return true
+	}
+	return strings.HasSuffix(specID, "."+bareID)
+}
+
 func canUseNamespaceQualifiedIDs(group []*parser.ExtractedNode) bool {
 	seen := make(map[string]bool, len(group))
 	for _, extracted := range group {
 		namespace := strings.TrimSpace(extracted.Namespace)
-		if namespace == "" || seen[namespace] {
+		namespaceKey := portableNodeIDKey(namespace)
+		if namespace == "" || seen[namespaceKey] {
 			return false
 		}
-		seen[namespace] = true
+		seen[namespaceKey] = true
 	}
 	return true
 }
@@ -979,10 +1039,11 @@ func buildUniquePathPrefixes(sourceDir string, group []*parser.ExtractedNode) ma
 		collisions := make(map[string]bool)
 		for nodeKey, segments := range segmentsByNode {
 			candidate := joinPathSuffix(segments, suffixLen)
-			if owner, exists := candidateOwners[candidate]; exists && owner != nodeKey {
-				collisions[candidate] = true
+			candidateKey := portableNodeIDKey(candidate)
+			if owner, exists := candidateOwners[candidateKey]; exists && owner != nodeKey {
+				collisions[candidateKey] = true
 			} else {
-				candidateOwners[candidate] = nodeKey
+				candidateOwners[candidateKey] = nodeKey
 			}
 			prefixes[nodeKey] = candidate
 		}
@@ -1107,7 +1168,7 @@ func findExistingSpecForPlan(existingByID map[string]*node.Spec, existingBySourc
 	}
 
 	finalID := extracted.ID
-	existingSpec := existingByID[finalID]
+	existingSpec := existingByID[portableNodeIDKey(finalID)]
 	staleSpecPath := ""
 	if finalID == bareID {
 		return existingSpec, staleSpecPath
@@ -1456,6 +1517,10 @@ func canonicalizeSpecDependencies(spec *node.Spec, aliasMap map[string]string) {
 
 func normalizeSyncPath(path string) string {
 	return strings.ToLower(filepath.Clean(path))
+}
+
+func portableNodeIDKey(id string) string {
+	return strings.ToLower(strings.TrimSpace(id))
 }
 
 func sameSyncPath(a, b string) bool {

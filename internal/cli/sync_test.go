@@ -122,6 +122,94 @@ func TestBuildCodeSyncPlansFallsBackToPathPrefixForSameNamespaceCollisions(t *te
 	}
 }
 
+func TestBuildCodeSyncPlansProtectsExistingPortableFilenameDuringScopedSync(t *testing.T) {
+	sourceDir := filepath.Join("E:", "repo")
+	nodesDir := filepath.Join("E:", "repo", ".gdc", "nodes")
+	cliSummaryPath := filepath.Join(sourceDir, "internal", "cli", "scan.go")
+	hookSummaryPath := filepath.Join(sourceDir, "internal", "hook", "event.go")
+
+	existingNodes := []*node.Spec{
+		{
+			Node: node.NodeInfo{
+				ID:        "scanSummary",
+				Namespace: "cli",
+				FilePath:  cliSummaryPath,
+			},
+		},
+	}
+	extractedNodes := []*parser.ExtractedNode{
+		{
+			ID:        "ScanSummary",
+			Namespace: "hook",
+			FilePath:  hookSummaryPath,
+		},
+		{
+			ID:        "Dispatcher",
+			Namespace: "hook",
+			FilePath:  filepath.Join(sourceDir, "internal", "hook", "runner.go"),
+			Dependencies: []parser.ExtractedDependency{
+				{Target: "ScanSummary", Namespace: "hook", Injection: "constructor"},
+			},
+		},
+	}
+
+	plans := buildCodeSyncPlans(sourceDir, nodesDir, existingNodes, extractedNodes)
+	planByID := make(map[string]*codeSyncPlan, len(plans))
+	for _, plan := range plans {
+		planByID[plan.FinalID] = plan
+	}
+
+	summaryPlan := planByID["hook.ScanSummary"]
+	if summaryPlan == nil {
+		t.Fatalf("expected hook.ScanSummary plan, got %v", planByID)
+	}
+	if summaryPlan.ExistingSpec != nil {
+		t.Fatal("expected scoped hook.ScanSummary to leave the existing cli.scanSummary spec untouched")
+	}
+	if summaryPlan.StaleSpecPath != "" {
+		t.Fatalf("expected no stale path for unrelated existing node, got %s", summaryPlan.StaleSpecPath)
+	}
+
+	dispatcherPlan := planByID["Dispatcher"]
+	if dispatcherPlan == nil {
+		t.Fatal("expected Dispatcher plan to exist")
+	}
+	if len(dispatcherPlan.Extracted.Dependencies) != 1 || dispatcherPlan.Extracted.Dependencies[0].Target != "hook.ScanSummary" {
+		t.Fatalf("expected dependency to remap to hook.ScanSummary, got %+v", dispatcherPlan.Extracted.Dependencies)
+	}
+}
+
+func TestBuildCodeSyncPlansReusesExistingQualifiedNodeDuringScopedSync(t *testing.T) {
+	sourceDir := filepath.Join("E:", "repo")
+	nodesDir := filepath.Join("E:", "repo", ".gdc", "nodes")
+	hookSummaryPath := filepath.Join(sourceDir, "internal", "hook", "event.go")
+	existing := &node.Spec{
+		Node: node.NodeInfo{
+			ID:        "hook.ScanSummary",
+			Namespace: "hook",
+			FilePath:  hookSummaryPath,
+		},
+	}
+
+	plans := buildCodeSyncPlans(sourceDir, nodesDir, []*node.Spec{existing}, []*parser.ExtractedNode{
+		{
+			ID:        "ScanSummary",
+			Namespace: "hook",
+			FilePath:  hookSummaryPath,
+		},
+	})
+
+	if len(plans) != 1 {
+		t.Fatalf("expected one plan, got %d", len(plans))
+	}
+	if plans[0].FinalID != "hook.ScanSummary" {
+		t.Fatalf("expected existing qualified ID to remain stable, got %s", plans[0].FinalID)
+	}
+	if plans[0].ExistingSpec != existing {
+		t.Fatal("expected existing qualified spec to be reused")
+	}
+}
+
 func TestSyncScopeFiltersFilesAndSymbols(t *testing.T) {
 	projectRoot := t.TempDir()
 	cfg := &config.Config{
