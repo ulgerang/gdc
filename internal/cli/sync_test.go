@@ -592,6 +592,110 @@ func TestCanonicalizeSpecDependenciesNormalizesGenericTargets(t *testing.T) {
 	}
 }
 
+func TestMakeCodeSyncPathsPortableUsesProjectRelativePaths(t *testing.T) {
+	projectRoot := t.TempDir()
+	sourceDir := filepath.Join(projectRoot, "crates", "gateway")
+	sourcePath := filepath.Join(sourceDir, "src", "gateway.rs")
+	existing := []*node.Spec{
+		{Node: node.NodeInfo{ID: "Gateway", FilePath: sourcePath}},
+	}
+	extracted := []*parser.ExtractedNode{
+		{ID: "Gateway", FilePath: sourcePath},
+	}
+
+	portableSourceDir := makeCodeSyncPathsPortable(projectRoot, sourceDir, existing, extracted)
+
+	if want := "crates/gateway"; portableSourceDir != want {
+		t.Fatalf("expected portable source directory %q, got %q", want, portableSourceDir)
+	}
+	if want := "crates/gateway/src/gateway.rs"; existing[0].Node.FilePath != want {
+		t.Fatalf("expected existing node path %q, got %q", want, existing[0].Node.FilePath)
+	}
+	if want := "crates/gateway/src/gateway.rs"; extracted[0].FilePath != want {
+		t.Fatalf("expected extracted node path %q, got %q", want, extracted[0].FilePath)
+	}
+}
+
+func TestRunSyncFromCodeStoresPortableNodeFilePath(t *testing.T) {
+	projectRoot := t.TempDir()
+	sourceDir := filepath.Join(projectRoot, "crates", "gateway")
+	nodesDir := filepath.Join(projectRoot, ".gdc", "nodes")
+	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
+		t.Fatalf("failed to create source directory: %v", err)
+	}
+	if err := os.MkdirAll(nodesDir, 0o755); err != nil {
+		t.Fatalf("failed to create nodes directory: %v", err)
+	}
+	sourcePath := filepath.Join(sourceDir, "gateway.go")
+	if err := os.WriteFile(sourcePath, []byte("package gateway\n\ntype Gateway struct{}\n"), 0o644); err != nil {
+		t.Fatalf("failed to write source fixture: %v", err)
+	}
+
+	previousSource := syncSource
+	previousDryRun := syncDryRun
+	previousMerge := syncMerge
+	previousAutoStatus := syncAutoStatus
+	previousConflictLog := syncConflictLog
+	previousLogMapping := syncLogMapping
+	previousTiming := syncTiming
+	previousProfile := syncProfile
+	previousQuiet := quiet
+	t.Cleanup(func() {
+		syncSource = previousSource
+		syncDryRun = previousDryRun
+		syncMerge = previousMerge
+		syncAutoStatus = previousAutoStatus
+		syncConflictLog = previousConflictLog
+		syncLogMapping = previousLogMapping
+		syncTiming = previousTiming
+		syncProfile = previousProfile
+		quiet = previousQuiet
+	})
+	syncSource = ""
+	syncDryRun = false
+	syncMerge = true
+	syncAutoStatus = false
+	syncConflictLog = ""
+	syncLogMapping = ""
+	syncTiming = false
+	syncProfile = false
+	quiet = true
+
+	cfg := &config.Config{
+		ProjectRoot: projectRoot,
+		Project: config.Project{
+			Language:  "go",
+			SourceDir: "crates/gateway",
+		},
+	}
+	if err := runSyncFromCode(cfg, nodesDir, newSyncScope(cfg, nil, nil, nil)); err != nil {
+		t.Fatalf("code sync failed: %v", err)
+	}
+
+	spec, err := node.Load(filepath.Join(nodesDir, "Gateway.yaml"))
+	if err != nil {
+		t.Fatalf("failed to load generated node: %v", err)
+	}
+	if want := "crates/gateway/gateway.go"; spec.Node.FilePath != want {
+		t.Fatalf("expected generated node path %q, got %q", want, spec.Node.FilePath)
+	}
+	if filepath.IsAbs(filepath.FromSlash(spec.Node.FilePath)) {
+		t.Fatalf("generated node path must be portable, got absolute path %q", spec.Node.FilePath)
+	}
+}
+
+func TestProjectRelativeSyncPathPreservesExternalAbsolutePath(t *testing.T) {
+	projectRoot := t.TempDir()
+	externalRoot := t.TempDir()
+	externalPath := filepath.Join(externalRoot, "shared", "contract.go")
+
+	got := projectRelativeSyncPath(projectRoot, externalPath)
+
+	if !filepath.IsAbs(filepath.FromSlash(got)) {
+		t.Fatalf("expected external path to remain absolute, got %q", got)
+	}
+}
+
 func TestIsTestSourceFileRecognizesPythonConventions(t *testing.T) {
 	for _, path := range []string{"tests/test_service.py", "service_test.py"} {
 		if !isTestSourceFile(path) {

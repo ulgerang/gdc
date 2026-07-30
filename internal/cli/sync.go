@@ -630,6 +630,8 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 		}
 	}
 
+	sourceDir = makeCodeSyncPathsPortable(cfg.ProjectRoot, sourceDir, existingNodes, allExtracted)
+
 	phaseStarted = time.Now()
 	plans := buildCodeSyncPlans(sourceDir, nodesDir, existingNodes, allExtracted)
 	dependencyAliasMap := buildCanonicalDependencyAliasMap(existingNodes, plans)
@@ -1517,6 +1519,44 @@ func canonicalizeSpecDependencies(spec *node.Spec, aliasMap map[string]string) {
 
 func normalizeSyncPath(path string) string {
 	return strings.ToLower(filepath.Clean(path))
+}
+
+func makeCodeSyncPathsPortable(projectRoot, sourceDir string, existingNodes []*node.Spec, extractedNodes []*parser.ExtractedNode) string {
+	for _, spec := range existingNodes {
+		if spec == nil {
+			continue
+		}
+		spec.Node.FilePath = projectRelativeSyncPath(projectRoot, spec.Node.FilePath)
+	}
+	for _, extracted := range extractedNodes {
+		if extracted == nil {
+			continue
+		}
+		extracted.FilePath = projectRelativeSyncPath(projectRoot, extracted.FilePath)
+	}
+	return projectRelativeSyncPath(projectRoot, sourceDir)
+}
+
+func projectRelativeSyncPath(projectRoot, path string) string {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return ""
+	}
+
+	cleaned := filepath.Clean(path)
+	if !filepath.IsAbs(cleaned) || strings.TrimSpace(projectRoot) == "" {
+		return filepath.ToSlash(cleaned)
+	}
+
+	root, err := filepath.Abs(projectRoot)
+	if err != nil {
+		return filepath.ToSlash(cleaned)
+	}
+	relative, err := filepath.Rel(root, cleaned)
+	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return filepath.ToSlash(cleaned)
+	}
+	return filepath.ToSlash(relative)
 }
 
 func portableNodeIDKey(id string) string {
