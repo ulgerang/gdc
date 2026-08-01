@@ -3,7 +3,7 @@ node:
     id: ImplementationContract
     type: class
     namespace: node
-    file_path: D:\git\26\gdc\internal\node\spec.go
+    file_path: internal/node/spec.go
 language_spec:
     language: go
     package: node
@@ -14,6 +14,9 @@ interface:
         - name: Status
           type: string
           access: get; set
+        - name: ClosedWorld
+          type: bool
+          access: get; set
         - name: Lifecycle
           type: '[]string'
           access: get; set
@@ -23,11 +26,29 @@ interface:
         - name: Acceptance
           type: '[]AcceptanceScenario'
           access: get; set
+        - name: Profiles
+          type: '[]ImplementationProfile'
+          access: get; set
+        - name: ExternalContracts
+          type: '[]ExternalContract'
+          access: get; set
+        - name: Gates
+          type: '[]ImplementationGate'
+          access: get; set
 dependencies:
     - target: AcceptanceScenario
       type: class
       injection: field
+    - target: ImplementationProfile
+      type: class
+      injection: field
+    - target: ExternalContract
+      type: class
+      injection: field
+    - target: ImplementationGate
+      type: class
+      injection: field
 metadata:
-    status: ""
+    status: draft
     origin: code_extracted
-    extracted_at: "2026-07-28"
+    extracted_at: "2026-08-01"

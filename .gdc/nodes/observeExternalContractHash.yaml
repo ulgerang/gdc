@@ -1,0 +1,26 @@
+schema_version: "1.0"
+node:
+    id: observeExternalContractHash
+    type: function
+    namespace: cli
+    file_path: internal/cli/hash_plan.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: observeExternalContractHash
+          signature: observeExternalContractHash(projectRoot string, contractPath string) (string, error)
+          parameters:
+            - name: projectRoot
+              type: string
+            - name: contractPath
+              type: string
+          returns:
+            type: (string, error)
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-08-01"

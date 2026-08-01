@@ -107,6 +107,7 @@ gdc extract PlayerController --with-impl --with-tests
 | `gdc stats` | 프로젝트 통계 |
 | `gdc search <pattern>` | 코드베이스에서 패턴 검색 |
 | `gdc query <symbol>` | 심볼 이름으로 노드 정보 조회 |
+| `gdc impact --symbol <node.member>` | 변경 전 선언된 영향 범위 조회 |
 
 노드 생명주기 명령은 그래프 무결성을 보존합니다. `node delete`는 역참조가
 있으면 이를 표시하고 `--force` 없이는 삭제를 거부합니다. 강제 삭제는 해당
@@ -234,6 +235,57 @@ gdc extract PlayerController --template review
 `--with-impl`, `--with-tests`, `--with-callers`와 함께 사용할 수
 없으며, 일반 extract는 기존 탐색 모드로 호환됩니다.
 
+### 안전한 code-to-GDC 정합화
+
+큐레이션된 그래프는 범위를 제한한 code sync를 사용해야 합니다.
+`--existing-only`는 새 노드 생성을 금지하고, `--semantic-diff`는 변경 필드를
+code-owned, authored, review-required로 분류합니다. GDC는 첫 YAML 쓰기 전에
+전체 계획을 검사하며 authored 데이터 변경 가능성이 있으면 fail-closed로
+중단합니다. 새롭거나 알 수 없는 스키마 필드는 기본 authored 소유입니다.
+
+```powershell
+gdc sync --direction code --source . `
+  --files internal/auth/service.go --symbols Service `
+  --existing-only --dry-run --semantic-diff
+```
+
+`origin`은 생성 출처이고 `sync_policy`는 변경 권한입니다. sealed schema 1.2
+계약은 기본 소유자를 code로 설정할 수 없으며 external contract hash는 어떤
+정책으로도 code-owned로 낮출 수 없습니다.
+
+```yaml
+sync_policy:
+  default: authored
+  ownership:
+    interface.methods[*].signature: code
+    interface.methods[*].parameters[*].name: code
+    interface.methods[*].parameters[*].type: code
+    interface.methods[*].postconditions: authored
+```
+
+### gdc impact
+
+`gdc impact`는 변경 전에 실행하는 read-only 구조 조회입니다. Dependency 계약
+보유자, 선언된 composition site, `covers`로 연결된 acceptance를 provenance,
+confidence, 필요한 조치와 함께 반환합니다. 결과의 완전성은
+`declared_graph_only`이며 동적 호출이나 자연어 본문의 참조는 추론하지 않습니다.
+
+```yaml
+acceptance:
+  - id: AUTH-CONTINUITY-001
+    given: 기존 플레이어가 있다.
+    when: 게스트 로그인이 플레이어를 복원한다.
+    then: [세션을 계속 사용할 수 있다.]
+    covers:
+      - symbol: auth.Service.LoginGuest
+        aspects: [continuity]
+```
+
+```powershell
+gdc impact --symbol auth.Service.LoginGuest
+gdc impact auth.Service.LoginGuest --format json
+```
+
 ### gdc graph
 의존성 그래프를 다양한 형식으로 내보냅니다.
 
@@ -287,9 +339,15 @@ gdc check --category hash_mismatch
 # 심각도로 필터
 gdc check --severity error
 
-# 자동 수정
-gdc check --fix
+# 적용하지 않고 hash 조치 유형 미리보기
+gdc check --plan-fixes hash_mismatch --format json
 ```
+
+Dependency hash는 `safe_mechanical`, external contract hash는
+`review_required`로 분류됩니다. External 계획은 실제 문서의 raw-byte SHA-256을
+보여주지만 자동 적용하지 않습니다. External attestation 값은 dependency
+fingerprint에서 제외되므로 문서 승인 hash 변경이 코드 의존 엣지의 연쇄 churn을
+만들지 않으며, external contract의 ID, 경로, profile 범위는 계속 구조에 포함됩니다.
 
 ## 🔧 파서
 

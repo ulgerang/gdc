@@ -142,6 +142,7 @@ func (e *ExtractedNode) ToNodeSpec(oldSpec *node.Spec) *node.Spec {
 		spec.Interface.Types = append([]node.TypeContract(nil), oldSpec.Interface.Types...)
 		spec.Implementations = append([]string(nil), oldSpec.Implementations...)
 		spec.ImplementationContract = oldSpec.ImplementationContract
+		spec.SyncPolicy = cloneSyncPolicy(oldSpec.SyncPolicy)
 	}
 
 	// Convert constructors
@@ -281,6 +282,20 @@ func (e *ExtractedNode) ToNodeSpec(oldSpec *node.Spec) *node.Spec {
 	}
 
 	return spec
+}
+
+func cloneSyncPolicy(policy *node.SyncPolicy) *node.SyncPolicy {
+	if policy == nil {
+		return nil
+	}
+	cloned := &node.SyncPolicy{Default: policy.Default}
+	if len(policy.Ownership) > 0 {
+		cloned.Ownership = make(map[string]string, len(policy.Ownership))
+		for path, owner := range policy.Ownership {
+			cloned.Ownership[path] = owner
+		}
+	}
+	return cloned
 }
 
 func findOldConstructor(constructors []node.Constructor, signature string) *node.Constructor {

@@ -1,6 +1,6 @@
 schema_version: "1.0"
 node:
-    id: validateImplementationClosure
+    id: uniqueSpecsFromLookup
     type: function
     namespace: cli
     file_path: internal/cli/implementation_contract.go
@@ -11,16 +11,14 @@ responsibility:
     summary: ""
 interface:
     methods:
-        - name: validateImplementationClosure
-          signature: validateImplementationClosure(target *node.Spec, nodeMap map[string]*node.Spec) []string
+        - name: uniqueSpecsFromLookup
+          signature: uniqueSpecsFromLookup(lookup map[string]*node.Spec) []*node.Spec
           parameters:
-            - name: target
-              type: '*node.Spec'
-            - name: nodeMap
+            - name: lookup
               type: map[string]*node.Spec
           returns:
-            type: '[]string'
+            type: '[]*node.Spec'
 metadata:
-    status: draft
+    status: ""
     origin: code_extracted
     extracted_at: "2026-08-01"

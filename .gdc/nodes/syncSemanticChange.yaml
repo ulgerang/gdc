@@ -1,36 +1,32 @@
 schema_version: "1.0"
 node:
-    id: AcceptanceScenario
+    id: syncSemanticChange
     type: class
-    namespace: node
-    file_path: internal/node/spec.go
+    namespace: cli
+    file_path: internal/cli/sync_semantic.go
 language_spec:
     language: go
-    package: node
+    package: cli
 responsibility:
     summary: ""
 interface:
     properties:
-        - name: ID
+        - name: Path
           type: string
           access: get; set
-        - name: Given
+        - name: Ownership
           type: string
           access: get; set
-        - name: When
+        - name: Disposition
           type: string
           access: get; set
-        - name: Then
-          type: '[]string'
+        - name: Before
+          type: string
           access: get; set
-        - name: Covers
-          type: '[]AcceptanceCoverage'
+        - name: After
+          type: string
           access: get; set
-dependencies:
-    - target: AcceptanceCoverage
-      type: class
-      injection: field
 metadata:
-    status: draft
+    status: ""
     origin: code_extracted
     extracted_at: "2026-08-01"

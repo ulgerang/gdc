@@ -1,9 +1,9 @@
 schema_version: "1.0"
 node:
-    id: calculateSpecHash
+    id: syncOwnershipForPath
     type: function
     namespace: cli
-    file_path: internal/cli/sync.go
+    file_path: internal/cli/sync_semantic.go
 language_spec:
     language: go
     package: cli
@@ -11,14 +11,16 @@ responsibility:
     summary: ""
 interface:
     methods:
-        - name: calculateSpecHash
-          signature: calculateSpecHash(spec *node.Spec) string
+        - name: syncOwnershipForPath
+          signature: syncOwnershipForPath(spec *node.Spec, path string) (string, string)
           parameters:
             - name: spec
               type: '*node.Spec'
+            - name: path
+              type: string
           returns:
-            type: string
+            type: (string, string)
 metadata:
-    status: draft
+    status: ""
     origin: code_extracted
     extracted_at: "2026-08-01"

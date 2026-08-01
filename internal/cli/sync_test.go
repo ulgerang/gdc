@@ -502,6 +502,9 @@ type AuthService interface {
 				ID: "AUTH-CONTINUITY-001", Given: "An established player.", When: "Google is unavailable.", Then: []string{"Login succeeds."},
 			}},
 		},
+		SyncPolicy: &node.SyncPolicy{Ownership: map[string]string{
+			"interface.methods[*].parameters[*].*": "code",
+		}},
 		Metadata: node.Metadata{Status: "implemented", Origin: "hand_authored"},
 	}
 	if err := node.Save(filepath.Join(nodesDir, "AuthService.yaml"), existing); err != nil {
@@ -567,6 +570,136 @@ type AuthService interface {
 	}
 	if len(method.Preconditions) != 1 || len(method.Postconditions) != 1 || method.Returns.Description == "" {
 		t.Fatalf("authored method behavior was lost: %#v", method)
+	}
+}
+
+func TestCodeSyncSemanticGuardBlocksAuthoredParameterLossByDefault(t *testing.T) {
+	existing := &node.Spec{
+		Interface: node.Interface{Methods: []node.Method{{
+			Name: "LoginGuest", Signature: "LoginGuest(playerID, restoreToken string)",
+			Parameters: []node.Parameter{
+				{Name: "playerID", Type: "string", Description: "Stable player ID."},
+				{Name: "restoreToken", Type: "string", Description: "Authored restore behavior."},
+			},
+		}}},
+	}
+	next := &node.Spec{
+		Interface: node.Interface{Methods: []node.Method{{
+			Name: "LoginGuest", Signature: "LoginGuest(playerID string)",
+			Parameters: []node.Parameter{{Name: "playerID", Type: "string", Description: "Stable player ID."}},
+		}}},
+	}
+
+	report := analyzeCodeSyncChanges(existing, next)
+	if report.AuthoredChanges == 0 {
+		t.Fatalf("authored parameter metadata loss was not blocked: %+v", report)
+	}
+	found := false
+	for _, change := range report.Changes {
+		if strings.Contains(change.Path, "restoreToken") && change.Ownership == syncOwnerAuthored {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("removed authored parameter was not named in semantic diff: %+v", report.Changes)
+	}
+}
+
+func TestCodeSyncSemanticPolicyCanOwnParameterMetadata(t *testing.T) {
+	existing := &node.Spec{
+		SyncPolicy: &node.SyncPolicy{Ownership: map[string]string{
+			"interface.methods[*].parameters[*].*": "code",
+		}},
+		Interface: node.Interface{Methods: []node.Method{{
+			Name: "LoginGuest", Signature: "LoginGuest(restoreToken string)",
+			Parameters: []node.Parameter{{Name: "restoreToken", Type: "string", Description: "Generated metadata."}},
+		}}},
+	}
+	next := &node.Spec{SyncPolicy: existing.SyncPolicy, Interface: node.Interface{Methods: []node.Method{{
+		Name: "LoginGuest", Signature: "LoginGuest()",
+	}}}}
+
+	report := analyzeCodeSyncChanges(existing, next)
+	if report.AuthoredChanges != 0 || report.ReviewRequired != 0 {
+		t.Fatalf("explicit code ownership did not authorize parameter removal: %+v", report)
+	}
+}
+
+func TestCodeExtractedNodeRemainsMechanicallyRefreshableUntilCurated(t *testing.T) {
+	existing := &node.Spec{
+		Metadata:  node.Metadata{Origin: "code_extracted"},
+		Interface: node.Interface{Methods: []node.Method{{Name: "Run", Signature: "Run()"}}},
+	}
+	next := &node.Spec{
+		Metadata:  node.Metadata{Origin: "code_extracted"},
+		Interface: node.Interface{Methods: []node.Method{{Name: "Run", Signature: "Run()", Description: "Run executes the worker."}}},
+	}
+	report := analyzeCodeSyncChanges(existing, next)
+	if report.AuthoredChanges != 0 || report.CodeOwnedChanges == 0 {
+		t.Fatalf("legacy code-extracted node became unexpectedly curated: %+v", report)
+	}
+
+	existing.SyncPolicy = &node.SyncPolicy{Default: "authored"}
+	next.SyncPolicy = existing.SyncPolicy
+	report = analyzeCodeSyncChanges(existing, next)
+	if report.AuthoredChanges == 0 {
+		t.Fatalf("explicit authored default did not claim the generated node: %+v", report)
+	}
+}
+
+func TestCalculateSpecHashSeparatesExternalContractAttestation(t *testing.T) {
+	spec := &node.Spec{
+		SchemaVersion:  "1.2",
+		Node:           node.NodeInfo{ID: "Verifier", Type: "service"},
+		Responsibility: node.Responsibility{Summary: "Verify."},
+		Interface:      node.Interface{Methods: []node.Method{{Name: "Run", Signature: "Run() error"}}},
+		ImplementationContract: &node.ImplementationContract{ExternalContracts: []node.ExternalContract{{
+			ID: "authority", Path: "docs/authority.md", ContractHash: strings.Repeat("a", 64), Description: "Reviewed authority.",
+		}}},
+	}
+	first := calculateSpecHash(spec)
+	spec.ImplementationContract.ExternalContracts[0].ContractHash = strings.Repeat("b", 64)
+	if second := calculateSpecHash(spec); second != first {
+		t.Fatalf("external attestation hash leaked into dependency fingerprint: %s != %s", first, second)
+	}
+	spec.ImplementationContract.ExternalContracts[0].Path = "docs/other.md"
+	if changed := calculateSpecHash(spec); changed == first {
+		t.Fatal("external contract structural identity did not affect dependency fingerprint")
+	}
+}
+
+func TestFilterExistingCodeSyncPlansNeverCreatesNodes(t *testing.T) {
+	plans := []*codeSyncPlan{
+		{FinalID: "Existing", ExistingSpec: &node.Spec{}},
+		{FinalID: "New"},
+	}
+	filtered := filterExistingCodeSyncPlans(plans)
+	if len(filtered) != 1 || filtered[0].FinalID != "Existing" {
+		t.Fatalf("existing-only scope retained create plans: %+v", filtered)
+	}
+}
+
+func TestPreparedSemanticReportIdentifiesNoopUpdate(t *testing.T) {
+	existing := &node.Spec{
+		SchemaVersion: "1.0",
+		Node:          node.NodeInfo{ID: "Service", Type: "interface", FilePath: "service.go"},
+		LanguageSpec:  node.LanguageSpec{Language: "go"},
+		Metadata:      node.Metadata{Origin: "hand_authored"},
+		Interface:     node.Interface{Methods: []node.Method{{Name: "Run", Signature: "Run()", Exported: true}}},
+	}
+	extracted := &parser.ExtractedNode{
+		ID: "Service", Type: "interface", FilePath: "service.go", Language: "go",
+		Methods: []parser.ExtractedMethod{{Name: "Run", Signature: "Run()", IsPublic: true, Exported: true}},
+	}
+	plan := &codeSyncPlan{Extracted: extracted, BareID: "Service", FinalID: "Service", ExistingSpec: existing}
+	previousMerge := syncMerge
+	syncMerge = true
+	t.Cleanup(func() { syncMerge = previousMerge })
+	if err := prepareCodeSyncPlans([]*codeSyncPlan{plan}, nil); err != nil {
+		t.Fatalf("prepare no-op: %v", err)
+	}
+	if len(plan.Semantic.Changes) != 0 {
+		t.Fatalf("identical code shape was not a semantic no-op: %+v", plan.Semantic)
 	}
 }
 

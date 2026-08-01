@@ -1,0 +1,26 @@
+schema_version: "1.0"
+node:
+    id: runImpact
+    type: function
+    namespace: cli
+    file_path: internal/cli/impact.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: runImpact
+          signature: runImpact(cmd *cobra.Command, args []string) error
+          parameters:
+            - name: cmd
+              type: '*cobra.Command'
+            - name: args
+              type: '[]string'
+          returns:
+            type: error
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-08-01"

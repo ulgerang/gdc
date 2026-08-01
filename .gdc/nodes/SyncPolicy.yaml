@@ -1,0 +1,23 @@
+schema_version: "1.0"
+node:
+    id: SyncPolicy
+    type: class
+    namespace: node
+    file_path: internal/node/spec.go
+language_spec:
+    language: go
+    package: node
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Default
+          type: string
+          access: get; set
+        - name: Ownership
+          type: map[string]string
+          access: get; set
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-08-01"

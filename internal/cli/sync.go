@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -37,6 +38,8 @@ var (
 	syncFiles         []string
 	syncDirs          []string
 	syncSymbols       []string
+	syncExistingOnly  bool
+	syncSemanticDiff  bool
 )
 
 var syncCmd = &cobra.Command{
@@ -94,6 +97,8 @@ Examples:
 	syncCmd.Flags().StringSliceVar(&syncFiles, "files", nil, "limit sync to specific files")
 	syncCmd.Flags().StringSliceVar(&syncDirs, "dirs", nil, "limit sync to specific directories")
 	syncCmd.Flags().StringSliceVar(&syncSymbols, "symbols", nil, "limit sync to specific symbols")
+	syncCmd.Flags().BoolVar(&syncExistingOnly, "existing-only", false, "update only nodes that already exist; never create new nodes")
+	syncCmd.Flags().BoolVar(&syncSemanticDiff, "semantic-diff", false, "show field-level ownership and disposition during code-sync preview")
 }
 
 func runSync(cmd *cobra.Command, args []string) error {
@@ -363,6 +368,7 @@ func calculateSpecHash(spec *node.Spec) string {
 			// value keeps this node's hash stable and computable for cyclic graphs.
 			dependencies[i].ContractHash = ""
 		}
+		implementationContract := cloneImplementationContractForDependencyHash(spec.ImplementationContract)
 		contract := struct {
 			Node                   node.NodeInfo                `yaml:"node"`
 			LanguageSpec           node.LanguageSpec            `yaml:"language_spec,omitempty"`
@@ -383,7 +389,7 @@ func calculateSpecHash(spec *node.Spec) string {
 			Interface:              spec.Interface,
 			Dependencies:           dependencies,
 			Logic:                  spec.Logic,
-			ImplementationContract: spec.ImplementationContract,
+			ImplementationContract: implementationContract,
 		}
 		content, err := yaml.Marshal(contract)
 		if err == nil {
@@ -410,6 +416,21 @@ func calculateSpecHash(spec *node.Spec) string {
 
 	hash := sha256.Sum256([]byte(content))
 	return hex.EncodeToString(hash[:4]) // First 8 hex chars
+}
+
+func cloneImplementationContractForDependencyHash(contract *node.ImplementationContract) *node.ImplementationContract {
+	if contract == nil {
+		return nil
+	}
+	cloned := *contract
+	cloned.ExternalContracts = append([]node.ExternalContract(nil), contract.ExternalContracts...)
+	for i := range cloned.ExternalContracts {
+		// External hashes are human-reviewed attestations over canonical documents,
+		// not part of the code dependency fingerprint. Identity, path, description,
+		// and profile scope remain structural and therefore stay in the hash.
+		cloned.ExternalContracts[i].ContractHash = ""
+	}
+	return &cloned
 }
 
 func getSpecPath(spec *node.Spec) string {
@@ -634,8 +655,18 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 
 	phaseStarted = time.Now()
 	plans := buildCodeSyncPlans(sourceDir, nodesDir, existingNodes, allExtracted)
+	if syncExistingOnly {
+		plans = filterExistingCodeSyncPlans(plans)
+		if len(plans) == 0 {
+			printWarning("No existing nodes matched the requested sync scope")
+			return nil
+		}
+	}
 	dependencyAliasMap := buildCanonicalDependencyAliasMap(existingNodes, plans)
 	conflictLines := collectCodeSyncConflicts(plans, dependencyAliasMap)
+	if err := prepareCodeSyncPlans(plans, dependencyAliasMap); err != nil {
+		return err
+	}
 	planDuration := time.Since(phaseStarted)
 
 	var created, updated, deleted int
@@ -644,15 +675,7 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 	phaseStarted = time.Now()
 
 	for _, plan := range plans {
-		baseSpec := plan.ExistingSpec
-		if !syncMerge {
-			baseSpec = nil
-		}
-		newSpec := plan.Extracted.ToNodeSpec(baseSpec)
-		newSpec.Node.ID = plan.FinalID
-		newSpec.Node.FilePath = plan.Extracted.FilePath
-		canonicalizeSpecDependencies(newSpec, dependencyAliasMap)
-		applyCodeSyncMetadata(newSpec, baseSpec, syncAutoStatus, time.Now())
+		newSpec := plan.PreparedSpec
 
 		specPath := filepath.Join(nodesDir, plan.FinalID+".yaml")
 		exists := plan.ExistingSpec != nil
@@ -663,6 +686,19 @@ func runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) erro
 		mappingLines = append(mappingLines, formatSyncMappingLine(plan, specPath, actionLabel))
 		if verbose && !quiet {
 			fmt.Printf("     map: %s\n", formatSyncMappingPreview(plan, actionLabel))
+		}
+		if exists && len(plan.Semantic.Changes) == 0 && strings.TrimSpace(plan.StaleSpecPath) == "" {
+			if !quiet {
+				color.HiBlack("  = Unchanged: %s", plan.FinalID)
+			}
+			skipped++
+			continue
+		}
+		if syncDryRun && syncSemanticDiff && !quiet {
+			fmt.Printf("     semantic: code-owned=%d authored-preserved=%d review-required=%d\n", plan.Semantic.CodeOwnedChanges, plan.Semantic.AuthoredPreserved, plan.Semantic.ReviewRequired)
+			for _, change := range plan.Semantic.Changes {
+				fmt.Printf("       - %s\n", formatSemanticChange(change))
+			}
 		}
 
 		if syncDryRun {
@@ -867,6 +903,55 @@ type codeSyncPlan struct {
 	FinalID       string
 	ExistingSpec  *node.Spec
 	StaleSpecPath string
+	PreparedSpec  *node.Spec
+	Semantic      syncSemanticReport
+}
+
+func filterExistingCodeSyncPlans(plans []*codeSyncPlan) []*codeSyncPlan {
+	filtered := make([]*codeSyncPlan, 0, len(plans))
+	for _, plan := range plans {
+		if plan != nil && plan.ExistingSpec != nil {
+			filtered = append(filtered, plan)
+		}
+	}
+	return filtered
+}
+
+func prepareCodeSyncPlans(plans []*codeSyncPlan, dependencyAliasMap map[string]string) error {
+	var violations []string
+	for _, plan := range plans {
+		if plan == nil || plan.Extracted == nil {
+			continue
+		}
+		baseSpec := plan.ExistingSpec
+		if !syncMerge {
+			baseSpec = nil
+		}
+		prepared := plan.Extracted.ToNodeSpec(baseSpec)
+		prepared.Node.ID = plan.FinalID
+		prepared.Node.FilePath = plan.Extracted.FilePath
+		canonicalizeSpecDependencies(prepared, dependencyAliasMap)
+		applyCodeSyncMetadata(prepared, baseSpec, syncAutoStatus, time.Now())
+		plan.PreparedSpec = prepared
+		if plan.ExistingSpec == nil {
+			continue
+		}
+		plan.Semantic = analyzeCodeSyncChanges(plan.ExistingSpec, prepared)
+		for _, change := range plan.Semantic.Changes {
+			if change.Disposition == "mechanical" {
+				continue
+			}
+			violations = append(violations, fmt.Sprintf("%s: %s", plan.FinalID, formatSemanticChange(change)))
+		}
+	}
+	if len(violations) == 0 {
+		return nil
+	}
+	sort.Strings(violations)
+	for _, violation := range violations {
+		printWarning("Code sync requires authored review: %s", violation)
+	}
+	return fmt.Errorf("code sync blocked: %d authored or review-required field changes; update the contract first", len(violations))
 }
 
 func buildCodeSyncPlans(sourceDir, nodesDir string, existingNodes []*node.Spec, extractedNodes []*parser.ExtractedNode) []*codeSyncPlan {

@@ -1,0 +1,24 @@
+schema_version: "1.0"
+node:
+    id: cloneImplementationContractForDependencyHash
+    type: function
+    namespace: cli
+    file_path: internal/cli/sync.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: cloneImplementationContractForDependencyHash
+          signature: cloneImplementationContractForDependencyHash(contract *node.ImplementationContract) *node.ImplementationContract
+          parameters:
+            - name: contract
+              type: '*node.ImplementationContract'
+          returns:
+            type: '*node.ImplementationContract'
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-08-01"

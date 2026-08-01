@@ -1,0 +1,28 @@
+schema_version: "1.0"
+node:
+    id: formatSemanticChange
+    type: function
+    namespace: cli
+    file_path: internal/cli/sync_semantic.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: formatSemanticChange
+          signature: formatSemanticChange(change syncSemanticChange) string
+          parameters:
+            - name: change
+              type: syncSemanticChange
+          returns:
+            type: string
+dependencies:
+    - target: syncSemanticChange
+      type: class
+      injection: method
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-08-01"

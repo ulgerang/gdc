@@ -1,0 +1,42 @@
+schema_version: "1.0"
+node:
+    id: impactReport
+    type: class
+    namespace: cli
+    file_path: internal/cli/impact.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Query
+          type: string
+          access: get; set
+        - name: Symbol
+          type: string
+          access: get; set
+        - name: OwnerNode
+          type: string
+          access: get; set
+        - name: Member
+          type: string
+          access: get; set
+        - name: Completeness
+          type: string
+          access: get; set
+        - name: Findings
+          type: '[]impactFinding'
+          access: get; set
+        - name: Notes
+          type: '[]string'
+          access: get; set
+dependencies:
+    - target: impactFinding
+      type: class
+      injection: field
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-08-01"

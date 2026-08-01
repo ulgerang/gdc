@@ -25,8 +25,16 @@ type Spec struct {
 	Implementations        []string                `yaml:"implementations,omitempty"`
 	Logic                  Logic                   `yaml:"logic,omitempty"`
 	ImplementationContract *ImplementationContract `yaml:"implementation_contract,omitempty"`
+	SyncPolicy             *SyncPolicy             `yaml:"sync_policy,omitempty"`
 	Metadata               Metadata                `yaml:"metadata"`
 	SourcePath             string                  `yaml:"-"`
+}
+
+// SyncPolicy declares which contract paths code sync is allowed to mutate.
+// Unknown paths are authored-owned by default so new schema fields fail closed.
+type SyncPolicy struct {
+	Default   string            `yaml:"default,omitempty"`
+	Ownership map[string]string `yaml:"ownership,omitempty"`
 }
 
 // NodeInfo contains basic node identification
@@ -240,10 +248,19 @@ type ImplementationContract struct {
 
 // AcceptanceScenario is a source-free given/when/then implementation oracle.
 type AcceptanceScenario struct {
-	ID    string   `yaml:"id"`
-	Given string   `yaml:"given"`
-	When  string   `yaml:"when"`
-	Then  []string `yaml:"then"`
+	ID     string               `yaml:"id"`
+	Given  string               `yaml:"given"`
+	When   string               `yaml:"when"`
+	Then   []string             `yaml:"then"`
+	Covers []AcceptanceCoverage `yaml:"covers,omitempty"`
+}
+
+// AcceptanceCoverage links an authored acceptance scenario to a stable graph
+// symbol. GDC uses these declared edges for impact analysis; executable tests
+// remain the authority for whether the scenario passes.
+type AcceptanceCoverage struct {
+	Symbol  string   `yaml:"symbol"`
+	Aspects []string `yaml:"aspects,omitempty"`
 }
 
 // ImplementationProfile closes one explicit implementation or execution
@@ -384,6 +401,23 @@ func (s *Spec) Validate() []string {
 		validReadiness := map[string]bool{"draft": true, "ready": true, "sealed": true}
 		if !validReadiness[s.ImplementationContract.Status] {
 			errors = append(errors, fmt.Sprintf("invalid implementation_contract.status: %s", s.ImplementationContract.Status))
+		}
+	}
+
+	if s.SyncPolicy != nil {
+		if owner := strings.TrimSpace(s.SyncPolicy.Default); owner != "" && owner != "authored" && owner != "code" {
+			errors = append(errors, fmt.Sprintf("invalid sync_policy.default: %s", s.SyncPolicy.Default))
+		}
+		if strings.TrimSpace(s.SchemaVersion) == "1.2" && s.ImplementationContract != nil && s.ImplementationContract.Status == "sealed" && s.SyncPolicy.Default == "code" {
+			errors = append(errors, "sealed schema 1.2 contracts cannot set sync_policy.default to code")
+		}
+		for path, owner := range s.SyncPolicy.Ownership {
+			if strings.TrimSpace(path) == "" {
+				errors = append(errors, "sync_policy.ownership path cannot be blank")
+			}
+			if owner != "authored" && owner != "code" {
+				errors = append(errors, fmt.Sprintf("invalid sync_policy.ownership[%s]: %s", path, owner))
+			}
 		}
 	}
 

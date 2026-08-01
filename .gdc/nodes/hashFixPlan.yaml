@@ -1,0 +1,47 @@
+schema_version: "1.0"
+node:
+    id: hashFixPlan
+    type: class
+    namespace: cli
+    file_path: internal/cli/hash_plan.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Kind
+          type: string
+          access: get; set
+        - name: Disposition
+          type: string
+          access: get; set
+        - name: SourceNode
+          type: string
+          access: get; set
+        - name: Target
+          type: string
+          access: get; set
+        - name: Path
+          type: string
+          access: get; set
+        - name: ExpectedHash
+          type: string
+          access: get; set
+        - name: ObservedHash
+          type: string
+          access: get; set
+        - name: AutoApplicable
+          type: bool
+          access: get; set
+        - name: Action
+          type: string
+          access: get; set
+        - name: Error
+          type: string
+          access: get; set
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-08-01"

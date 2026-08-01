@@ -91,6 +91,7 @@ func init() {
 	rootCmd.AddCommand(depsCmd)
 	rootCmd.AddCommand(refsCmd)
 	rootCmd.AddCommand(contextCmd)
+	rootCmd.AddCommand(impactCmd)
 }
 
 // versionCmd shows version information

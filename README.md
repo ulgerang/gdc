@@ -94,6 +94,7 @@ gdc sync --direction code             # Extract from code → YAML
 gdc sync --direction code --source src/
 gdc sync --direction code --files src/services/user_service.go
 gdc sync --direction code --dirs src/services --symbols UserService
+gdc sync --direction code --source . --files src/auth.go --symbols AuthService --existing-only --dry-run --semantic-diff
 gdc sync --direction both --strategy merge
 gdc sync --timing --profile --profile-output .gdc/sync-profile.json
 
@@ -102,6 +103,8 @@ gdc check --category hash_mismatch    # Filter by category
 gdc check --severity error            # Filter by severity
 gdc check --verify-impl --fail-on-missing
 gdc check --format json               # JSON output
+gdc check --plan-fixes hash_mismatch --format json
+gdc impact --symbol auth.Service.LoginGuest --format json
 
 # 6. List and show nodes
 gdc list
@@ -155,6 +158,7 @@ gdc extract PlayerController --with-impl --with-tests
 | `gdc deps <node>` | List dependencies (JSON) |
 | `gdc refs <node>` | List referencing nodes (JSON) |
 | `gdc context <node>` | Full extraction context (JSON) |
+| `gdc impact --symbol <node.member>` | Report the declared pre-change blast radius |
 
 Node lifecycle commands preserve graph integrity. `node delete` reports reverse
 references and refuses the operation unless `--force` is supplied; forced deletion
@@ -332,6 +336,59 @@ dependency's authored contract, and readiness errors report the current value to
 The mode cannot be combined with `--with-impl`, `--with-tests`, or `--with-callers`.
 Ordinary extract remains the exploratory, backward-compatible mode.
 
+### Safe code-to-GDC reconciliation
+
+Curated graphs should use bounded code sync. `--existing-only` guarantees that
+the run cannot create nodes, while `--semantic-diff` reports each changed field
+as code-owned, authored, or review-required. GDC evaluates every plan before the
+first YAML write and fails closed if code sync would modify authored data. New
+and unknown schema fields default to authored ownership.
+
+```bash
+gdc sync --direction code --source . \
+  --files internal/auth/service.go --symbols Service \
+  --existing-only --dry-run --semantic-diff
+```
+
+Optional `sync_policy` rules can narrow ownership. `origin` records provenance;
+`sync_policy` controls mutation authority. Sealed schema 1.2 contracts cannot set
+the default owner to code. External contract hashes are always review-required
+and cannot be downgraded by a sync policy.
+
+```yaml
+sync_policy:
+  default: authored
+  ownership:
+    interface.methods[*].signature: code
+    interface.methods[*].parameters[*].name: code
+    interface.methods[*].parameters[*].type: code
+    interface.methods[*].postconditions: authored
+```
+
+### gdc impact
+
+`gdc impact` is a read-only, pre-change structural query. It reports dependency
+contract holders, declared composition sites, and acceptance scenarios linked by
+`covers`. Every finding includes provenance, confidence, and the required action.
+The report says `declared_graph_only`: dynamic calls and prose-only acceptance
+references are intentionally not inferred.
+
+```yaml
+acceptance:
+  - id: AUTH-CONTINUITY-001
+    given: An established player exists.
+    when: Guest login resumes the player.
+    then: [The session remains usable.]
+    covers:
+      - symbol: auth.Service.LoginGuest
+        aspects: [continuity]
+```
+
+```bash
+gdc impact --symbol auth.Service.LoginGuest
+gdc impact auth.Service.LoginGuest --format json
+```
+
 ### gdc preflight
 Evaluate a node's authored contract without reading implementation source.
 Schema 1.2 preflight selects one implementation profile, closes its code and
@@ -440,9 +497,15 @@ gdc check --category hash_mismatch
 # Filter by severity
 gdc check --severity error
 
-# Auto-fix issues
-gdc check --fix
+# Preview typed hash actions without applying them
+gdc check --plan-fixes hash_mismatch --format json
 ```
+
+Dependency hash plans are classified `safe_mechanical`. External contract hash
+plans are classified `review_required`, show the observed raw-byte SHA-256, and
+are never auto-applied. External attestation values are excluded from dependency
+fingerprints so a reviewed document update does not create unrelated code-edge
+hash churn; the external contract identity and scope remain structural.
 
 ## 🔧 Parsers
 

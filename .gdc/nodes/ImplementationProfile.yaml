@@ -1,6 +1,6 @@
 schema_version: "1.0"
 node:
-    id: AcceptanceScenario
+    id: ImplementationProfile
     type: class
     namespace: node
     file_path: internal/node/spec.go
@@ -14,23 +14,19 @@ interface:
         - name: ID
           type: string
           access: get; set
-        - name: Given
+        - name: Description
           type: string
           access: get; set
-        - name: When
-          type: string
-          access: get; set
-        - name: Then
+        - name: Requires
           type: '[]string'
           access: get; set
-        - name: Covers
-          type: '[]AcceptanceCoverage'
+        - name: Forbids
+          type: '[]string'
           access: get; set
-dependencies:
-    - target: AcceptanceCoverage
-      type: class
-      injection: field
+        - name: Acceptance
+          type: '[]string'
+          access: get; set
 metadata:
-    status: draft
+    status: ""
     origin: code_extracted
     extracted_at: "2026-08-01"

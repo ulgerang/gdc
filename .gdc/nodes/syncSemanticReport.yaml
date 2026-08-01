@@ -1,0 +1,36 @@
+schema_version: "1.0"
+node:
+    id: syncSemanticReport
+    type: class
+    namespace: cli
+    file_path: internal/cli/sync_semantic.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Changes
+          type: '[]syncSemanticChange'
+          access: get; set
+        - name: CodeOwnedChanges
+          type: int
+          access: get; set
+        - name: AuthoredChanges
+          type: int
+          access: get; set
+        - name: ReviewRequired
+          type: int
+          access: get; set
+        - name: AuthoredPreserved
+          type: int
+          access: get; set
+dependencies:
+    - target: syncSemanticChange
+      type: class
+      injection: field
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-08-01"

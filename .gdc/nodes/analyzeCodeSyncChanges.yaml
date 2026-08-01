@@ -1,0 +1,30 @@
+schema_version: "1.0"
+node:
+    id: analyzeCodeSyncChanges
+    type: function
+    namespace: cli
+    file_path: internal/cli/sync_semantic.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: analyzeCodeSyncChanges
+          signature: analyzeCodeSyncChanges(existing *node.Spec, next *node.Spec) syncSemanticReport
+          parameters:
+            - name: existing
+              type: '*node.Spec'
+            - name: next
+              type: '*node.Spec'
+          returns:
+            type: syncSemanticReport
+dependencies:
+    - target: syncSemanticReport
+      type: class
+      injection: method
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-08-01"

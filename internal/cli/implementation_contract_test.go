@@ -237,6 +237,19 @@ func TestValidateImplementationNodeRequiresExactSchema11(t *testing.T) {
 	}
 }
 
+func TestValidateAcceptanceCoverageUsesNamedDiagnostics(t *testing.T) {
+	spec := readyImplementationSpec("Auth", "LoginGuest")
+	spec.ImplementationContract.Acceptance[0].Covers = []node.AcceptanceCoverage{{Symbol: "Auth.MissingMethod"}}
+	issues := validateAcceptanceCoverage(spec, []*node.Spec{spec})
+	joined := strings.Join(issues, "\n")
+	if !strings.Contains(joined, "acceptance[AUTH-SUCCESS]") || !strings.Contains(joined, "covers[Auth.MissingMethod]") {
+		t.Fatalf("coverage diagnostic did not use stable names: %s", joined)
+	}
+	if !strings.Contains(joined, "was not found") {
+		t.Fatalf("missing coverage symbol was accepted: %s", joined)
+	}
+}
+
 func readyImplementationSpec(id, methodName string) *node.Spec {
 	return &node.Spec{
 		SchemaVersion: "1.1",

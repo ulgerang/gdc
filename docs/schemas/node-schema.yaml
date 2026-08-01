@@ -1,5 +1,5 @@
 # GDC Node Specification Schema
-# Version: 1.1.0
+# Version: 1.2.1
 # 
 # 이 파일은 노드 명세 YAML 파일의 표준 스키마를 정의합니다.
 # 각 필드에 대한 상세 설명과 예시를 포함합니다.
@@ -165,6 +165,9 @@ implementation_contract:
       given: string             # 사전 상태
       when: string              # 실행 조건
       then: [string]            # 관찰 가능한 기대 결과
+      covers:                   # impact 역추적용 명시적 구조 엣지 (선택)
+        - symbol: string        # 정규화 가능한 node.member 심볼
+          aspects: [string]     # continuity, rotation 등 검토 관점 (선택)
   profiles:                     # schema 1.2: 닫힌 구현/실행 표면 (선택)
     - id: string                # 프로파일 ID (예: headless, unity-publish)
       description: string       # 표면 설명
@@ -186,6 +189,18 @@ implementation_contract:
       reason: string            # 차단 사유 (선택)
       profiles: [string]        # 적용 프로파일 (비어 있으면 전체)
       contract: string          # 관련 external_contracts ID (선택)
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# SYNC POLICY: code-sync 필드 소유권 (선택, 미지정 필드는 authored)
+# ─────────────────────────────────────────────────────────────────────────────────
+sync_policy:
+  default: authored             # authored | code; sealed schema 1.2는 code 금지
+  ownership:                    # 더 구체적인 glob 규칙이 우선
+    interface.methods[*].signature: code
+    interface.methods[*].parameters[*].name: code
+    interface.methods[*].parameters[*].type: code
+    interface.methods[*].postconditions: authored
+    implementation_contract: authored
 
 # ─────────────────────────────────────────────────────────────────────────────────
 # METADATA: 메타데이터

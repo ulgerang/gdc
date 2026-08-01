@@ -3,7 +3,7 @@ node:
     id: codeSyncPlan
     type: class
     namespace: cli
-    file_path: D:\git\26\gdc\internal\cli\sync.go
+    file_path: internal/cli/sync.go
 language_spec:
     language: go
     package: cli
@@ -25,6 +25,12 @@ interface:
           access: get; set
         - name: StaleSpecPath
           type: string
+          access: get; set
+        - name: PreparedSpec
+          type: '*node.Spec'
+          access: get; set
+        - name: Semantic
+          type: syncSemanticReport
           access: get; set
 metadata:
     status: draft

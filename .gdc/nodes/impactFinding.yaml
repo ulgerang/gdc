@@ -1,0 +1,47 @@
+schema_version: "1.0"
+node:
+    id: impactFinding
+    type: class
+    namespace: cli
+    file_path: internal/cli/impact.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    properties:
+        - name: Kind
+          type: string
+          access: get; set
+        - name: SourceNode
+          type: string
+          access: get; set
+        - name: TargetSymbol
+          type: string
+          access: get; set
+        - name: FilePath
+          type: string
+          access: get; set
+        - name: ContractHash
+          type: string
+          access: get; set
+        - name: AcceptanceID
+          type: string
+          access: get; set
+        - name: Aspects
+          type: '[]string'
+          access: get; set
+        - name: Provenance
+          type: string
+          access: get; set
+        - name: Confidence
+          type: string
+          access: get; set
+        - name: Action
+          type: string
+          access: get; set
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-08-01"

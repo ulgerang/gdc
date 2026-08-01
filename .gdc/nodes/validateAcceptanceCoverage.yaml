@@ -1,6 +1,6 @@
 schema_version: "1.0"
 node:
-    id: validateImplementationClosure
+    id: validateAcceptanceCoverage
     type: function
     namespace: cli
     file_path: internal/cli/implementation_contract.go
@@ -11,16 +11,16 @@ responsibility:
     summary: ""
 interface:
     methods:
-        - name: validateImplementationClosure
-          signature: validateImplementationClosure(target *node.Spec, nodeMap map[string]*node.Spec) []string
+        - name: validateAcceptanceCoverage
+          signature: validateAcceptanceCoverage(spec *node.Spec, nodes []*node.Spec) []string
           parameters:
-            - name: target
+            - name: spec
               type: '*node.Spec'
-            - name: nodeMap
-              type: map[string]*node.Spec
+            - name: nodes
+              type: '[]*node.Spec'
           returns:
             type: '[]string'
 metadata:
-    status: draft
+    status: ""
     origin: code_extracted
     extracted_at: "2026-08-01"

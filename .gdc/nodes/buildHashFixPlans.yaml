@@ -1,0 +1,28 @@
+schema_version: "1.0"
+node:
+    id: buildHashFixPlans
+    type: function
+    namespace: cli
+    file_path: internal/cli/hash_plan.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: buildHashFixPlans
+          signature: buildHashFixPlans(nodes []*node.Spec, lookup map[string]*node.Spec, projectRoot string) []hashFixPlan
+          parameters:
+            - name: nodes
+              type: '[]*node.Spec'
+            - name: lookup
+              type: map[string]*node.Spec
+            - name: projectRoot
+              type: string
+          returns:
+            type: '[]hashFixPlan'
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-08-01"

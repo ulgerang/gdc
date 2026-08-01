@@ -1,6 +1,6 @@
 schema_version: "1.0"
 node:
-    id: AcceptanceScenario
+    id: ImplementationGate
     type: class
     namespace: node
     file_path: internal/node/spec.go
@@ -14,23 +14,28 @@ interface:
         - name: ID
           type: string
           access: get; set
-        - name: Given
+        - name: Kind
           type: string
           access: get; set
-        - name: When
+        - name: Phase
           type: string
           access: get; set
-        - name: Then
+        - name: Status
+          type: string
+          access: get; set
+        - name: Description
+          type: string
+          access: get; set
+        - name: Reason
+          type: string
+          access: get; set
+        - name: Profiles
           type: '[]string'
           access: get; set
-        - name: Covers
-          type: '[]AcceptanceCoverage'
+        - name: Contract
+          type: string
           access: get; set
-dependencies:
-    - target: AcceptanceCoverage
-      type: class
-      injection: field
 metadata:
-    status: draft
+    status: ""
     origin: code_extracted
     extracted_at: "2026-08-01"

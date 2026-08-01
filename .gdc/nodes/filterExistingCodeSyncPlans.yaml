@@ -1,6 +1,6 @@
 schema_version: "1.0"
 node:
-    id: calculateSpecHash
+    id: filterExistingCodeSyncPlans
     type: function
     namespace: cli
     file_path: internal/cli/sync.go
@@ -11,14 +11,14 @@ responsibility:
     summary: ""
 interface:
     methods:
-        - name: calculateSpecHash
-          signature: calculateSpecHash(spec *node.Spec) string
+        - name: filterExistingCodeSyncPlans
+          signature: filterExistingCodeSyncPlans(plans []*codeSyncPlan) []*codeSyncPlan
           parameters:
-            - name: spec
-              type: '*node.Spec'
+            - name: plans
+              type: '[]*codeSyncPlan'
           returns:
-            type: string
+            type: '[]*codeSyncPlan'
 metadata:
-    status: draft
+    status: ""
     origin: code_extracted
     extracted_at: "2026-08-01"

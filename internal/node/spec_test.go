@@ -178,6 +178,52 @@ metadata: {status: specified}
 	}
 }
 
+func TestLoadSchema12ParsesSyncOwnershipAndAcceptanceCoverage(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "contract.yaml")
+	content := `schema_version: "1.2"
+node:
+  id: Auth
+  type: interface
+responsibility:
+  summary: Authenticate.
+interface:
+  methods:
+    - name: LoginGuest
+      signature: LoginGuest()
+implementation_contract:
+  status: sealed
+  closed_world: true
+  acceptance:
+    - id: AUTH-001
+      given: A player.
+      when: LoginGuest runs.
+      then: [Login succeeds.]
+      covers:
+        - symbol: Auth.LoginGuest
+          aspects: [continuity]
+sync_policy:
+  default: authored
+  ownership:
+    interface.methods[*].signature: code
+metadata:
+  status: specified
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write spec: %v", err)
+	}
+	spec, err := Load(path)
+	if err != nil {
+		t.Fatalf("load spec: %v", err)
+	}
+	if spec.SyncPolicy == nil || spec.SyncPolicy.Ownership["interface.methods[*].signature"] != "code" {
+		t.Fatalf("sync ownership was not parsed: %+v", spec.SyncPolicy)
+	}
+	covers := spec.ImplementationContract.Acceptance[0].Covers
+	if len(covers) != 1 || covers[0].Symbol != "Auth.LoginGuest" || len(covers[0].Aspects) != 1 {
+		t.Fatalf("acceptance coverage was not parsed: %+v", covers)
+	}
+}
+
 func TestLoadSchema12PreservesProfiledReadinessContract(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "Verifier.yaml")
 	content := `schema_version: "1.2"

@@ -31,6 +31,7 @@ var (
 	checkMaxWarnings   int
 	checkMaxInfo       int
 	checkFormat        string
+	checkPlanFixes     string
 )
 
 var checkCmd = &cobra.Command{
@@ -91,6 +92,7 @@ Examples:
 	checkCmd.Flags().IntVar(&checkMaxWarnings, "max-warnings", -1, "fail when warning count exceeds this threshold")
 	checkCmd.Flags().IntVar(&checkMaxInfo, "max-info", -1, "fail when info count exceeds this threshold")
 	checkCmd.Flags().StringVar(&checkFormat, "format", "text", "output format (text, json)")
+	checkCmd.Flags().StringVar(&checkPlanFixes, "plan-fixes", "", "preview typed fixes without applying them (supported: hash_mismatch)")
 }
 
 type Issue struct {
@@ -122,6 +124,12 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	}
 
 	nodeMap := buildSpecLookup(nodes)
+	if strings.TrimSpace(checkPlanFixes) != "" {
+		if checkPlanFixes != "hash_mismatch" {
+			return fmt.Errorf("unsupported fix plan %q; expected hash_mismatch", checkPlanFixes)
+		}
+		return outputHashFixPlans(buildHashFixPlans(nodes, nodeMap, cfg.ProjectRoot), checkFormat)
+	}
 
 	var issues []Issue
 	issues = append(issues, checkMissingRefs(nodes, nodeMap)...)

@@ -1,0 +1,26 @@
+schema_version: "1.0"
+node:
+    id: prepareCodeSyncPlans
+    type: function
+    namespace: cli
+    file_path: internal/cli/sync.go
+language_spec:
+    language: go
+    package: cli
+responsibility:
+    summary: ""
+interface:
+    methods:
+        - name: prepareCodeSyncPlans
+          signature: prepareCodeSyncPlans(plans []*codeSyncPlan, dependencyAliasMap map[string]string) error
+          parameters:
+            - name: plans
+              type: '[]*codeSyncPlan'
+            - name: dependencyAliasMap
+              type: map[string]string
+          returns:
+            type: error
+metadata:
+    status: ""
+    origin: code_extracted
+    extracted_at: "2026-08-01"

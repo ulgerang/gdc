@@ -3,7 +3,7 @@ node:
     id: Spec
     type: class
     namespace: node
-    file_path: D:\git\26\gdc\internal\node\spec.go
+    file_path: internal/node/spec.go
 language_spec:
     language: go
     package: node
@@ -66,6 +66,9 @@ interface:
         - name: ImplementationContract
           type: '*ImplementationContract'
           access: get; set
+        - name: SyncPolicy
+          type: '*SyncPolicy'
+          access: get; set
         - name: Metadata
           type: Metadata
           access: get; set
@@ -73,28 +76,31 @@ interface:
           type: string
           access: get; set
 dependencies:
-    - target: NodeInfo
+    - target: node.NodeInfo
       type: class
       injection: field
-    - target: LanguageSpec
+    - target: node.LanguageSpec
       type: class
       injection: field
-    - target: Responsibility
+    - target: node.Responsibility
       type: class
       injection: field
-    - target: Interface
+    - target: node.Interface
       type: class
       injection: field
-    - target: Dependency
+    - target: node.Dependency
       type: class
       injection: field
-    - target: Logic
+    - target: node.Logic
       type: class
       injection: field
     - target: ImplementationContract
       type: class
       injection: field
-    - target: Metadata
+    - target: SyncPolicy
+      type: class
+      injection: field
+    - target: node.Metadata
       type: class
       injection: field
 metadata:

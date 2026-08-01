@@ -3,13 +3,27 @@ node:
     id: runSyncFromCode
     type: function
     namespace: cli
-    file_path: D:\git\26\gdc\internal\cli\sync.go
+    file_path: internal/cli/sync.go
 language_spec:
     language: go
     package: cli
 responsibility:
     summary: ""
+interface:
+    methods:
+        - name: runSyncFromCode
+          signature: runSyncFromCode(cfg *config.Config, nodesDir string, scope *syncScope) error
+          description: runSyncFromCode extracts interfaces from source code and updates YAML specs
+          parameters:
+            - name: cfg
+              type: '*config.Config'
+            - name: nodesDir
+              type: string
+            - name: scope
+              type: '*syncScope'
+          returns:
+            type: error
 metadata:
-    status: ""
+    status: draft
     origin: code_extracted
-    extracted_at: "2026-04-03"
+    extracted_at: "2026-08-01"

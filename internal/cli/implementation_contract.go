@@ -35,6 +35,7 @@ func validateImplementationClosure(target *node.Spec, nodeMap map[string]*node.S
 		}
 		visited[id] = true
 		issues = append(issues, validateImplementationNode(spec)...)
+		issues = append(issues, validateAcceptanceCoverage(spec, uniqueSpecsFromLookup(nodeMap))...)
 
 		deps := append([]node.Dependency(nil), spec.Dependencies...)
 		sort.SliceStable(deps, func(i, j int) bool { return deps[i].Target < deps[j].Target })
@@ -92,7 +93,7 @@ func validateImplementationNode(spec *node.Spec) []string {
 			issues = append(issues, id+": at least one acceptance scenario is required")
 		}
 		for i, scenario := range spec.ImplementationContract.Acceptance {
-			field := fmt.Sprintf("%s.implementation_contract.acceptance[%d]", id, i)
+			field := fmt.Sprintf("%s.implementation_contract.acceptance[%s]", id, diagnosticName(scenario.ID, i))
 			if strings.TrimSpace(scenario.ID) == "" || strings.TrimSpace(scenario.Given) == "" || strings.TrimSpace(scenario.When) == "" || !hasNonBlankContractValue(scenario.Then) {
 				issues = append(issues, field+": id, given, when, and then are required")
 			}
@@ -109,29 +110,30 @@ func validateImplementationNode(spec *node.Spec) []string {
 		issues = append(issues, id+": at least one public interface member is required")
 	}
 	for i, contractType := range spec.Interface.Types {
+		typeField := fmt.Sprintf("%s.interface.types[%s]", id, diagnosticName(contractType.Name, i))
 		if strings.TrimSpace(contractType.Name) == "" || strings.TrimSpace(contractType.Signature) == "" || strings.TrimSpace(contractType.Description) == "" {
-			issues = append(issues, fmt.Sprintf("%s.interface.types[%d]: name, signature, and description are required", id, i))
+			issues = append(issues, typeField+": name, signature, and description are required")
 		}
 		for f, field := range contractType.Fields {
 			if strings.TrimSpace(field.Name) == "" || strings.TrimSpace(field.Type) == "" || strings.TrimSpace(field.Description) == "" {
-				issues = append(issues, fmt.Sprintf("%s.interface.types[%d].fields[%d]: name, type, and description are required", id, i, f))
+				issues = append(issues, fmt.Sprintf("%s.fields[%s]: name, type, and description are required", typeField, diagnosticName(field.Name, f)))
 			}
 		}
-		issues = append(issues, blankContractValueIssues(fmt.Sprintf("%s.interface.types[%d].values", id, i), contractType.Values)...)
+		issues = append(issues, blankContractValueIssues(typeField+".values", contractType.Values)...)
 	}
 	for i, constructor := range spec.Interface.Constructors {
-		field := fmt.Sprintf("%s.interface.constructors[%d]", id, i)
+		field := fmt.Sprintf("%s.interface.constructors[%s]", id, diagnosticName(firstNonBlank(constructor.Name, constructor.Signature), i))
 		if strings.TrimSpace(constructor.Signature) == "" || strings.TrimSpace(constructor.Description) == "" {
 			issues = append(issues, field+": signature and description are required")
 		}
 		for p, parameter := range constructor.Parameters {
 			if strings.TrimSpace(parameter.Name) == "" || strings.TrimSpace(parameter.Type) == "" || strings.TrimSpace(parameter.Description) == "" {
-				issues = append(issues, fmt.Sprintf("%s.parameters[%d]: name, type, and description are required", field, p))
+				issues = append(issues, fmt.Sprintf("%s.parameters[%s]: name, type, and description are required", field, diagnosticName(parameter.Name, p)))
 			}
 		}
 	}
 	for i, method := range spec.Interface.Methods {
-		field := fmt.Sprintf("%s.interface.methods[%d]", id, i)
+		field := fmt.Sprintf("%s.interface.methods[%s]", id, diagnosticName(method.Name, i))
 		if strings.TrimSpace(method.Name) == "" || strings.TrimSpace(method.Signature) == "" || strings.TrimSpace(method.Description) == "" {
 			issues = append(issues, field+": name, signature, and description are required")
 		}
@@ -154,18 +156,18 @@ func validateImplementationNode(spec *node.Spec) []string {
 		}
 		for p, parameter := range method.Parameters {
 			if strings.TrimSpace(parameter.Name) == "" || strings.TrimSpace(parameter.Type) == "" || strings.TrimSpace(parameter.Description) == "" {
-				issues = append(issues, fmt.Sprintf("%s.parameters[%d]: name, type, and description are required", field, p))
+				issues = append(issues, fmt.Sprintf("%s.parameters[%s]: name, type, and description are required", field, diagnosticName(parameter.Name, p)))
 			}
 		}
 	}
 	for i, property := range spec.Interface.Properties {
 		if strings.TrimSpace(property.Name) == "" || strings.TrimSpace(property.Type) == "" || strings.TrimSpace(property.Access) == "" || strings.TrimSpace(property.Description) == "" {
-			issues = append(issues, fmt.Sprintf("%s.interface.properties[%d]: name, type, access, and description are required", id, i))
+			issues = append(issues, fmt.Sprintf("%s.interface.properties[%s]: name, type, access, and description are required", id, diagnosticName(property.Name, i)))
 		}
 	}
 	for i, event := range spec.Interface.Events {
 		if strings.TrimSpace(event.Name) == "" || strings.TrimSpace(event.Signature) == "" || strings.TrimSpace(event.Description) == "" {
-			issues = append(issues, fmt.Sprintf("%s.interface.events[%d]: name, signature, and description are required", id, i))
+			issues = append(issues, fmt.Sprintf("%s.interface.events[%s]: name, signature, and description are required", id, diagnosticName(event.Name, i)))
 		}
 	}
 
@@ -206,7 +208,7 @@ func validateProfiledImplementationContract(spec *node.Spec) []string {
 	}
 	profileIDs := make(map[string]bool, len(contract.Profiles))
 	for i, profile := range contract.Profiles {
-		field := fmt.Sprintf("%s.implementation_contract.profiles[%d]", id, i)
+		field := fmt.Sprintf("%s.implementation_contract.profiles[%s]", id, diagnosticName(profile.ID, i))
 		if strings.TrimSpace(profile.ID) == "" || strings.TrimSpace(profile.Description) == "" {
 			issues = append(issues, field+": id and description are required")
 		}
@@ -233,7 +235,7 @@ func validateProfiledImplementationContract(spec *node.Spec) []string {
 	}
 	externalIDs := make(map[string]bool, len(contract.ExternalContracts))
 	for i, external := range contract.ExternalContracts {
-		field := fmt.Sprintf("%s.implementation_contract.external_contracts[%d]", id, i)
+		field := fmt.Sprintf("%s.implementation_contract.external_contracts[%s]", id, diagnosticName(external.ID, i))
 		if strings.TrimSpace(external.ID) == "" || strings.TrimSpace(external.Path) == "" || strings.TrimSpace(external.Description) == "" {
 			issues = append(issues, field+": id, path, and description are required")
 		}
@@ -252,7 +254,7 @@ func validateProfiledImplementationContract(spec *node.Spec) []string {
 	}
 	gateIDs := make(map[string]bool, len(contract.Gates))
 	for i, gate := range contract.Gates {
-		field := fmt.Sprintf("%s.implementation_contract.gates[%d]", id, i)
+		field := fmt.Sprintf("%s.implementation_contract.gates[%s]", id, diagnosticName(gate.ID, i))
 		if strings.TrimSpace(gate.ID) == "" || strings.TrimSpace(gate.Kind) == "" || strings.TrimSpace(gate.Description) == "" {
 			issues = append(issues, field+": id, kind, and description are required")
 		}
@@ -278,6 +280,68 @@ func validateProfiledImplementationContract(spec *node.Spec) []string {
 		}
 	}
 	return issues
+}
+
+func validateAcceptanceCoverage(spec *node.Spec, nodes []*node.Spec) []string {
+	if spec == nil || spec.ImplementationContract == nil {
+		return nil
+	}
+	var issues []string
+	for scenarioIndex, scenario := range spec.ImplementationContract.Acceptance {
+		field := fmt.Sprintf("%s.implementation_contract.acceptance[%s]", spec.QualifiedID(), diagnosticName(scenario.ID, scenarioIndex))
+		seen := make(map[string]bool)
+		for coverageIndex, coverage := range scenario.Covers {
+			coverageField := fmt.Sprintf("%s.covers[%s]", field, diagnosticName(coverage.Symbol, coverageIndex))
+			symbol := strings.TrimSpace(coverage.Symbol)
+			if symbol == "" {
+				issues = append(issues, coverageField+": symbol is required")
+				continue
+			}
+			canonical := canonicalCoverageSymbol(spec, symbol, nodes)
+			if canonical == symbol {
+				if _, _, _, err := resolveImpactSymbol(symbol, nodes); err != nil {
+					issues = append(issues, coverageField+": "+err.Error())
+					continue
+				}
+			}
+			if seen[canonical] {
+				issues = append(issues, coverageField+": duplicate coverage for "+canonical)
+			}
+			seen[canonical] = true
+			issues = append(issues, blankContractValueIssues(coverageField+".aspects", coverage.Aspects)...)
+		}
+	}
+	return issues
+}
+
+func uniqueSpecsFromLookup(lookup map[string]*node.Spec) []*node.Spec {
+	seen := make(map[*node.Spec]bool)
+	result := make([]*node.Spec, 0)
+	for _, spec := range lookup {
+		if spec == nil || seen[spec] {
+			continue
+		}
+		seen[spec] = true
+		result = append(result, spec)
+	}
+	sort.SliceStable(result, func(i, j int) bool { return result[i].QualifiedID() < result[j].QualifiedID() })
+	return result
+}
+
+func diagnosticName(value string, index int) string {
+	if value = strings.TrimSpace(value); value != "" {
+		return value
+	}
+	return fmt.Sprintf("#%d", index+1)
+}
+
+func firstNonBlank(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func isFullSHA256(value string) bool {
