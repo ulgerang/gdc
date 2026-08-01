@@ -259,6 +259,16 @@ matches produce an empty array, making the command suitable for file-oriented co
 Sync specs with the graph database or extract graph nodes from code. Scope-limited sync is supported
 for local implementation loops.
 
+Code sync merges by default. The extracted code owns structural shape such as current signatures,
+parameters, types, and access, while an existing curated YAML node keeps its schema version,
+responsibility, behavioral method contracts, dependency closure metadata, authored interface types,
+implementation profiles, gates, and acceptance scenarios. Removed code parameters are removed from
+the YAML instead of surviving through stale parameter metadata. Use `--merge=false` only when an
+intentional code-first replacement of authored contract content is desired.
+
+`--symbols` uses exact node IDs or exact qualified IDs. Selecting `Config` matches the `Config` node;
+it does not expand to helpers such as `config.getEnv` merely because they share a namespace.
+
 ```bash
 # Full sync
 gdc sync

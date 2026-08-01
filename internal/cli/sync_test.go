@@ -242,6 +242,16 @@ func TestSyncScopeFiltersFilesAndSymbols(t *testing.T) {
 	if len(filteredNodes) != 1 || filteredNodes[0].ID != "UserService" {
 		t.Fatalf("expected only UserService to remain, got %+v", filteredNodes)
 	}
+
+	configScope := newSyncScope(cfg, nil, nil, []string{"Config"})
+	configNodes := filterExtractedNodesByScope([]*parser.ExtractedNode{
+		{ID: "Config", Namespace: "config", FilePath: paths[0]},
+		{ID: "getEnv", Namespace: "config", FilePath: paths[0]},
+		{ID: "parseFloat", Namespace: "config", FilePath: paths[0]},
+	}, configScope)
+	if len(configNodes) != 1 || configNodes[0].ID != "Config" {
+		t.Fatalf("exact Config symbol scope must not expand to namespace helpers, got %+v", configNodes)
+	}
 }
 
 func TestSyncScopeMatchesNodesByQualifiedNameAndPath(t *testing.T) {
@@ -428,6 +438,135 @@ func TestCodeSyncHonorsMergeFlagWhenBuildingSpecs(t *testing.T) {
 	replaced := extracted.ToNodeSpec(nil)
 	if replaced.Responsibility.Summary != "" || replaced.Interface.Methods[0].Description != "" {
 		t.Fatalf("expected replace mode to drop authored content, got %+v", replaced)
+	}
+}
+
+func TestCodeSyncMergePreservesCuratedImplementationContract(t *testing.T) {
+	projectRoot := t.TempDir()
+	sourceDir := filepath.Join(projectRoot, "internal", "httpapi")
+	nodesDir := filepath.Join(projectRoot, ".gdc", "nodes")
+	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
+		t.Fatalf("create source dir: %v", err)
+	}
+	if err := os.MkdirAll(nodesDir, 0o755); err != nil {
+		t.Fatalf("create nodes dir: %v", err)
+	}
+
+	sourcePath := filepath.Join(sourceDir, "auth_handler.go")
+	source := `package httpapi
+
+import "context"
+
+type LoginResult struct{}
+
+type AuthService interface {
+	LoginGuest(ctx context.Context, playerID string) (LoginResult, error)
+}
+`
+	if err := os.WriteFile(sourcePath, []byte(source), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+
+	existing := &node.Spec{
+		SchemaVersion: "1.1",
+		Node: node.NodeInfo{
+			ID:        "AuthService",
+			Type:      "interface",
+			Layer:     "application",
+			Namespace: "httpapi",
+			FilePath:  "internal/httpapi/auth_handler.go",
+		},
+		Responsibility: node.Responsibility{
+			Summary:    "Bound authentication use cases.",
+			Invariants: []string{"Google availability is optional."},
+		},
+		Interface: node.Interface{Methods: []node.Method{{
+			Name:        "LoginGuest",
+			Signature:   "LoginGuest(ctx context.Context, playerID string, restoreToken string) (LoginResult, error)",
+			Description: "Creates or resumes a guest session.",
+			Parameters: []node.Parameter{
+				{Name: "ctx", Type: "context.Context", Description: "Request context."},
+				{Name: "playerID", Type: "string", Description: "Existing opaque player ID."},
+				{Name: "restoreToken", Type: "string", Description: "Obsolete restore input."},
+			},
+			Returns:        node.Returns{Type: "(LoginResult, error)", Description: "Issued credentials."},
+			Preconditions:  []string{"Strict request decoding succeeded."},
+			Postconditions: []string{"A successful login returns credentials."},
+			Exported:       true,
+		}}},
+		ImplementationContract: &node.ImplementationContract{
+			Status:      "ready",
+			Lifecycle:   []string{"Injected before route registration."},
+			Constraints: []string{"Provider outages cannot block continuity."},
+			Acceptance: []node.AcceptanceScenario{{
+				ID: "AUTH-CONTINUITY-001", Given: "An established player.", When: "Google is unavailable.", Then: []string{"Login succeeds."},
+			}},
+		},
+		Metadata: node.Metadata{Status: "implemented", Origin: "hand_authored"},
+	}
+	if err := node.Save(filepath.Join(nodesDir, "AuthService.yaml"), existing); err != nil {
+		t.Fatalf("save existing spec: %v", err)
+	}
+
+	previousSource := syncSource
+	previousDryRun := syncDryRun
+	previousMerge := syncMerge
+	previousAutoStatus := syncAutoStatus
+	previousConflictLog := syncConflictLog
+	previousLogMapping := syncLogMapping
+	previousTiming := syncTiming
+	previousProfile := syncProfile
+	previousQuiet := quiet
+	t.Cleanup(func() {
+		syncSource = previousSource
+		syncDryRun = previousDryRun
+		syncMerge = previousMerge
+		syncAutoStatus = previousAutoStatus
+		syncConflictLog = previousConflictLog
+		syncLogMapping = previousLogMapping
+		syncTiming = previousTiming
+		syncProfile = previousProfile
+		quiet = previousQuiet
+	})
+	syncSource = ""
+	syncDryRun = false
+	syncMerge = true
+	syncAutoStatus = false
+	syncConflictLog = ""
+	syncLogMapping = ""
+	syncTiming = false
+	syncProfile = false
+	quiet = true
+
+	cfg := &config.Config{
+		ProjectRoot: projectRoot,
+		Project: config.Project{
+			Language:  "go",
+			SourceDir: "internal/httpapi",
+		},
+		Storage: config.Storage{NodesDir: ".gdc/nodes"},
+	}
+	scope := newSyncScope(cfg, []string{"internal/httpapi/auth_handler.go"}, nil, []string{"AuthService"})
+	if err := runSyncFromCode(cfg, nodesDir, scope); err != nil {
+		t.Fatalf("code sync: %v", err)
+	}
+
+	merged, err := node.Load(filepath.Join(nodesDir, "AuthService.yaml"))
+	if err != nil {
+		t.Fatalf("load merged spec: %v", err)
+	}
+	if merged.SchemaVersion != "1.1" || merged.ImplementationContract == nil || len(merged.ImplementationContract.Acceptance) != 1 {
+		t.Fatalf("curated implementation contract was not preserved: schema=%q contract=%#v", merged.SchemaVersion, merged.ImplementationContract)
+	}
+	if len(merged.Interface.Methods) != 1 || len(merged.Interface.Methods[0].Parameters) != 2 {
+		t.Fatalf("code-owned parameter shape was not refreshed: %#v", merged.Interface.Methods)
+	}
+	method := merged.Interface.Methods[0]
+	if strings.Contains(method.Signature, "restoreToken") || method.Parameters[1].Description != "Existing opaque player ID." {
+		t.Fatalf("stale parameter survived or authored metadata was lost: %#v", method)
+	}
+	if len(method.Preconditions) != 1 || len(method.Postconditions) != 1 || method.Returns.Description == "" {
+		t.Fatalf("authored method behavior was lost: %#v", method)
 	}
 }
 

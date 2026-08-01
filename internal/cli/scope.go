@@ -148,7 +148,7 @@ func (s *syncScope) matchesLookupTargets(targets []string) bool {
 
 		if !symbolMatched {
 			for _, symbol := range s.symbols {
-				if normalizedTarget == symbol || strings.Contains(normalizedTarget, symbol) {
+				if normalizedTarget == symbol {
 					symbolMatched = true
 					break
 				}

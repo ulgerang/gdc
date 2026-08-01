@@ -3,6 +3,8 @@ package parser
 import (
 	"os"
 	"testing"
+
+	"github.com/gdc-tools/gdc/internal/node"
 )
 
 func TestGetParser(t *testing.T) {
@@ -191,6 +193,121 @@ func TestExtractedNodePreservesOldDescriptions(t *testing.T) {
 	if spec.Interface.Methods[0].Description != "Original description from old spec" {
 		t.Errorf("expected preserved description 'Original description from old spec', got '%s'",
 			spec.Interface.Methods[0].Description)
+	}
+}
+
+func TestExtractedNodeMergePreservesAuthoredContractAndRefreshesCodeShape(t *testing.T) {
+	oldSpec := &node.Spec{
+		SchemaVersion: "1.1",
+		Node: node.NodeInfo{
+			ID:        "AuthService",
+			Type:      "interface",
+			Layer:     "application",
+			Namespace: "httpapi",
+			FilePath:  "internal/httpapi/auth_handler.go",
+		},
+		Responsibility: node.Responsibility{
+			Summary:    "Bound authentication use cases.",
+			Invariants: []string{"Provider outages never block guest continuity."},
+		},
+		Interface: node.Interface{
+			Types: []node.TypeContract{{
+				Name:        "AuthOutcome",
+				Signature:   "type AuthOutcome string",
+				Description: "Stable authentication outcome.",
+			}},
+			Methods: []node.Method{{
+				Name:        "LoginGuest",
+				Signature:   "LoginGuest(ctx context.Context, playerID string, restoreToken string) (auth.LoginResult, error)",
+				Description: "Creates or resumes a guest session.",
+				Parameters: []node.Parameter{
+					{Name: "ctx", Type: "context.Context", Description: "Request context."},
+					{Name: "playerID", Type: "string", Description: "Existing player ID.", Constraint: "opaque"},
+					{Name: "restoreToken", Type: "string", Description: "Obsolete restore input."},
+				},
+				Returns:        node.Returns{Type: "(auth.LoginResult, error)", Description: "Issued credentials.", Constraint: "credentials are never logged"},
+				Throws:         []node.Throws{{Type: "ErrInvalidCredential", Condition: "unknown player"}},
+				Preconditions:  []string{"The request body passed strict decoding."},
+				Postconditions: []string{"A successful result has an active player epoch."},
+				SideEffects:    []string{"May create a guest player."},
+				Exported:       true,
+			}},
+		},
+		Dependencies: []node.Dependency{{
+			Target:       "store.Store",
+			Type:         "interface",
+			Injection:    "field",
+			Usage:        "Persists players and refresh credentials.",
+			ContractHash: "eadaa4eb",
+			Requires:     []string{"GetPlayer", "CreatePlayer", "UpdatePlayerEpoch"},
+		}},
+		Implementations: []string{"SessionAuthService"},
+		ImplementationContract: &node.ImplementationContract{
+			Status:      "ready",
+			Lifecycle:   []string{"One implementation is injected before route registration."},
+			Constraints: []string{"Google availability is optional."},
+			Acceptance: []node.AcceptanceScenario{{
+				ID: "AUTH-CONTINUITY-001", Given: "An established player.", When: "Google is unavailable.", Then: []string{"Login still succeeds."},
+			}},
+		},
+		Metadata: node.Metadata{Status: "implemented", Origin: "hand_authored", Tags: []string{"auth"}},
+	}
+
+	extracted := &ExtractedNode{
+		ID:        "AuthService",
+		Type:      "interface",
+		Namespace: "httpapi",
+		Language:  "go",
+		Package:   "httpapi",
+		FilePath:  "internal/httpapi/auth_handler.go",
+		Methods: []ExtractedMethod{{
+			Name:      "LoginGuest",
+			Signature: "LoginGuest(ctx context.Context, playerID string) (auth.LoginResult, error)",
+			Parameters: []ExtractedParameter{
+				{Name: "ctx", Type: "context.Context"},
+				{Name: "playerID", Type: "string"},
+			},
+			Returns:  "(auth.LoginResult, error)",
+			IsPublic: true,
+			Exported: true,
+		}},
+		Dependencies: []ExtractedDependency{{
+			Target: "Store", Type: "interface", Injection: "field",
+		}},
+	}
+
+	merged := extracted.ToNodeSpec(oldSpec)
+
+	if merged.SchemaVersion != "1.1" {
+		t.Fatalf("schema_version = %q, want preserved 1.1", merged.SchemaVersion)
+	}
+	if merged.ImplementationContract == nil || merged.ImplementationContract.Status != "ready" || len(merged.ImplementationContract.Acceptance) != 1 {
+		t.Fatalf("implementation contract was not preserved: %#v", merged.ImplementationContract)
+	}
+	if len(merged.Interface.Types) != 1 || merged.Interface.Types[0].Name != "AuthOutcome" {
+		t.Fatalf("authored interface types were not preserved: %#v", merged.Interface.Types)
+	}
+	if len(merged.Implementations) != 1 || merged.Implementations[0] != "SessionAuthService" {
+		t.Fatalf("authored implementations were not preserved: %#v", merged.Implementations)
+	}
+	if len(merged.Interface.Methods) != 1 {
+		t.Fatalf("methods = %d, want 1", len(merged.Interface.Methods))
+	}
+	method := merged.Interface.Methods[0]
+	if method.Signature != extracted.Methods[0].Signature {
+		t.Fatalf("signature = %q, want refreshed %q", method.Signature, extracted.Methods[0].Signature)
+	}
+	if len(method.Parameters) != 2 {
+		t.Fatalf("parameters = %#v, obsolete restoreToken must be removed", method.Parameters)
+	}
+	if method.Parameters[1].Name != "playerID" || method.Parameters[1].Description != "Existing player ID." || method.Parameters[1].Constraint != "opaque" {
+		t.Fatalf("playerID metadata was not preserved on refreshed parameter: %#v", method.Parameters[1])
+	}
+	if method.Description == "" || len(method.Preconditions) != 1 || len(method.Postconditions) != 1 || len(method.SideEffects) != 1 || method.Returns.Description == "" {
+		t.Fatalf("authored method behavior was not preserved: %#v", method)
+	}
+	if len(merged.Dependencies) != 1 || len(merged.Dependencies[0].Requires) != 3 || merged.Dependencies[0].ContractHash != "eadaa4eb" {
+		t.Fatalf("dependency contract metadata was not preserved: %#v", merged.Dependencies)
 	}
 }
 

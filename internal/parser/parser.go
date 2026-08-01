@@ -3,6 +3,7 @@ package parser
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/gdc-tools/gdc/internal/node"
 )
@@ -108,11 +109,16 @@ type ExtractedDependency struct {
 	Injection string // "constructor", "field", "property"
 }
 
-// ToNodeSpec converts extracted information to a node.Spec
-// Preserves existing descriptions from the old spec
+// ToNodeSpec converts extracted information to a node.Spec. Code-owned shape
+// (signatures, current parameters, types, and access) comes from extraction;
+// authored semantic and behavioral contract fields are preserved from oldSpec.
 func (e *ExtractedNode) ToNodeSpec(oldSpec *node.Spec) *node.Spec {
+	schemaVersion := "1.0"
+	if oldSpec != nil && strings.TrimSpace(oldSpec.SchemaVersion) != "" {
+		schemaVersion = oldSpec.SchemaVersion
+	}
 	spec := &node.Spec{
-		SchemaVersion: "1.0",
+		SchemaVersion: schemaVersion,
 		Node: node.NodeInfo{
 			ID:        e.ID,
 			Type:      e.Type,
@@ -133,6 +139,9 @@ func (e *ExtractedNode) ToNodeSpec(oldSpec *node.Spec) *node.Spec {
 		spec.Node.Layer = oldSpec.Node.Layer
 		spec.Metadata = oldSpec.Metadata
 		spec.Logic = oldSpec.Logic
+		spec.Interface.Types = append([]node.TypeContract(nil), oldSpec.Interface.Types...)
+		spec.Implementations = append([]string(nil), oldSpec.Implementations...)
+		spec.ImplementationContract = oldSpec.ImplementationContract
 	}
 
 	// Convert constructors
@@ -141,21 +150,19 @@ func (e *ExtractedNode) ToNodeSpec(oldSpec *node.Spec) *node.Spec {
 			Signature:   ctor.Signature,
 			Description: ctor.Description,
 		}
-		// Preserve old description if new one is empty
-		if newCtor.Description == "" && oldSpec != nil {
-			for _, oldCtor := range oldSpec.Interface.Constructors {
-				if oldCtor.Signature == ctor.Signature {
-					newCtor.Description = oldCtor.Description
-					break
-				}
+		var oldCtor *node.Constructor
+		if oldSpec != nil {
+			oldCtor = findOldConstructor(oldSpec.Interface.Constructors, ctor.Signature)
+		}
+		if oldCtor != nil {
+			if newCtor.Description == "" {
+				newCtor.Description = oldCtor.Description
 			}
+			newCtor.Name = oldCtor.Name
+			newCtor.Access = oldCtor.Access
+			newCtor.Attributes = append([]string(nil), oldCtor.Attributes...)
 		}
-		for _, p := range ctor.Parameters {
-			newCtor.Parameters = append(newCtor.Parameters, node.Parameter{
-				Name: p.Name,
-				Type: p.Type,
-			})
-		}
+		newCtor.Parameters = mergeExtractedParameters(ctor.Parameters, parametersFromConstructor(oldCtor))
 		spec.Interface.Constructors = append(spec.Interface.Constructors, newCtor)
 	}
 
@@ -175,29 +182,23 @@ func (e *ExtractedNode) ToNodeSpec(oldSpec *node.Spec) *node.Spec {
 			Access:     method.Access,     // C#: access modifier
 			Attributes: method.Attributes, // C#: method attributes
 		}
-		// Preserve old description if new one is empty
-		if newMethod.Description == "" && oldSpec != nil {
-			for _, oldMethod := range oldSpec.Interface.Methods {
-				if oldMethod.Name == method.Name {
-					newMethod.Description = oldMethod.Description
-					newMethod.Parameters = oldMethod.Parameters
-					newMethod.Returns = oldMethod.Returns
-					newMethod.Throws = oldMethod.Throws
-					break
-				}
-			}
+		var oldMethod *node.Method
+		if oldSpec != nil {
+			oldMethod = findOldMethod(oldSpec.Interface.Methods, method.Name, method.Signature)
 		}
-		// Add parameters from extracted
-		if len(newMethod.Parameters) == 0 {
-			for _, p := range method.Parameters {
-				newMethod.Parameters = append(newMethod.Parameters, node.Parameter{
-					Name: p.Name,
-					Type: p.Type,
-				})
+		if oldMethod != nil {
+			if newMethod.Description == "" {
+				newMethod.Description = oldMethod.Description
 			}
+			newMethod.Throws = append([]node.Throws(nil), oldMethod.Throws...)
+			newMethod.Preconditions = append([]string(nil), oldMethod.Preconditions...)
+			newMethod.Postconditions = append([]string(nil), oldMethod.Postconditions...)
+			newMethod.SideEffects = append([]string(nil), oldMethod.SideEffects...)
 		}
-		if newMethod.Returns.Type == "" && method.Returns != "" {
-			newMethod.Returns = node.Returns{Type: method.Returns}
+		newMethod.Parameters = mergeExtractedParameters(method.Parameters, parametersFromMethod(oldMethod))
+		newMethod.Returns = mergeExtractedReturns(method.Returns, returnsFromMethod(oldMethod))
+		if oldMethod != nil && method.Returns == "" {
+			newMethod.Returns.Type = oldMethod.Returns.Type
 		}
 		spec.Interface.Methods = append(spec.Interface.Methods, newMethod)
 	}
@@ -213,13 +214,22 @@ func (e *ExtractedNode) ToNodeSpec(oldSpec *node.Spec) *node.Spec {
 			Access:      prop.Access,
 			Description: prop.Description,
 		}
-		// Preserve old description
-		if newProp.Description == "" && oldSpec != nil {
-			for _, oldProp := range oldSpec.Interface.Properties {
-				if oldProp.Name == prop.Name {
+		if oldSpec != nil {
+			if oldProp := findOldProperty(oldSpec.Interface.Properties, prop.Name); oldProp != nil {
+				if newProp.Description == "" {
 					newProp.Description = oldProp.Description
-					break
 				}
+				if newProp.Type == "" {
+					newProp.Type = oldProp.Type
+				}
+				if newProp.Access == "" {
+					newProp.Access = oldProp.Access
+				}
+				newProp.Default = oldProp.Default
+				newProp.Readonly = oldProp.Readonly
+				newProp.Exported = oldProp.Exported
+				newProp.Static = oldProp.Static
+				newProp.Attributes = append([]string(nil), oldProp.Attributes...)
 			}
 		}
 		spec.Interface.Properties = append(spec.Interface.Properties, newProp)
@@ -235,13 +245,12 @@ func (e *ExtractedNode) ToNodeSpec(oldSpec *node.Spec) *node.Spec {
 			Signature:   event.Signature,
 			Description: event.Description,
 		}
-		// Preserve old description
-		if newEvent.Description == "" && oldSpec != nil {
-			for _, oldEvent := range oldSpec.Interface.Events {
-				if oldEvent.Name == event.Name {
+		if oldSpec != nil {
+			if oldEvent := findOldEvent(oldSpec.Interface.Events, event.Name); oldEvent != nil {
+				if newEvent.Description == "" {
 					newEvent.Description = oldEvent.Description
-					break
 				}
+				newEvent.Payload = oldEvent.Payload
 			}
 		}
 		spec.Interface.Events = append(spec.Interface.Events, newEvent)
@@ -260,20 +269,157 @@ func (e *ExtractedNode) ToNodeSpec(oldSpec *node.Spec) *node.Spec {
 		}
 		// Preserve old contract hash and usage
 		if oldSpec != nil {
-			for _, oldDep := range oldSpec.Dependencies {
-				if oldDep.Target == dep.Target {
-					newDep.ContractHash = oldDep.ContractHash
-					newDep.Usage = oldDep.Usage
-					newDep.Optional = oldDep.Optional
-					newDep.Type = oldDep.Type
-					break
-				}
+			if oldDep := findOldDependency(oldSpec.Dependencies, dep.Target); oldDep != nil {
+				newDep.ContractHash = oldDep.ContractHash
+				newDep.Usage = oldDep.Usage
+				newDep.Optional = oldDep.Optional
+				newDep.Type = oldDep.Type
+				newDep.Requires = append([]string(nil), oldDep.Requires...)
 			}
 		}
 		spec.Dependencies = append(spec.Dependencies, newDep)
 	}
 
 	return spec
+}
+
+func findOldConstructor(constructors []node.Constructor, signature string) *node.Constructor {
+	for i := range constructors {
+		if constructors[i].Signature == signature {
+			return &constructors[i]
+		}
+	}
+	if len(constructors) == 1 {
+		return &constructors[0]
+	}
+	return nil
+}
+
+func findOldMethod(methods []node.Method, name, signature string) *node.Method {
+	for i := range methods {
+		if methods[i].Name == name && methods[i].Signature == signature {
+			return &methods[i]
+		}
+	}
+	var match *node.Method
+	for i := range methods {
+		if methods[i].Name != name {
+			continue
+		}
+		if match != nil {
+			return nil
+		}
+		match = &methods[i]
+	}
+	return match
+}
+
+func findOldProperty(properties []node.Property, name string) *node.Property {
+	for i := range properties {
+		if properties[i].Name == name {
+			return &properties[i]
+		}
+	}
+	return nil
+}
+
+func findOldEvent(events []node.Event, name string) *node.Event {
+	for i := range events {
+		if events[i].Name == name {
+			return &events[i]
+		}
+	}
+	return nil
+}
+
+func findOldDependency(dependencies []node.Dependency, target string) *node.Dependency {
+	trimmedTarget := strings.TrimSpace(target)
+	for i := range dependencies {
+		if strings.TrimSpace(dependencies[i].Target) == trimmedTarget {
+			return &dependencies[i]
+		}
+	}
+
+	normalizedTarget := NormalizeTypeReference(trimmedTarget)
+	for i := range dependencies {
+		if NormalizeTypeReference(dependencies[i].Target) == normalizedTarget {
+			return &dependencies[i]
+		}
+	}
+
+	baseTarget := unqualifiedTypeReference(normalizedTarget)
+	var match *node.Dependency
+	for i := range dependencies {
+		if unqualifiedTypeReference(NormalizeTypeReference(dependencies[i].Target)) != baseTarget {
+			continue
+		}
+		if match != nil {
+			return nil
+		}
+		match = &dependencies[i]
+	}
+	return match
+}
+
+func unqualifiedTypeReference(typeRef string) string {
+	typeRef = strings.TrimSpace(typeRef)
+	if index := strings.LastIndex(typeRef, "::"); index >= 0 {
+		typeRef = typeRef[index+2:]
+	}
+	if index := strings.LastIndex(typeRef, "."); index >= 0 {
+		typeRef = typeRef[index+1:]
+	}
+	return strings.TrimSpace(typeRef)
+}
+
+func parametersFromConstructor(constructor *node.Constructor) []node.Parameter {
+	if constructor == nil {
+		return nil
+	}
+	return constructor.Parameters
+}
+
+func parametersFromMethod(method *node.Method) []node.Parameter {
+	if method == nil {
+		return nil
+	}
+	return method.Parameters
+}
+
+func returnsFromMethod(method *node.Method) node.Returns {
+	if method == nil {
+		return node.Returns{}
+	}
+	return method.Returns
+}
+
+func mergeExtractedParameters(extracted []ExtractedParameter, authored []node.Parameter) []node.Parameter {
+	merged := make([]node.Parameter, 0, len(extracted))
+	for _, parameter := range extracted {
+		result := node.Parameter{Name: parameter.Name, Type: parameter.Type}
+		for _, oldParameter := range authored {
+			if oldParameter.Name != parameter.Name {
+				continue
+			}
+			result.Description = oldParameter.Description
+			result.Optional = oldParameter.Optional
+			result.Default = oldParameter.Default
+			result.Constraint = oldParameter.Constraint
+			result.Examples = append([]string(nil), oldParameter.Examples...)
+			result.Enum = append([]string(nil), oldParameter.Enum...)
+			break
+		}
+		merged = append(merged, result)
+	}
+	return merged
+}
+
+func mergeExtractedReturns(extractedType string, authored node.Returns) node.Returns {
+	result := authored
+	if strings.TrimSpace(extractedType) != "" {
+		result.Type = extractedType
+	}
+	return result
 }
 
 // GetParser returns the appropriate parser for the given language
