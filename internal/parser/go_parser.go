@@ -69,7 +69,10 @@ func (p *GoParser) parseFileNodes(filePath string) (string, []*ExtractedNode, er
 	pkgName := file.Name.Name
 	nodes := make([]*ExtractedNode, 0)
 	nodeByID := make(map[string]*ExtractedNode)
-	localTypeKinds := make(map[string]string)
+	localTypeKinds, err := packageTypeKinds(filePath, pkgName)
+	if err != nil {
+		return "", nil, err
+	}
 	structTypes := make(map[string]*ast.StructType)
 
 	for _, decl := range file.Decls {

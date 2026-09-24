@@ -300,8 +300,9 @@ func buildDriftReport(spec *node.Spec, extracted *parser.ExtractedNode) driftRep
 			report.MissingDeps = append(report.MissingDeps, dep)
 		}
 	}
+	ownedTypes := specOwnedTypes(spec)
 	for dep := range codeDeps {
-		if !specDeps[dep] {
+		if !specDeps[dep] && !ownedTypes[dep] {
 			report.ExtraDeps = append(report.ExtraDeps, dep)
 		}
 	}
