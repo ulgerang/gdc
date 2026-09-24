@@ -96,6 +96,79 @@ impl UserService {
 	}
 }
 
+func TestRustParserExtractsFallibleConstructorFromResultSelf(t *testing.T) {
+	tempDir := t.TempDir()
+	rustCode := `use std::sync::Arc;
+
+pub struct CredentialService {
+    repo: Arc<dyn UserRepository>,
+}
+
+impl CredentialService {
+    pub fn new(repo: Arc<dyn UserRepository>) -> Result<Self, ServiceError> {
+        Ok(Self { repo })
+    }
+
+    pub fn find(&self, id: &str) -> Result<User, ServiceError> {
+        todo!()
+    }
+}
+`
+
+	filePath := filepath.Join(tempDir, "credential_service.rs")
+	if err := os.WriteFile(filePath, []byte(rustCode), 0o644); err != nil {
+		t.Fatalf("failed to write rust fixture: %v", err)
+	}
+
+	p := NewRustParser()
+	nodes, err := p.ParseFileNodes(filePath)
+	if err != nil {
+		t.Fatalf("failed to parse rust file: %v", err)
+	}
+	if len(nodes) != 1 {
+		t.Fatalf("expected 1 extracted node, got %d", len(nodes))
+	}
+
+	service := nodes[0]
+	if len(service.Constructors) != 1 {
+		t.Fatalf("expected one fallible constructor, got %d", len(service.Constructors))
+	}
+	if len(service.Methods) != 1 || service.Methods[0].Name != "find" {
+		t.Fatalf("expected only public inherent methods, got %+v", service.Methods)
+	}
+}
+
+func TestRustParserTreatsResultOwnerConstructorAsConstructor(t *testing.T) {
+	tempDir := t.TempDir()
+	rustCode := `pub struct SessionRegistry {
+    sessions: u32,
+}
+
+impl SessionRegistry {
+    pub fn new() -> Result<SessionRegistry, RegistryError> {
+        Ok(Self { sessions: 0 })
+    }
+}
+`
+
+	filePath := filepath.Join(tempDir, "session_registry.rs")
+	if err := os.WriteFile(filePath, []byte(rustCode), 0o644); err != nil {
+		t.Fatalf("failed to write rust fixture: %v", err)
+	}
+
+	p := NewRustParser()
+	nodes, err := p.ParseFileNodes(filePath)
+	if err != nil {
+		t.Fatalf("failed to parse rust file: %v", err)
+	}
+	if len(nodes) != 1 {
+		t.Fatalf("expected 1 extracted node, got %d", len(nodes))
+	}
+	if len(nodes[0].Constructors) != 1 {
+		t.Fatalf("expected one Result<Owner> constructor, got %d", len(nodes[0].Constructors))
+	}
+}
+
 func TestRustParserParseFileReturnsFirstExtractedNode(t *testing.T) {
 	tempDir := t.TempDir()
 	rustCode := `pub trait Clock {

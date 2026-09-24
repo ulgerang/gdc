@@ -548,7 +548,19 @@ func isRustConstructor(method ExtractedMethod, owner string) bool {
 	if method.Name != "new" {
 		return false
 	}
-	return method.Returns == "Self" || method.Returns == owner
+	returns := strings.TrimSpace(method.Returns)
+	if returns == "Self" || returns == owner {
+		return true
+	}
+	// Fallible constructors return Result<Self, Error> (or Result<Owner, ...>):
+	// they still create the node, so the first Result type argument decides.
+	if strings.HasPrefix(returns, "Result<") && strings.HasSuffix(returns, ">") {
+		inner := strings.TrimSuffix(strings.TrimPrefix(returns, "Result<"), ">")
+		first, _, _ := strings.Cut(inner, ",")
+		first = strings.TrimSpace(first)
+		return first == "Self" || first == owner
+	}
+	return false
 }
 
 func findMatchingParen(value string, openIdx int) int {
